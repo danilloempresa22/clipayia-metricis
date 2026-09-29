@@ -52,7 +52,7 @@ def test_index_leva_token_e_api_exige_token(app):
 
 def test_erro_inesperado_vira_json_e_nao_conexao_caida(app, monkeypatch):
     chama, *_ = app
-    def quebra(): raise RuntimeError("tk quebrou")
+    def quebra(*a): raise RuntimeError("tk quebrou")
     monkeypatch.setattr(servidor, "escolhe_arquivo", quebra)
     c, r = chama("/api/escolher-arquivo", {})
     assert c == 500 and "tk quebrou" in r["erro"]
@@ -99,6 +99,30 @@ def test_analise_inexistente_e_arquivo_invalido(app):
     assert chama("/api/analisar", {"caminho": __file__})[0] == 400                 # nao e' video
     c, r = chama("/api/gerar", {"analise": "fantasma"})
     assert "expirou" in espera(r["id"])["erro"]
+
+
+def test_fluxo_legenda_complexa_pela_api(app, video_vertical, raiz_capcut, monkeypatch):
+    chama, espera, estado, base = app
+    from clipay import palavras
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
+        *palavras.espalha("isso aqui muda tudo", [[0.0, 3.0]]), *palavras.espalha("você nunca tentou", [[4.5, 7.5]])])
+    c, r = chama("/api/analisar", {"caminho": str(video_vertical), "modo": "legenda"})
+    assert c == 200
+    j = espera(r["id"]); assert "erro" not in j, j
+    a = j["resultado"]
+    assert a["modo"] == "legenda" and [p[2] for p in a["palavras"]][:2] == ["isso", "aqui"]
+    # previa: sem token = 403; com token e Range = 206 com o pedaco pedido
+    assert urllib.request.urlopen(urllib.request.Request(f"{base}/api/video?analise={a['analise']}&t={servidor.TOKEN}",
+                                                         headers={"Range": "bytes=0-99"})).status == 206
+    try:
+        urllib.request.urlopen(f"{base}/api/video?analise={a['analise']}&t=errado"); assert False
+    except urllib.error.HTTPError as e:
+        assert e.code == 403
+    c, r = chama("/api/gerar", {"analise": a["analise"], "texto": "isso aqui muda [tudo] você nunca tentou",
+                                "inicio": a["palavras"][1][0], "zoom": 1.3, "velocidade": 1.15, "nome": "Via API"})
+    j = espera(r["id"]); assert "erro" not in j, j
+    assert j["resultado"]["enfases"] == 1 and (Path(raiz_capcut) / "Via API" / "subdraft").is_dir()
+    assert estado["usos"] == 1
 
 
 def test_painel_conta_videos_e_historico(app, video_vertical, monkeypatch):

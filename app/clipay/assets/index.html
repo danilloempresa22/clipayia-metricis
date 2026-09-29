@@ -154,6 +154,35 @@ nav{display:flex;flex-direction:column;gap:4px}
 .nums b.ok{color:var(--acc)}
 .sub{color:var(--mudo);margin:0 0 18px}
 
+/* ---------- escolha de modo e revisao da legenda ---------- */
+.modos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.modo{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--card);border:1.5px solid var(--linha);
+  color:var(--txt);padding:16px 18px;border-radius:var(--raio);font-weight:500}
+.modo:hover:not(:disabled){background:var(--card2)}
+.modo b{font-size:15px}.modo span{font-size:13px;color:var(--mudo)}
+.modo.on{border-color:var(--acc);background:var(--ok-fundo)}
+.modo.on:hover{background:var(--ok-fundo)}
+.lg-grade{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:14px;margin-bottom:14px;align-items:start}
+.previa{position:relative;overflow:hidden;border-radius:10px;background:#000;aspect-ratio:9/16;max-height:520px;margin:0 auto}
+.previa.horizontal{aspect-ratio:16/9}
+.previa video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .15s}
+.chave{display:flex;align-items:center;gap:10px;color:var(--txt);font-size:14px;margin:0 0 12px;cursor:pointer}
+.chave input{width:18px;height:18px;accent-color:var(--acc)}
+.deslize{display:flex;align-items:center;gap:12px}
+.deslize input{flex:1;accent-color:var(--acc)}
+.deslize output{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--txt)}
+.deslize.desligado{opacity:.4;pointer-events:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow:auto;padding:2px}
+.chip{background:var(--bg);border:1px solid var(--linha);color:var(--txt);padding:4px 9px;border-radius:8px;font-weight:500;font-size:13px}
+.chip:hover:not(:disabled){background:var(--card2)}
+.chip.antes{opacity:.35;text-decoration:line-through}
+.chip.gancho{background:var(--acc);border-color:var(--acc);color:var(--acc-tinta)}
+.marcas{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--mudo);margin:0 0 10px}
+.marcas code{color:var(--txt);background:var(--bg);border:1px solid var(--linha);border-radius:5px;padding:0 5px}
+textarea{width:100%;background:var(--bg);border:1px solid var(--linha);border-radius:10px;padding:12px 14px;color:var(--txt);font:15px/1.6 var(--fonte);resize:vertical}
+textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+@media (max-width:900px){.lg-grade{grid-template-columns:1fr}.modos{grid-template-columns:1fr}}
+
 /* ---------- login (tela cheia, sem sidebar) ---------- */
 .login{min-height:100vh;display:grid;place-items:center;padding:24px}
 .login .card{width:100%;max-width:400px;padding:28px}
@@ -280,6 +309,12 @@ nav{display:flex;flex-direction:column;gap:4px}
           <div id="imp-erro" class="msg erro oculto"></div>
           <div id="sem-capcut" class="msg aviso oculto">Não achei a pasta de projetos do CapCut. Informe o caminho abaixo.
             <div class="linha" style="margin-top:10px"><input type="text" id="raiz" placeholder="C:\Users\...\CapCut\User Data\Projects\com.lveditor.draft" style="flex:1"><button id="salvar-raiz" class="sec">Salvar</button></div></div>
+          <div class="modos" role="radiogroup" aria-label="Modo de edição">
+            <button class="modo on" data-modo="cortes" role="radio" aria-checked="true">
+              <b>Cortes + Headline</b><span>Corte seco sem respiração, zoom punch-in e frase fixa no topo.</span></button>
+            <button class="modo" data-modo="legenda" role="radio" aria-checked="false">
+              <b>Legenda Complexa</b><span>Legenda acumulada em escada, palavras em ênfase, música de fundo.</span></button>
+          </div>
           <div class="drop" id="drop">
             <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
             <p style="margin:0 0 16px;font-size:15px"><b>Arraste o vídeo bruto aqui</b> ou escolha no computador</p>
@@ -323,6 +358,60 @@ nav{display:flex;flex-direction:column;gap:4px}
           </div>
         </div>
 
+        <div id="tela-revisao-legenda" class="oculto pilha">
+          <p class="sub" id="lg-arq"></p>
+          <div id="lg-erro" class="msg erro oculto"></div>
+          <div class="card"><div class="nums">
+            <div><b id="lg-antes">–</b>original</div><div><b class="ok" id="lg-depois">–</b>depois dos cortes</div><div><b id="lg-cortes">–</b>trechos</div></div></div>
+
+          <div class="lg-grade">
+            <div class="card previa-card">
+              <h2>Prévia</h2>
+              <div class="previa" id="previa"><video id="lg-video" preload="metadata" playsinline controls></video></div>
+              <p class="sub" id="previa-aviso" style="margin:8px 0 0;font-size:12px"></p>
+            </div>
+            <div class="pilha" style="min-width:0">
+              <div class="card">
+                <h2>Zoom</h2>
+                <label class="chave"><input type="checkbox" id="lg-zoom-on"> Aplicar zoom no vídeo inteiro</label>
+                <div class="deslize" id="lg-zoom-box"><input type="range" id="lg-zoom" min="1" max="1.47" step="0.01" value="1.3" aria-label="Intensidade do zoom"><output id="lg-zoom-v">1,30×</output></div>
+                <p class="sub" style="margin:8px 0 0;font-size:12px">Com zoom, as ênfases ficam menores para não tampar o rosto.</p>
+              </div>
+              <div class="card">
+                <h2>Música de fundo <span style="color:var(--mudo);font-weight:400;font-size:13px">(opcional)</span></h2>
+                <div class="linha"><button class="sec" id="lg-musica">Escolher música</button><span id="lg-musica-nome" class="sub" style="margin:0"></span>
+                  <button class="icone oculto" id="lg-musica-tira" aria-label="Tirar música">✕</button></div>
+                <div class="deslize oculto" id="lg-vol-box" style="margin-top:12px"><input type="range" id="lg-vol" min="0" max="0.3" step="0.002" value="0.068" aria-label="Volume da música"><output id="lg-vol-v"></output></div>
+              </div>
+              <div class="card">
+                <h2>Velocidade</h2>
+                <div class="deslize"><input type="range" id="lg-vel" min="1" max="1.5" step="0.01" value="1.15" aria-label="Velocidade final"><output id="lg-vel-v">1,15×</output></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Onde o vídeo começa <span id="lg-ini-v" style="color:var(--mudo);font-weight:400;font-size:13px"></span></h2>
+            <label>Clique na palavra do gancho: tudo antes dela sai do vídeo.</label>
+            <div class="chips" id="lg-palavras"></div>
+          </div>
+
+          <div class="card">
+            <h2>Texto da legenda</h2>
+            <label for="lg-texto">Edite à vontade: é exatamente isso que aparece na tela. Apague o que não quer, corrija erros e marque as ênfases.</label>
+            <div class="marcas">
+              <span><code>[palavra]</code> ênfase forte (vermelha)</span><span><code>*palavra*</code> ênfase leve</span>
+              <span><code>palavra?</code> pergunta</span><span><code>por**grafia</code> censura</span>
+            </div>
+            <textarea id="lg-texto" rows="9" spellcheck="true"></textarea>
+          </div>
+
+          <div class="card">
+            <div class="campo"><label for="lg-nome">Nome do projeto no CapCut</label><input type="text" id="lg-nome"></div>
+            <div class="linha"><button id="lg-gerar">Gerar projeto no CapCut</button><button class="sec" id="lg-voltar">Trocar de vídeo</button></div>
+          </div>
+        </div>
+
         <div id="tela-pronto" class="oculto">
           <div class="card">
             <div class="linha" style="gap:10px;margin-bottom:6px"><span class="badge pos"><svg class="ic" style="width:14px;height:14px"><use href="#i-check"/></svg>Pronto</span></div>
@@ -348,7 +437,8 @@ nav{display:flex;flex-direction:column;gap:4px}
 <script>
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
-const telasEdicao = ["inativa","importar","progresso","revisao","pronto"];
+const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","pronto"];
+let modo = "cortes", gancho = null, musica = "";
 let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
 
 function seg(s){ s = Math.round(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
@@ -390,7 +480,9 @@ function pagina(nome){
 }
 function mostra(tela){
   telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
-  $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", progresso:"Processando", pronto:"Edição concluída"}[tela] || "Edição";
+  $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", "revisao-legenda":"Revise a legenda", progresso:"Processando",
+    pronto:"Edição concluída"}[tela] || "Edição";
+  if(tela !== "revisao-legenda"){ const v = $("lg-video"); if(!v.paused) v.pause(); }
 }
 document.querySelectorAll(".nav").forEach(b => b.onclick = () => pagina(b.dataset.pag));
 $("ir-inicio").onclick = () => pagina("inicio");
@@ -495,14 +587,20 @@ function grafico(semanas){
 }
 
 // ---------------- edicao: importar ----------------
+document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
+  modo = b.dataset.modo;
+  document.querySelectorAll(".modo").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
+});
 async function analisar(caminho){
   erro("imp-erro"); ocupado = true; mostra("progresso");
   $("prog-titulo").textContent = "Analisando o vídeo…";
-  $("prog-sub").textContent = "Lendo o áudio, transcrevendo e achando os cortes. Na primeira vez baixa o modelo de transcrição.";
+  $("prog-sub").textContent = modo === "legenda"
+    ? "Transcrevendo palavra por palavra e achando os cortes. Pode levar alguns minutos."
+    : "Lendo o áudio, transcrevendo e achando os cortes. Na primeira vez baixa o modelo de transcrição.";
   try{
-    const {id} = await api("analisar", {caminho});
+    const {id} = await api("analisar", {caminho, modo});
     analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    abreRevisao();
+    analise.modo === "legenda" ? abreRevisaoLegenda() : abreRevisao();
   }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
   ocupado = false;
 }
@@ -557,10 +655,80 @@ $("gerar").onclick = async () => {
     const remover = [...removidas].map(i => [analise.frases[i][0], analise.frases[i][1]]);
     const {id} = await api("gerar", {analise: analise.analise, headline: $("headline").value, rosto: lado, remover, nome: $("nome").value});
     const r = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut.";
-    $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>pedaços</div><div><b>'+(r.zooms||0)+'</b>zooms</div>';
-    ocupado = false; mostra("pronto");
+    pronto(r);
   }catch(e){ mostra("revisao"); erro("rev-erro", e.message); }
+};
+function pronto(r){
+  $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut.";
+  const extra = r.modo === "legenda"
+    ? '<div><b>'+r.legendas+'</b>legendas</div><div><b>'+r.enfases+'</b>ênfases</div>'
+    : '<div><b>'+(r.zooms||0)+'</b>zooms</div>';
+  $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>trechos</div>' + extra;
+  ocupado = false; mostra("pronto");
+}
+
+// ---------------- edicao: revisao da LEGENDA COMPLEXA ----------------
+const fmt = (v, d) => Number(v).toFixed(d).replace(".", ",");
+function abreRevisaoLegenda(){
+  gancho = null; musica = "";
+  $("lg-arq").textContent = analise.nome + " · " + analise.largura + "×" + analise.altura;
+  $("lg-antes").textContent = seg(analise.duracao); $("lg-depois").textContent = seg(analise.depois); $("lg-cortes").textContent = analise.pedacos;
+  $("lg-nome").value = analise.nome.replace(/\.[^.]+$/, "") + " - legendado";
+  $("lg-texto").value = analise.palavras.map(p => p[2]).join(" ");
+  $("previa").classList.toggle("horizontal", analise.largura > analise.altura);
+  const v = $("lg-video");
+  v.src = "/api/video?analise=" + analise.analise + "&t=" + encodeURIComponent(TOKEN);
+  $("previa-aviso").textContent = "";
+  v.onerror = () => { $("previa-aviso").textContent = "Este formato não abre na prévia (comum em vídeos HEVC do iPhone). A edição funciona normalmente."; };
+  $("lg-zoom-on").checked = false; atualizaZoom();
+  $("lg-vel").value = 1.15; $("lg-vel-v").textContent = "1,15×";
+  $("lg-vol").value = 0.068; atualizaMusica();
+  const box = $("lg-palavras"); box.innerHTML = "";
+  analise.palavras.forEach((p, i) => {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = p[2];
+    b.title = "Começar em " + seg(p[0]) + " (clique de novo para desfazer)";
+    b.onclick = () => { gancho = gancho === i ? null : i; marcaGancho(); v.currentTime = p[0]; };
+    box.appendChild(b);
+  });
+  marcaGancho(); erro("lg-erro"); ocupado = true; mostra("revisao-legenda");
+}
+function marcaGancho(){
+  [...$("lg-palavras").children].forEach((b, i) => { b.classList.toggle("gancho", i === gancho); b.classList.toggle("antes", gancho !== null && i < gancho); });
+  $("lg-ini-v").textContent = gancho === null ? "· do início" : "· a partir de " + seg(analise.palavras[gancho][0]);
+}
+function atualizaZoom(){
+  const on = $("lg-zoom-on").checked, z = Number($("lg-zoom").value);
+  $("lg-zoom-box").classList.toggle("desligado", !on);
+  $("lg-zoom-v").textContent = fmt(z, 2) + "×";
+  $("lg-video").style.transform = on ? "scale(" + z + ")" : "none";
+}
+function atualizaMusica(){
+  const tem = !!musica;
+  $("lg-musica-nome").textContent = tem ? musica.split(/[\\/]/).pop() : "Nenhuma";
+  $("lg-musica-tira").classList.toggle("oculto", !tem); $("lg-vol-box").classList.toggle("oculto", !tem);
+  $("lg-vol-v").textContent = Math.round(Number($("lg-vol").value) * 100) + "%";
+}
+$("lg-zoom-on").onchange = $("lg-zoom").oninput = atualizaZoom;
+$("lg-vel").oninput = () => { $("lg-vel-v").textContent = fmt($("lg-vel").value, 2) + "×"; };
+$("lg-vol").oninput = atualizaMusica;
+$("lg-musica").onclick = async () => {
+  try{ const {caminho} = await api("escolher-arquivo", {tipo: "musica"}); if(caminho){ musica = caminho; atualizaMusica(); } }
+  catch(e){ erro("lg-erro", e.message); }
+};
+$("lg-musica-tira").onclick = () => { musica = ""; atualizaMusica(); };
+$("lg-voltar").onclick = () => { ocupado = false; mostra("importar"); };
+$("lg-gerar").onclick = async () => {
+  erro("lg-erro");
+  if(!$("lg-texto").value.trim()){ erro("lg-erro", "O texto da legenda está vazio."); return; }
+  mostra("progresso");
+  $("prog-titulo").textContent = "Montando a legenda e o projeto…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
+  try{
+    const {id} = await api("gerar", {analise: analise.analise, texto: $("lg-texto").value,
+      inicio: gancho === null ? null : analise.palavras[gancho][0],
+      zoom: $("lg-zoom-on").checked ? Number($("lg-zoom").value) : null,
+      velocidade: Number($("lg-vel").value), musica, volume: Number($("lg-vol").value), nome: $("lg-nome").value});
+    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
+  }catch(e){ mostra("revisao-legenda"); erro("lg-erro", e.message); }
 };
 $("abrir-capcut").onclick = async () => { const r = await api("abrir-capcut", {}); if(!r.ok) alert("Não achei o CapCut. Abra-o manualmente."); };
 $("outro").onclick = () => mostra("importar");

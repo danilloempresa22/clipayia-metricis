@@ -1,7 +1,7 @@
 """Servidor local (so 127.0.0.1) que serve a tela do app e roda as edicoes em segundo plano.
 Toda chamada /api exige o token da sessao (so quem abriu a tela do app o conhece) e o Host local:
 assim nenhuma pagina qualquer da internet consegue mandar o app processar coisas."""
-import json, os, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil
+import json, os, re, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil
 from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -109,14 +109,18 @@ def novo_job(fn):
     return jid
 
 
-def escolhe_arquivo():
-    """janela nativa do Windows pra escolher o video (caminho direto: nao copia arquivo de GBs)"""
+EXT_AUDIO = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac")
+
+
+def escolhe_arquivo(tipo="video"):
+    """janela nativa do Windows pra escolher o arquivo (caminho direto: nao copia arquivo de GBs)"""
     import tkinter as tk
     from tkinter import filedialog
     r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
+    titulo, rot, ext = (("Escolha a música de fundo", "Áudio", EXT_AUDIO) if tipo == "musica"
+                        else ("Escolha o vídeo bruto", "Vídeos", EXT_VIDEO))
     try:
-        return filedialog.askopenfilename(title="Escolha o vídeo bruto", parent=r,
-                                          filetypes=[("Vídeos", " ".join("*" + e for e in EXT_VIDEO)), ("Todos", "*.*")])
+        return filedialog.askopenfilename(title=titulo, parent=r, filetypes=[(rot, " ".join("*" + e for e in ext)), ("Todos", "*.*")])
     finally:
         r.destroy()
 
@@ -130,12 +134,20 @@ def abre_capcut():
     return False
 
 
-def trabalho_analisa(caminho, modelo):
+def trabalho_analisa(caminho, modelo, modo="cortes"):
     def fn(avisa):
         conta.exige_ativa()
         raiz = raiz_atual()
         if not raiz:
             raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho nas configurações.")
+        if modo == "legenda":
+            an = processa.analisa_legenda(raiz, caminho, {"modelo": modelo}, avisa)
+            aid = uuid.uuid4().hex[:10]
+            ANALISES[aid] = an
+            return {"analise": aid, "modo": "legenda", "nome": an["video"].name, "duracao": an["info"]["duracao"],
+                    "depois": sum(b - a for a, b in an["keep"]), "pedacos": len(an["keep"]),
+                    "palavras": [[round(p["a"], 2), round(p["b"], 2), p["t"]] for p in an["mantidas"]],
+                    "largura": an["info"]["largura"], "altura": an["info"]["altura"]}
         an = processa.analisa_video(raiz, caminho, {"transcrever": True, "modelo": modelo}, avisa)
         aid = uuid.uuid4().hex[:10]
         ANALISES[aid] = an
@@ -155,22 +167,38 @@ def trabalho_gera(c):
         if not an:
             raise capcut.ErroProjeto("Essa análise expirou. Importe o vídeo de novo.")
         raiz = raiz_atual()
+        if "mantidas" in an:                             # Legenda Complexa
+            num = lambda k, lo, hi, pad: min(hi, max(lo, float(c[k]))) if c.get(k) not in (None, "") else pad
+            musica = (c.get("musica") or "").strip()
+            if musica and (not Path(musica).is_file() or Path(musica).suffix.lower() not in EXT_AUDIO):
+                raise capcut.ErroProjeto("Não achei o arquivo da música. Escolha de novo.")
+            op = {"texto": c.get("texto") or "", "inicio": num("inicio", 0, 1e6, None),
+                  "zoom": num("zoom", 1.0, 1.6, None), "velocidade": num("velocidade", 1.0, 2.0, 1.15),
+                  "musica": musica or None, "volume": num("volume", 0.0, 1.0, 0.068),
+                  "nome": (c.get("nome") or "").strip() or None}
+            r = processa.monta_legenda(raiz, an, op, avisa)
+            _conta_uso(r)
+            return r
         rem = [[float(a), float(b)] for a, b in (c.get("remover") or []) if float(b) > float(a)]
         op = {"headline": (c.get("headline") or "").strip(), "rosto": c.get("rosto", "centro"),
               "remover": rem, "nome": (c.get("nome") or "").strip() or None}
         if op["rosto"] not in ("esquerda", "centro", "direita"):
             op["rosto"] = "centro"
         r = processa.monta_video(raiz, an, op, avisa)
-        try:
-            anota_historico(r)
-        except OSError:
-            traceback.print_exc()
-        try:
-            conta.registra_processamento()               # so contagem: nenhum video sai da maquina
-        except conta.ErroConta:
-            traceback.print_exc()                        # falha de contagem nao invalida o projeto ja gravado
+        _conta_uso(r)
         return r
     return fn
+
+
+def _conta_uso(r):
+    try:
+        anota_historico(r)
+    except OSError:
+        traceback.print_exc()
+    try:
+        conta.registra_processamento()                   # so contagem: nenhum video sai da maquina
+    except conta.ErroConta:
+        traceback.print_exc()                            # falha de contagem nao invalida o projeto ja gravado
 
 
 class H(BaseHTTPRequestHandler):
@@ -224,6 +252,8 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
         if not u.path.startswith("/api/"):
             self.send_response(404); self.end_headers(); return
+        if u.path == "/api/video":                       # previa da revisao: <video> nao manda cabecalho, token vai na URL
+            return self._video(q)
         if not self._autorizado(): return
         try:
             if u.path == "/api/sessao":
@@ -239,6 +269,33 @@ class H(BaseHTTPRequestHandler):
         except conta.ErroConta as e:
             return self._json({"erro": str(e)}, 400)
         self.send_response(404); self.end_headers()
+
+    def _video(self, q):
+        """so o video de uma analise existente, so com o token; com Range (o <video> precisa pra pular no tempo)"""
+        host = (self.headers.get("Host") or "").split(":")[0]
+        an = ANALISES.get(q.get("analise", [""])[0])
+        if host not in ("127.0.0.1", "localhost") or not secrets.compare_digest(q.get("t", [""])[0], TOKEN) or not an:
+            self.send_response(403); self.end_headers(); return
+        p = Path(an["video"]); tam = p.stat().st_size
+        a, b = 0, tam - 1
+        rg = re.match(r"bytes=(\d*)-(\d*)", self.headers.get("Range", ""))
+        if rg:
+            if rg[1]: a = int(rg[1])
+            if rg[2]: b = min(int(rg[2]), tam - 1)
+            elif not rg[1]: a = max(0, tam - int(rg[2] or 0))
+            b = min(b, a + (8 << 20) - 1)                # blocos de ate 8 MB
+        self.send_response(206 if rg else 200)
+        self.send_header("Content-Type", "video/quicktime" if p.suffix.lower() == ".mov" else "video/mp4")
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(b - a + 1))
+        if rg: self.send_header("Content-Range", f"bytes {a}-{b}/{tam}")
+        self.end_headers()
+        with open(p, "rb") as f:
+            f.seek(a); falta = b - a + 1
+            while falta > 0:
+                bl = f.read(min(1 << 20, falta))
+                if not bl: break
+                self.wfile.write(bl); falta -= len(bl)
 
     def _post(self):
         u = urlparse(self.path)
@@ -268,13 +325,14 @@ class H(BaseHTTPRequestHandler):
                 cfg = le_cfg(); cfg["raiz"] = str(p); grava_cfg(cfg)
                 return self._json({"ok": True})
             if u.path == "/api/escolher-arquivo":
-                return self._json({"caminho": escolhe_arquivo() or ""})
+                return self._json({"caminho": escolhe_arquivo(c.get("tipo", "video")) or ""})
             if u.path == "/api/analisar":
                 p = Path(c.get("caminho", ""))
                 if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
                     return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
+                modo = c.get("modo", "cortes") if c.get("modo") in ("cortes", "legenda") else "cortes"
                 conta.exige_ativa()                       # falha logo, antes de gastar CPU
-                return self._json({"id": novo_job(trabalho_analisa(str(p), c.get("modelo", "preciso")))})
+                return self._json({"id": novo_job(trabalho_analisa(str(p), c.get("modelo", "preciso"), modo))})
             if u.path == "/api/gerar":
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_gera(c))})

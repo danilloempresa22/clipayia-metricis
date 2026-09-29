@@ -2,7 +2,7 @@
 import re, tempfile
 from pathlib import Path
 import numpy as np
-from . import capcut, vlog, reels, transcricao, audio, rosto
+from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto
 
 
 def agrupa(pl):
@@ -13,6 +13,97 @@ def agrupa(pl):
         c["antes"] += p["dur"]; c["depois"] += sum(q[1] - q[0] for q in p["keep"]); c["pedacos"] += len(p["keep"])
         if p["tipo"] != c["tipo"]: c["tipo"] = "misto"
     return list(g.values())
+
+
+def _whisper(qual, avisa, fr0=0.1, fr1=0.2):
+    if not transcricao.modelo_pronto(qual):
+        transcricao.baixa_modelo(qual, lambda f, t: avisa("Baixando o modelo de transcrição (só na 1ª vez)", fr0 + (fr1 - fr0) * f / t))
+    return transcricao.Whisper(qual)
+
+
+# ---------------- LEGENDA COMPLEXA ----------------
+def analisa_legenda(raiz, video_path, opcoes=None, avisa=None):
+    """1a metade: le o video, transcreve palavra a palavra e aplica a regua de corte por palavra. NAO grava nada.
+    Devolve 'an' pra tela de revisao (o usuario edita o texto, marca enfases, escolhe onde comeca)."""
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    video, info, draft, meta = _prepara_video(raiz, video_path, avisa)
+    avisa("Lendo o áudio", 0.06)
+    x = audio.pcm(video)
+    if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
+        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo (sem áudio ou totalmente mudo).")
+    w = _whisper(op.get("modelo", "preciso"), avisa)
+    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo palavra por palavra", 0.2 + 0.72 * i / n))
+    avisa("Achando os cortes", 0.95)
+    keep, mantidas = legenda.cortes(pal, info["duracao"])
+    if not mantidas:
+        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo.")
+    return {"video": video, "info": info, "draft": draft, "meta": meta, "palavras": pal, "keep": keep, "mantidas": mantidas}
+
+
+def monta_legenda(raiz, an, opcoes=None, avisa=None):
+    """2a metade: texto editado (com marcadores) + inicio + zoom + velocidade + musica -> projeto novo no CapCut.
+    Roda a checklist da especificacao ANTES de gravar e de novo depois das pastas subdraft existirem."""
+    import copy
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    avisa("Montando a legenda", 0.1)
+    inicio = op.get("inicio")                                          # s na origem: inicio da palavra-gancho
+    corte = None if inicio is None else max(0.0, float(inicio) - legenda.PAD_FRASE[0])
+    keep, _ = legenda.a_partir_de(an["keep"], an["mantidas"], corte)
+    if not keep:
+        raise capcut.ErroProjeto("Não sobrou nada do vídeo a partir da palavra escolhida para começar.")
+    toks = legenda.tokens(op.get("texto") or "")
+    if not toks:
+        raise capcut.ErroProjeto("O texto da legenda está vazio.")
+    toks = legenda.alinha(toks, an["mantidas"])
+    if inicio is not None:
+        toks = [t for t in toks if t["t0"] >= inicio - 0.05]          # palavras da rampa cortada nao entram
+        if not toks:
+            raise capcut.ErroProjeto("Todo o texto ficou antes da palavra escolhida para começar.")
+    f, total = legenda.mapa_tempo(keep)
+    for t in toks:
+        t["t0"] = f(t["t0"])
+    for i in range(1, len(toks)):
+        toks[i]["t0"] = max(toks[i]["t0"], toks[i - 1]["t0"] + 0.01)
+    zoom = op.get("zoom")
+    segs = legenda.monta(toks, total, bool(zoom))
+    erros = legenda.verifica(segs, total)
+    if erros:
+        raise composto.ErroMontagem("A legenda não passou na verificação: " + "; ".join(erros[:4]))
+
+    mus = None
+    if op.get("musica"):
+        p = Path(op["musica"])
+        try:
+            mus = {"path": p, "nome": p.stem, "dur": audio.duracao(p), "volume": float(op.get("volume", 0.068))}
+        except (RuntimeError, OSError) as e:
+            raise capcut.ErroProjeto(f"Não consegui usar a música: {e}")
+    avisa("Montando os clipes compostos", 0.4)
+    base, meta = copy.deepcopy(an["draft"]), copy.deepcopy(an["meta"])
+    raiz_d, compostos = composto.monta(base, meta, keep, segs, {"zoom": zoom, "velocidade": op.get("velocidade"), "musica": mus},
+                                       capcut.cache_efeitos(raiz))
+    erros = composto.verifica(raiz_d)
+    if erros:
+        raise composto.ErroMontagem("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(erros[:4]))
+
+    avisa("Gravando no CapCut", 0.8)
+    with tempfile.TemporaryDirectory() as tmp:
+        capa = Path(tmp) / "draft_cover.jpg"
+        audio.capa(an["video"], capa)
+        capa = capa if capa.exists() else None
+
+        def extras(pasta):
+            composto.grava_subdrafts(pasta, compostos, capa)
+            e = composto.verifica(raiz_d, pasta)                        # item 6: pastas subdraft existem de verdade
+            if e:
+                raise composto.ErroMontagem("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(e[:4]))
+        nome = capcut.grava_projeto(raiz, op.get("nome") or an["video"].stem + " - legendado",
+                                    composto.limpa_para_gravar(raiz_d), meta, capa, extras)
+    avisa("Pronto", 1.0)
+    return {"nome": nome, "modo": "legenda", "antes": an["info"]["duracao"], "depois": raiz_d["duration"] / 1e6,
+            "pedacos": len(keep), "legendas": len(segs), "enfases": sum(1 for s in segs if s["tipo"] != "normal"),
+            "zooms": 1 if zoom else 0}
 
 
 def processa(raiz, pasta, modo, opcoes=None, avisa=None):

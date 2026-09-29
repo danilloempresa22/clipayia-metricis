@@ -68,6 +68,16 @@ def probe_video(path):
             "tem_audio": any("Audio:" in l and "Stream" in l for l in t.splitlines())}
 
 
+def duracao(path):
+    """duracao em s de qualquer midia (musica inclusive, que nao tem trilha de video)"""
+    r = subprocess.run([ffmpeg_bin(), "-hide_banner", "-i", str(path)], capture_output=True, **_sem_janela())
+    t = r.stderr.decode("utf-8", errors="ignore")
+    d = re.search(r"Duration: (\d+):(\d+):(\d+\.\d+)", t)
+    if not d or "Audio:" not in t:
+        raise RuntimeError(f"Não consegui ler o áudio: {Path(path).name}")
+    return int(d[1]) * 3600 + int(d[2]) * 60 + float(d[3])
+
+
 def capa(path, destino, segundo=0.5):
     """primeiro quadro do video como JPEG (capa do projeto no CapCut)"""
     r = subprocess.run([ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{segundo:.2f}", "-i", str(path),

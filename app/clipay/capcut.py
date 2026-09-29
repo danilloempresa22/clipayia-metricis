@@ -277,9 +277,10 @@ def nome_livre(raiz, nome):
     return n
 
 
-def grava_projeto(raiz, nome, novo, meta0, capa=None):
+def grava_projeto(raiz, nome, novo, meta0, capa=None, extras=None):
     """grava SEMPRE em pasta nova (pasta que o CapCut ja abriu e' sobrescrita pelo autosave dele)
-    e registra no root_meta_info.json. Devolve o nome final."""
+    e registra no root_meta_info.json. extras(pasta): grava arquivos a mais (ex.: subdraft/) antes de registrar;
+    se falhar, a pasta inteira some. Devolve o nome final."""
     raiz = Path(raiz)
     nome = nome_livre(raiz, nome)
     pasta = raiz / nome
@@ -296,6 +297,8 @@ def grava_projeto(raiz, nome, novo, meta0, capa=None):
         (pasta / "draft_meta_info.json").write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         if capa and Path(capa).exists():
             shutil.copy(capa, pasta / "draft_cover.jpg")
+        if extras:
+            extras(pasta)
         registra(raiz, meta, fold)
     except BaseException:
         shutil.rmtree(pasta, ignore_errors=True)      # nunca deixa pasta de projeto pela metade
