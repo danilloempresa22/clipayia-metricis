@@ -358,9 +358,14 @@ function erro(id, msg){ const e = $(id); e.textContent = msg || ""; e.classList.
 function dataCurta(iso){ const d = new Date(iso); return d.toLocaleDateString("pt-BR", {day:"2-digit", month:"2-digit"}); }
 
 async function api(caminho, corpo, opcoes = {}){
-  const r = await fetch("/api/"+caminho, { method: corpo === undefined ? "GET" : "POST",
-    headers: { "X-Clipay-Token": TOKEN, ...(opcoes.headers||{}) },
-    body: corpo === undefined ? undefined : (opcoes.bruto ? corpo : JSON.stringify(corpo)) });
+  let r;
+  try{
+    r = await fetch("/api/"+caminho, { method: corpo === undefined ? "GET" : "POST",
+      headers: { "X-Clipay-Token": TOKEN, ...(opcoes.headers||{}) },
+      body: corpo === undefined ? undefined : (opcoes.bruto ? corpo : JSON.stringify(corpo)) });
+  }catch(e){   // "Failed to fetch": o navegador nao alcancou o app
+    throw new Error("Perdi a conexão com o Clipay.ia. Se você fechou a janela preta ou o app, abra-o de novo e recarregue esta página (F5).");
+  }
   const d = await r.json().catch(() => ({erro: "Resposta inválida do app."}));
   if(!r.ok || d.erro && !d.fim) throw new Error(d.erro || "Erro inesperado.");
   return d;

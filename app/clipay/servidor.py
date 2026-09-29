@@ -194,7 +194,25 @@ class H(BaseHTTPRequestHandler):
             self._json({"erro": "não autorizado"}, 403); return False
         return True
 
+    def _protegido(self, fn):
+        """qualquer erro inesperado vira resposta JSON (com o motivo), nunca conexao derrubada:
+        pro usuario, conexao derrubada aparece como 'Failed to fetch' e nao diz nada"""
+        try:
+            fn()
+        except (BrokenPipeError, ConnectionResetError):
+            pass                                          # o navegador desistiu da conexao
+        except Exception as e:
+            traceback.print_exc()
+            try: self._json({"erro": f"Erro inesperado no app: {e}"}, 500)
+            except OSError: pass
+
     def do_GET(self):
+        self._protegido(self._get)
+
+    def do_POST(self):
+        self._protegido(self._post)
+
+    def _get(self):
         u = urlparse(self.path); q = parse_qs(u.query)
         if u.path in ("/", "/index.html"):
             host = (self.headers.get("Host") or "").split(":")[0]
@@ -222,7 +240,7 @@ class H(BaseHTTPRequestHandler):
             return self._json({"erro": str(e)}, 400)
         self.send_response(404); self.end_headers()
 
-    def do_POST(self):
+    def _post(self):
         u = urlparse(self.path)
         if not self._autorizado(): return
         try:

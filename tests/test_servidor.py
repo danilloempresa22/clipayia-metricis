@@ -50,6 +50,14 @@ def test_index_leva_token_e_api_exige_token(app):
     assert chama("/api/estado")[0] == 200
 
 
+def test_erro_inesperado_vira_json_e_nao_conexao_caida(app, monkeypatch):
+    chama, *_ = app
+    def quebra(): raise RuntimeError("tk quebrou")
+    monkeypatch.setattr(servidor, "escolhe_arquivo", quebra)
+    c, r = chama("/api/escolher-arquivo", {})
+    assert c == 500 and "tk quebrou" in r["erro"]
+
+
 def test_host_estranho_e_barrado(app):
     chama, *_ = app
     assert chama("/api/estado", host="evil.example.com")[0] == 403
