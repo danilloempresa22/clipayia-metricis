@@ -6,7 +6,10 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
 );
 
-export const DOWNLOAD_URL = process.env.NEXT_PUBLIC_DOWNLOAD_URL || "";
+// Link permanente: sempre aponta para a release mais recente do GitHub.
+export const DOWNLOAD_URL =
+  process.env.NEXT_PUBLIC_DOWNLOAD_URL ||
+  "https://github.com/danilloempresa22/clipayia-metricis/releases/latest/download/Clipay.exe";
 
 // Traduz os erros mais comuns do Supabase Auth para português.
 export function traduzErro(msg: string): string {
