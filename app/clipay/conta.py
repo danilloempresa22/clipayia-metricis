@@ -106,6 +106,16 @@ def exige_ativa():
     return e
 
 
+def processamentos():
+    """datas (ISO) de todos os projetos que esta conta ja gerou, em qualquer computador"""
+    s = sessao()
+    if not s:
+        return []
+    r = _chama("GET", f"/rest/v1/processamentos?select=created_at&user_id=eq.{s['user_id']}&order=created_at.desc&limit=5000",
+               token=s["access_token"])
+    return [x["created_at"] for x in r or []]
+
+
 def registra_processamento():
     s = sessao()
     if s:

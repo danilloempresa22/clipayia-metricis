@@ -5,60 +5,187 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clipay.ia</title>
 <style>
-:root{--bg:#0e0f13;--card:#171922;--linha:#272a36;--txt:#eceef4;--mudo:#9096a8;--cor:#7c5cff;--cor2:#a48bff;--ok:#3ecf8e;--erro:#ff6b6b;--aviso:#f5b84b;
-  --fonte:"Segoe UI",system-ui,-apple-system,sans-serif}
+/* Paleta medida pixel a pixel na referencia (Referencia imagem/referencia app.jpg, mediana de cada regiao) */
+:root{
+  color-scheme:dark;
+  --bg:#0e0e0e;          /* moldura do app (entre os cards) */
+  --lateral:#191919;     /* painel da sidebar */
+  --card:#191919;        /* cards */
+  --card2:#232323;       /* card elevado / hover */
+  --linha:#232323;       /* bordas */
+  --txt:#fbfbfb;         /* numeros e titulos */
+  --mudo:#999999;        /* texto secundario (itens da sidebar) */
+  --acc:#6ec505;         /* verde-lima de destaque (grafico, bolha 30%, texto dos selos positivos) */
+  --acc2:#74ca0b;        /* lima mais aceso (hover) */
+  --acc-claro:#b2db72;   /* tile do item ativo da sidebar */
+  --acc-escuro:#426101;  /* lima fechado (bolha 50%) */
+  --acc-tinta:#0e0e0e;   /* texto sobre o lima */
+  --ok:#6ec505;          /* positivo = o mesmo lima */
+  --ok-fundo:#213215;    /* fundo do selo positivo */
+  --erro:#e8806b;        /* negativo (texto do selo vermelho) */
+  --erro-fundo:#321416;  /* fundo do selo negativo */
+  --aviso:#f5b84b;       /* nao existe na referencia; so para o aviso de pasta do CapCut */
+  --destaque-topo:#788f40; /* card em destaque: gradiente verde-oliva, claro no topo -> escuro na base */
+  --destaque-a:#495429;
+  --destaque-b:#242414;
+  --destaque-borda:#414826;
+  --ativo-bg:#ffffff;    /* item ativo da sidebar */
+  --ativo-txt:#0e0e0e;
+  --raio:16px;
+  --fonte:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 var(--fonte);min-height:100vh}
-header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--linha)}
-.logo{font-weight:700;font-size:20px;letter-spacing:-.02em}.logo b{color:var(--cor2)}
-#conta{display:flex;align-items:center;gap:12px;color:var(--mudo);font-size:13px}
-main{max-width:860px;margin:0 auto;padding:36px 24px 80px}
-h1{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}h2{font-size:18px;margin:0 0 14px}
-p.sub{color:var(--mudo);margin:0 0 24px}
-.card{background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:22px;margin-bottom:18px}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 var(--fonte)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 18px;font-weight:600;background:var(--acc);color:var(--acc-tinta)}
+button:hover:not(:disabled){background:var(--acc2)}
+button:disabled{opacity:.45;cursor:default}
+button.sec{background:transparent;border:1px solid var(--linha);color:var(--txt)}
+button.sec:hover:not(:disabled){background:var(--card2)}
+button.icone{background:transparent;color:var(--mudo);padding:6px;border-radius:8px}
+button.icone:hover:not(:disabled){background:var(--card2);color:var(--txt)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 label{display:block;font-size:13px;color:var(--mudo);margin:0 0 6px}
-input[type=text],input[type=email],input[type=password]{width:100%;background:#0e0f13;border:1px solid var(--linha);border-radius:10px;
-  padding:12px 14px;color:var(--txt);font:inherit}
-input:focus{outline:2px solid var(--cor);border-color:transparent}
+input[type=text],input[type=email],input[type=password]{width:100%;background:var(--bg);border:1px solid var(--linha);border-radius:10px;
+  padding:11px 14px;color:var(--txt);font:inherit}
+input:focus{outline:2px solid var(--acc);border-color:transparent}
 .campo{margin-bottom:16px}
-button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:12px 20px;font-weight:600;background:var(--cor);color:#fff}
-button:hover:not(:disabled){background:var(--cor2)}button:disabled{opacity:.45;cursor:default}
-button.sec{background:transparent;border:1px solid var(--linha);color:var(--txt)}button.sec:hover:not(:disabled){background:#20232f}
-button.link{background:none;padding:0;color:var(--cor2);font-weight:500}
 .linha{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.drop{border:2px dashed var(--linha);border-radius:16px;padding:56px 24px;text-align:center;transition:.15s}
-.drop.sobre{border-color:var(--cor);background:#1a1830}
-.drop .ico{font-size:40px;margin-bottom:8px}
+.oculto{display:none!important}
 .msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:16px}
-.msg.erro{background:#2a1a1d;border:1px solid #5b2a30;color:#ffb3b3}
-.msg.aviso{background:#2a2416;border:1px solid #5b4a1e;color:#f7d68c}
-.barra{height:10px;background:#0e0f13;border-radius:99px;overflow:hidden;margin:14px 0 8px}
-.barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cor),var(--cor2));transition:width .3s}
-.frases{max-height:340px;overflow:auto;border:1px solid var(--linha);border-radius:10px;background:#0e0f13}
+.msg.erro{background:var(--erro-fundo);border:1px solid #5a2622;color:var(--erro)}
+.msg.aviso{background:rgba(245,184,75,.1);border:1px solid rgba(245,184,75,.35);color:#f7d68c}
+
+/* ---------- layout: sidebar + conteudo ---------- */
+.app{display:grid;grid-template-columns:248px 1fr;gap:14px;min-height:100vh;padding:14px}
+aside{background:var(--lateral);border:1px solid var(--linha);border-radius:var(--raio);padding:18px 14px;display:flex;flex-direction:column;
+  position:sticky;top:14px;height:calc(100vh - 28px)}
+.marca{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;background:none;color:var(--txt);font-size:17px;font-weight:700;letter-spacing:-.01em;width:100%;justify-content:flex-start}
+.marca:hover:not(:disabled){background:none}
+.marca .selo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--acc-claro),var(--acc) 55%,var(--acc-escuro));flex:none}
+.marca b{color:var(--acc)}
+.secao{font-size:12px;color:var(--mudo);padding:0 8px 8px}
+nav{display:flex;flex-direction:column;gap:4px}
+.nav{display:flex;align-items:center;gap:12px;width:100%;background:transparent;color:var(--txt);font-weight:500;padding:8px;border-radius:12px;text-align:left}
+.nav:hover:not(:disabled){background:var(--card2)}
+.nav .tile{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--mudo)}
+.nav.ativo{background:var(--ativo-bg);color:var(--ativo-txt)}
+.nav.ativo:hover{background:var(--ativo-bg)}
+.nav.ativo .tile{background:var(--acc-claro);color:var(--acc-tinta)}
+.usuario{margin-top:auto;border-top:1px solid var(--linha);padding-top:14px;position:relative}
+.usuario .secao{padding-bottom:10px}
+.usuario .quem{display:flex;align-items:center;gap:10px;padding:0 4px 0 8px}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:var(--acc-tinta);
+  background:linear-gradient(135deg,var(--acc-claro),var(--acc));flex:none}
+.usuario .nome{font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usuario .sub{font-size:12px;color:var(--mudo);display:flex;align-items:center;gap:6px}
+.ponto{width:7px;height:7px;border-radius:50%;background:var(--mudo)}
+.ponto.on{background:var(--acc)}
+.menu-conta{position:absolute;bottom:52px;right:4px;background:var(--card2);border:1px solid var(--linha);border-radius:12px;padding:6px;min-width:150px;z-index:5}
+.menu-conta button{width:100%;background:none;color:var(--txt);text-align:left;font-weight:500}
+.menu-conta button:hover{background:var(--linha)}
+
+.conteudo{min-width:0;padding:6px 10px 40px}
+.topo{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:4px 0 18px;min-height:44px}
+.topo h1{font-size:24px;letter-spacing:-.02em;margin:0}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio);padding:20px}
+.card h2{font-size:16px;margin:0 0 14px;font-weight:600}
+.pilha>.card{margin-bottom:14px}
+.estreito{max-width:880px}
+
+/* ---------- dashboard ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.stat{position:relative;min-height:176px;display:flex;flex-direction:column}
+.stat.destaque{background:radial-gradient(90% 85% at 42% 0%,var(--destaque-topo),var(--destaque-a) 45%,var(--destaque-b) 100%);border-color:var(--destaque-borda)}
+.stat .cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto}
+.stat .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--txt)}
+.stat .rot{color:var(--txt);font-size:14px;margin:18px 0 2px}
+.stat .valor{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stat .valor b{font-size:32px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .nota{font-size:12px;color:var(--mudo);margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.badge.pos{background:var(--ok-fundo);color:var(--ok)}
+.badge.neg{background:var(--erro-fundo);color:var(--erro)}
+.badge.neutro{background:rgba(255,255,255,.07);color:var(--mudo)}
+.grade{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.grafico{position:relative}
+.grafico svg{display:block;width:100%;height:auto;overflow:visible}
+.grafico .grade-y{stroke:var(--linha);stroke-width:1}
+.grafico .eixo{fill:var(--mudo);font-size:11px;font-family:var(--fonte)}
+.grafico .barra{fill:var(--acc)}
+.grafico .barra.zero{fill:var(--linha)}
+.grafico .col:hover .barra{fill:var(--acc-claro)}
+.grafico .rotulo{fill:var(--txt);font-size:11px;font-weight:600;font-family:var(--fonte)}
+.dica{position:absolute;pointer-events:none;background:var(--card2);border:1px solid var(--linha);border-radius:10px;padding:8px 10px;font-size:12px;
+  white-space:nowrap;transform:translate(-50%,-100%);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.dica b{display:block;font-size:14px}
+.so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.recentes{list-style:none;margin:0;padding:0}
+.recentes li{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linha)}
+.recentes li:last-child{border:0}
+.recentes .mini{width:34px;height:34px;border-radius:9px;background:var(--ok-fundo);color:var(--acc);display:grid;place-items:center;flex:none}
+.recentes .t{min-width:0;flex:1}
+.recentes .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recentes .t span{font-size:12px;color:var(--mudo)}
+.vazio{color:var(--mudo);text-align:center;padding:28px 10px}
+.vazio p{margin:0 0 14px}
+
+/* ---------- fluxo de edicao ---------- */
+.drop{border:1.5px dashed #333333;border-radius:var(--raio);padding:56px 24px;text-align:center;transition:.15s;background:var(--card)}
+.drop.sobre{border-color:var(--acc);background:var(--ok-fundo)}
+.drop .ico-grande{width:52px;height:52px;border-radius:14px;margin:0 auto 14px;display:grid;place-items:center;background:var(--ok-fundo);color:var(--acc)}
+.drop .ico-grande svg{width:26px;height:26px}
+.barra-prog{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.barra-prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.frases{max-height:340px;overflow:auto;border:1px solid var(--linha);border-radius:10px;background:var(--bg)}
 .fr{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--linha);cursor:pointer;align-items:flex-start}
-.fr:last-child{border:0}.fr:hover{background:#15171f}
+.fr:last-child{border:0}.fr:hover{background:var(--card)}
 .fr .t{color:var(--mudo);font-size:12px;min-width:74px;padding-top:2px;font-variant-numeric:tabular-nums}
 .fr.rem{opacity:.45}.fr.rem .x{text-decoration:line-through}
 .fr .tag{margin-left:auto;font-size:11px;color:var(--erro);white-space:nowrap;padding-top:2px}
-.lados{display:flex;gap:10px}.lados button{flex:1;background:#0e0f13;border:1px solid var(--linha);color:var(--mudo)}
-.lados button.on{background:var(--cor);border-color:var(--cor);color:#fff}
-.nums{display:flex;gap:28px;margin:6px 0 4px}.nums div{font-size:13px;color:var(--mudo)}.nums b{display:block;font-size:24px;color:var(--txt)}
-.ok{color:var(--ok)}
-.oculto{display:none!important}
+.lados{display:flex;gap:10px}
+.lados button{flex:1;background:var(--bg);border:1px solid var(--linha);color:var(--mudo)}
+.lados button:hover:not(:disabled){background:var(--card2)}
+.lados button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-tinta)}
+.nums{display:flex;gap:28px;flex-wrap:wrap}
+.nums div{font-size:13px;color:var(--mudo)}
+.nums b{display:block;font-size:24px;color:var(--txt);font-variant-numeric:tabular-nums}
+.nums b.ok{color:var(--acc)}
+.sub{color:var(--mudo);margin:0 0 18px}
+
+/* ---------- login (tela cheia, sem sidebar) ---------- */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login .card{width:100%;max-width:400px;padding:28px}
+.login .marca{padding:0 0 20px}
+
+@media (max-width:1100px){.stats{grid-template-columns:1fr 1fr}.grade{grid-template-columns:1fr}}
+@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr)}aside{position:static;height:auto}.usuario{margin-top:16px}.stats{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">Clipay<b>.ia</b></div>
-  <div id="conta" class="oculto"><span id="quem"></span><button class="link" id="sair">Sair</button></div>
-</header>
-<main>
 
-<!-- LOGIN -->
-<section id="tela-login" class="oculto">
-  <h1>Entre na sua conta</h1>
-  <p class="sub">Use o mesmo e-mail e senha do cadastro no site.</p>
-  <div class="card" style="max-width:420px">
+<!-- icones (tracos simples, sem dependencia externa) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-tesoura" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 9 5 3-5 3z"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/></symbol>
+  <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-cima" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<!-- ================= LOGIN ================= -->
+<section id="tela-login" class="login oculto">
+  <div class="card">
+    <div class="marca"><span class="selo"></span><span>Clipay<b>.ia</b></span></div>
+    <h1 style="font-size:22px;margin:0 0 4px">Entre na sua conta</h1>
+    <p class="sub">Use o mesmo e-mail e senha do cadastro no site.</p>
     <div id="login-erro" class="msg erro oculto"></div>
     <div class="campo"><label for="email">E-mail</label><input type="email" id="email" autocomplete="username"></div>
     <div class="campo"><label for="senha">Senha</label><input type="password" id="senha" autocomplete="current-password"></div>
@@ -66,87 +193,169 @@ button.link{background:none;padding:0;color:var(--cor2);font-weight:500}
   </div>
 </section>
 
-<!-- CONTA INATIVA -->
-<section id="tela-inativa" class="oculto">
-  <h1>Sua conta ainda não está ativa</h1>
-  <p class="sub">O acesso é liberado manualmente. Assim que for ativada, é só tocar em “Verificar de novo”.</p>
-  <div class="card"><div class="linha"><button id="reverificar">Verificar de novo</button>
-    <button class="sec" id="abrir-site">Abrir o site</button></div></div>
-</section>
+<!-- ================= APP ================= -->
+<div class="app oculto" id="app">
+  <aside>
+    <button class="marca" id="ir-inicio" title="Início"><span class="selo"></span><span>Clipay<b>.ia</b></span></button>
+    <div class="secao">Menu</div>
+    <nav>
+      <button class="nav" data-pag="edicao"><span class="tile"><svg class="ic"><use href="#i-tesoura"/></svg></span>Edição</button>
+      <button class="nav" data-pag="tutorial"><span class="tile"><svg class="ic"><use href="#i-play"/></svg></span>Tutorial</button>
+    </nav>
+    <div class="usuario">
+      <div class="secao">Conta</div>
+      <div class="quem">
+        <div class="avatar" id="avatar">?</div>
+        <div style="min-width:0;flex:1">
+          <div class="nome" id="u-nome">—</div>
+          <div class="sub"><span class="ponto" id="u-ponto"></span><span id="u-status">—</span></div>
+        </div>
+        <button class="icone" id="abre-menu" aria-label="Opções da conta" aria-expanded="false"><svg class="ic"><use href="#i-pontos"/></svg></button>
+      </div>
+      <div class="menu-conta oculto" id="menu-conta">
+        <button id="abrir-site-menu">Minha conta no site</button>
+        <button id="sair">Sair</button>
+      </div>
+    </div>
+  </aside>
 
-<!-- IMPORTAR -->
-<section id="tela-importar" class="oculto">
-  <h1>Importe o vídeo bruto</h1>
-  <p class="sub">O Clipay.ia corta silêncio e respiração, aplica o zoom e cria um projeto novo no CapCut. Seu vídeo não sai do seu computador.</p>
-  <div id="imp-erro" class="msg erro oculto"></div>
-  <div id="sem-capcut" class="msg aviso oculto">Não achei a pasta de projetos do CapCut. Informe o caminho abaixo.
-    <div class="linha" style="margin-top:10px"><input type="text" id="raiz" placeholder="C:\Users\...\CapCut\User Data\Projects\com.lveditor.draft"><button id="salvar-raiz" class="sec">Salvar</button></div></div>
-  <div class="drop" id="drop">
-    <div class="ico">🎬</div>
-    <p style="margin:0 0 16px"><b>Arraste o vídeo aqui</b> ou escolha no computador</p>
-    <button id="escolher">Escolher vídeo</button>
-    <p class="sub" style="margin:16px 0 0;font-size:13px">Dica: “Escolher vídeo” é mais rápido em arquivos grandes, porque não copia o arquivo.</p>
+  <div class="conteudo">
+
+    <!-- ===== INICIO (dashboard) ===== -->
+    <section id="pag-inicio" class="pagina">
+      <div class="topo"><h1>Dashboard</h1>
+        <button id="nova-edicao" class="linha" style="gap:8px"><svg class="ic"><use href="#i-mais"/></svg>Nova edição</button></div>
+
+      <div class="stats">
+        <article class="card stat destaque">
+          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-video"/></svg></span></div>
+          <div class="rot">Vídeos feitos</div>
+          <div class="valor"><b id="st-videos">–</b><span class="badge" id="st-videos-var"></span></div>
+          <div class="nota" id="st-videos-nota">&nbsp;</div>
+        </article>
+        <article class="card stat">
+          <!-- TODO(dados): visualizacoes ainda nao tem fonte. Falta integrar com as redes (Instagram/TikTok/YouTube)
+               ou pedir o numero ao usuario. Os valores abaixo sao ILUSTRATIVOS, marcados como "Exemplo" na tela. -->
+          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-olho"/></svg></span></div>
+          <div class="rot">Visualizações geradas</div>
+          <div class="valor"><b id="st-views">48,2 mil</b><span class="badge neutro">Exemplo</span></div>
+          <div class="nota">Conexão com Instagram e TikTok em breve.</div>
+        </article>
+        <article class="card stat">
+          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-relogio"/></svg></span></div>
+          <div class="rot">Silêncio removido</div>
+          <div class="valor"><b id="st-silencio">–</b></div>
+          <div class="nota">Somado dos projetos gerados neste computador.</div>
+        </article>
+      </div>
+
+      <div class="grade">
+        <article class="card">
+          <div class="linha" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Vídeos por semana</h2>
+            <span class="badge neutro">Últimas 8 semanas</span></div>
+          <div class="grafico" id="grafico"></div>
+        </article>
+        <article class="card">
+          <h2>Últimos projetos</h2>
+          <ul class="recentes" id="recentes"></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== EDICAO (o fluxo de sempre) ===== -->
+    <section id="pag-edicao" class="pagina oculto">
+      <div class="topo"><h1 id="edicao-titulo">Edição</h1></div>
+      <div class="estreito">
+
+        <div id="tela-inativa" class="oculto">
+          <div class="card">
+            <h2>Sua conta ainda não está ativa</h2>
+            <p class="sub">O acesso é liberado manualmente. Assim que for ativada, toque em “Verificar de novo”.</p>
+            <div class="linha"><button id="reverificar">Verificar de novo</button><button class="sec" id="abrir-site">Abrir o site</button></div>
+          </div>
+        </div>
+
+        <div id="tela-importar" class="oculto">
+          <p class="sub">O Clipay.ia corta silêncio e respiração, aplica o zoom e cria um projeto novo no CapCut. Seu vídeo não sai do seu computador.</p>
+          <div id="imp-erro" class="msg erro oculto"></div>
+          <div id="sem-capcut" class="msg aviso oculto">Não achei a pasta de projetos do CapCut. Informe o caminho abaixo.
+            <div class="linha" style="margin-top:10px"><input type="text" id="raiz" placeholder="C:\Users\...\CapCut\User Data\Projects\com.lveditor.draft" style="flex:1"><button id="salvar-raiz" class="sec">Salvar</button></div></div>
+          <div class="drop" id="drop">
+            <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
+            <p style="margin:0 0 16px;font-size:15px"><b>Arraste o vídeo bruto aqui</b> ou escolha no computador</p>
+            <button id="escolher">Escolher vídeo</button>
+            <p class="sub" style="margin:16px 0 0;font-size:13px">Dica: “Escolher vídeo” é mais rápido em arquivos grandes, porque não copia o arquivo.</p>
+          </div>
+        </div>
+
+        <div id="tela-progresso" class="oculto">
+          <div class="card">
+            <h2 id="prog-titulo">Processando…</h2>
+            <p class="sub" id="prog-sub" style="margin:0">Isso pode levar alguns minutos. Pode deixar esta janela aberta.</p>
+            <div class="barra-prog"><i id="barra"></i></div>
+            <div id="etapa" style="color:var(--mudo);font-size:13px">Começando</div>
+          </div>
+        </div>
+
+        <div id="tela-revisao" class="oculto pilha">
+          <p class="sub" id="rev-arq"></p>
+          <div id="rev-erro" class="msg erro oculto"></div>
+          <div class="card"><div class="nums">
+            <div><b id="n-antes">–</b>original</div><div><b class="ok" id="n-depois">–</b>depois dos cortes</div><div><b id="n-ped">–</b>pedaços</div></div></div>
+          <div class="card">
+            <h2>Headline</h2>
+            <div class="campo" style="margin:0"><label for="headline">Frase fixa no topo do vídeo (promessa ou afirmação forte)</label>
+              <input type="text" id="headline" maxlength="90" placeholder="Ex.: VOCÊ ESTÁ EDITANDO ERRADO"></div>
+          </div>
+          <div class="card">
+            <h2>Lado do zoom</h2>
+            <label id="lado-dica">Para onde o zoom deve ir (o lado onde a pessoa aparece)</label>
+            <div class="lados" id="lados"><button data-l="esquerda">Esquerda</button><button data-l="centro" class="on">Centro</button><button data-l="direita">Direita</button></div>
+          </div>
+          <div class="card">
+            <h2>Transcrição <span id="n-rem" style="color:var(--mudo);font-weight:400;font-size:13px"></span></h2>
+            <label>Clique numa frase para removê-la do vídeo (repetição, desvio de assunto). Clique de novo para manter.</label>
+            <div class="frases" id="frases"></div>
+          </div>
+          <div class="card">
+            <div class="campo"><label for="nome">Nome do projeto no CapCut</label><input type="text" id="nome"></div>
+            <div class="linha"><button id="gerar">Gerar projeto no CapCut</button><button class="sec" id="voltar">Trocar de vídeo</button></div>
+          </div>
+        </div>
+
+        <div id="tela-pronto" class="oculto">
+          <div class="card">
+            <div class="linha" style="gap:10px;margin-bottom:6px"><span class="badge pos"><svg class="ic" style="width:14px;height:14px"><use href="#i-check"/></svg>Pronto</span></div>
+            <h2 style="font-size:20px">Projeto criado</h2>
+            <p class="sub" id="pronto-sub"></p>
+            <div class="nums" id="pronto-nums"></div>
+            <div class="linha" style="margin-top:20px"><button id="abrir-capcut">Abrir o CapCut</button><button class="sec" id="outro">Editar outro vídeo</button></div>
+            <p class="sub" style="margin:16px 0 0;font-size:13px">Se o CapCut já estava aberto, feche e abra de novo para o projeto aparecer na lista.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== TUTORIAL (conteudo vira depois) ===== -->
+    <section id="pag-tutorial" class="pagina oculto">
+      <div class="topo"><h1>Tutorial</h1></div>
+    </section>
+
   </div>
-</section>
+</div>
 
-<!-- PROGRESSO -->
-<section id="tela-progresso" class="oculto">
-  <h1 id="prog-titulo">Processando…</h1>
-  <p class="sub" id="prog-sub">Isso pode levar alguns minutos. Pode deixar esta janela aberta.</p>
-  <div class="card"><div class="barra"><i id="barra"></i></div><div id="etapa" style="color:var(--mudo);font-size:14px">Começando</div></div>
-</section>
-
-<!-- REVISAO -->
-<section id="tela-revisao" class="oculto">
-  <h1>Revise antes de gerar</h1>
-  <p class="sub" id="rev-arq"></p>
-  <div id="rev-erro" class="msg erro oculto"></div>
-  <div class="card"><div class="nums">
-    <div><b id="n-antes">–</b>original</div><div><b class="ok" id="n-depois">–</b>depois dos cortes</div><div><b id="n-ped">–</b>pedaços</div></div></div>
-
-  <div class="card">
-    <h2>Headline</h2>
-    <div class="campo" style="margin:0"><label for="headline">Frase fixa no topo do vídeo (promessa ou afirmação forte)</label>
-      <input type="text" id="headline" maxlength="90" placeholder="Ex.: VOCÊ ESTÁ EDITANDO ERRADO"></div>
-  </div>
-
-  <div class="card">
-    <h2>Lado do zoom</h2>
-    <label id="lado-dica">Para onde o zoom deve ir (o lado onde a pessoa aparece)</label>
-    <div class="lados" id="lados"><button data-l="esquerda">Esquerda</button><button data-l="centro" class="on">Centro</button><button data-l="direita">Direita</button></div>
-  </div>
-
-  <div class="card">
-    <h2>Transcrição <span id="n-rem" style="color:var(--mudo);font-weight:400;font-size:13px"></span></h2>
-    <label>Clique numa frase para removê-la do vídeo (repetição, desvio de assunto). Clique de novo para manter.</label>
-    <div class="frases" id="frases"></div>
-  </div>
-
-  <div class="card">
-    <div class="campo"><label for="nome">Nome do projeto no CapCut</label><input type="text" id="nome"></div>
-    <div class="linha"><button id="gerar">Gerar projeto no CapCut</button><button class="sec" id="voltar">Trocar de vídeo</button></div>
-  </div>
-</section>
-
-<!-- PRONTO -->
-<section id="tela-pronto" class="oculto">
-  <h1>Projeto criado ✔</h1>
-  <p class="sub" id="pronto-sub"></p>
-  <div class="card"><div class="nums" id="pronto-nums"></div>
-    <div class="linha" style="margin-top:18px"><button id="abrir-capcut">Abrir o CapCut</button><button class="sec" id="outro">Editar outro vídeo</button></div>
-    <p class="sub" style="margin:16px 0 0;font-size:13px" id="pronto-dica"></p></div>
-</section>
-
-</main>
 <script>
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
-const telas = ["login","inativa","importar","progresso","revisao","pronto"];
-let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "";
+const telasEdicao = ["inativa","importar","progresso","revisao","pronto"];
+let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
 
-function mostra(nome){ telas.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== nome)); window.scrollTo(0,0); }
-function erro(id, msg){ const e = $(id); e.textContent = msg || ""; e.classList.toggle("oculto", !msg); }
 function seg(s){ s = Math.round(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
+function duracao(s){ s = Math.round(s); if(s < 60) return s + " s"; const h = Math.floor(s/3600), m = Math.floor(s%3600/60);
+  return h ? h + " h " + m + " min" : m + " min " + (s%60 ? s%60 + " s" : ""); }
+function erro(id, msg){ const e = $(id); e.textContent = msg || ""; e.classList.toggle("oculto", !msg); }
+function dataCurta(iso){ const d = new Date(iso); return d.toLocaleDateString("pt-BR", {day:"2-digit", month:"2-digit"}); }
 
 async function api(caminho, corpo, opcoes = {}){
   const r = await fetch("/api/"+caminho, { method: corpo === undefined ? "GET" : "POST",
@@ -156,7 +365,6 @@ async function api(caminho, corpo, opcoes = {}){
   if(!r.ok || d.erro && !d.fim) throw new Error(d.erro || "Erro inesperado.");
   return d;
 }
-
 async function acompanha(id, aoMudar){
   for(;;){
     const j = await api("job?id="+id);
@@ -166,6 +374,24 @@ async function acompanha(id, aoMudar){
   }
 }
 
+// ---------------- navegacao ----------------
+function pagina(nome){
+  document.querySelectorAll(".pagina").forEach(p => p.classList.toggle("oculto", p.id !== "pag-"+nome));
+  document.querySelectorAll(".nav").forEach(b => { const on = b.dataset.pag === nome; b.classList.toggle("ativo", on); b.toggleAttribute("aria-current", on); });
+  history.replaceState(null, "", nome === "inicio" ? location.pathname : "#"+nome);
+  if(nome === "inicio") carregaPainel();
+  if(nome === "edicao" && !ocupado) mostra(sessao && sessao.status === "ativo" ? "importar" : "inativa");
+  window.scrollTo(0,0);
+}
+function mostra(tela){
+  telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
+  $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", progresso:"Processando", pronto:"Edição concluída"}[tela] || "Edição";
+}
+document.querySelectorAll(".nav").forEach(b => b.onclick = () => pagina(b.dataset.pag));
+$("ir-inicio").onclick = () => pagina("inicio");
+$("nova-edicao").onclick = () => pagina("edicao");
+
+// ---------------- sessao ----------------
 async function inicio(){
   try{
     const est = await api("estado"); site = est.site;
@@ -175,12 +401,17 @@ async function inicio(){
   aplicaSessao();
 }
 function aplicaSessao(){
-  $("conta").classList.toggle("oculto", !sessao.logado);
-  if(!sessao.logado){ mostra("login"); return; }
-  $("quem").textContent = sessao.username;
-  mostra(sessao.status === "ativo" ? "importar" : "inativa");
+  $("tela-login").classList.toggle("oculto", sessao.logado);
+  $("app").classList.toggle("oculto", !sessao.logado);
+  if(!sessao.logado) return;
+  const ativo = sessao.status === "ativo";
+  $("u-nome").textContent = sessao.username;
+  $("avatar").textContent = (sessao.username || "?").trim().charAt(0).toUpperCase();
+  $("u-status").textContent = ativo ? "Conta ativa" : "Aguardando ativação";
+  $("u-ponto").classList.toggle("on", ativo);
+  const h = location.hash.slice(1);
+  pagina(["edicao","tutorial"].includes(h) ? h : "inicio");
 }
-
 $("entrar").onclick = async () => {
   erro("login-erro"); $("entrar").disabled = true;
   try{ sessao = await api("login", {email: $("email").value, senha: $("senha").value}); $("senha").value = ""; aplicaSessao(); }
@@ -188,17 +419,79 @@ $("entrar").onclick = async () => {
   $("entrar").disabled = false;
 };
 $("senha").onkeydown = e => { if(e.key === "Enter") $("entrar").click(); };
+$("abre-menu").onclick = e => { e.stopPropagation(); const m = $("menu-conta"); m.classList.toggle("oculto"); $("abre-menu").setAttribute("aria-expanded", !m.classList.contains("oculto")); };
+document.addEventListener("click", () => { $("menu-conta").classList.add("oculto"); $("abre-menu").setAttribute("aria-expanded", "false"); });
 $("sair").onclick = async () => { await api("logout", {}); sessao = {logado:false}; aplicaSessao(); };
-$("reverificar").onclick = async () => { try{ sessao = await api("sessao"); aplicaSessao(); }catch(e){ alert(e.message); } };
-$("abrir-site").onclick = () => window.open(site || "https://clipayia-metricis.vercel.app", "_blank");
+$("abrir-site-menu").onclick = $("abrir-site").onclick = () => window.open(site, "_blank");
+$("reverificar").onclick = async () => { try{ sessao = await api("sessao"); aplicaSessao(); pagina("edicao"); }catch(e){ alert(e.message); } };
 $("salvar-raiz").onclick = async () => {
   try{ await api("raiz", {raiz: $("raiz").value}); $("sem-capcut").classList.add("oculto"); erro("imp-erro"); }
   catch(e){ erro("imp-erro", e.message); }
 };
 
-// ---- importar ----
+// ---------------- dashboard ----------------
+async function carregaPainel(){
+  let p;
+  try{ p = await api("painel"); }catch(e){ $("st-videos-nota").textContent = e.message; return; }
+  $("st-videos").textContent = p.videos.toLocaleString("pt-BR");
+  const s = p.semanas, esta = s[s.length-1].videos, antes = s[s.length-2].videos, dif = esta - antes;
+  const badge = $("st-videos-var");
+  badge.className = "badge " + (dif > 0 ? "pos" : dif < 0 ? "neg" : "neutro");
+  badge.innerHTML = (dif ? '<svg class="ic" style="width:12px;height:12px"><use href="#i-'+(dif>0?"cima":"baixo")+'"/></svg>' : "") +
+    (dif > 0 ? "+" : "") + dif + " vs semana passada";
+  $("st-videos-nota").textContent = p.fonte === "conta" ? "Em todos os computadores da sua conta." : "Sem internet: contando só este computador.";
+  $("st-silencio").textContent = p.silencio_removido ? duracao(p.silencio_removido) : "0 s";
+  grafico(s);
+  const ul = $("recentes"); ul.innerHTML = "";
+  if(!p.recentes.length){
+    ul.innerHTML = '<li class="vazio" style="display:block;border:0"><p>Nenhum projeto neste computador ainda.</p></li>';
+    const b = document.createElement("button"); b.textContent = "Fazer a primeira edição"; b.onclick = () => pagina("edicao");
+    ul.firstChild.appendChild(b); return;
+  }
+  p.recentes.forEach(r => {
+    const li = document.createElement("li");
+    li.innerHTML = '<span class="mini"><svg class="ic"><use href="#i-video"/></svg></span><div class="t"><b></b><span></span></div>';
+    li.querySelector("b").textContent = r.nome;
+    li.querySelector("span:last-child").textContent = dataCurta(r.data) + " · " + seg(r.antes) + " → " + seg(r.depois);
+    ul.appendChild(li);
+  });
+}
+
+// barras: uma serie so (sem legenda; o titulo nomeia), topo arredondado ancorado na base, grade discreta,
+// dica ao passar o mouse e tabela escondida para leitor de tela
+function grafico(semanas){
+  const W = 640, H = 230, m = {t:22, r:8, b:26, l:28}, iw = W-m.l-m.r, ih = H-m.t-m.b;
+  const max = Math.max(4, ...semanas.map(s => s.videos)), passo = Math.ceil(max/4), topo = passo*4;
+  const y = v => m.t + ih - v/topo*ih, bw = iw/semanas.length, larg = Math.min(34, bw*0.46);
+  let g = "";
+  for(let k = 0; k <= 4; k++){ const v = k*passo; g += '<line class="grade-y" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y(v)+'" y2="'+y(v)+'"/>' +
+    '<text class="eixo" x="'+(m.l-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'</text>'; }
+  semanas.forEach((s, i) => {
+    const cx = m.l + bw*i + bw/2, x = cx - larg/2, alt = Math.max(s.videos ? 3 : 2, ih - (y(s.videos) - m.t)), r = Math.min(4, alt/2), y0 = m.t+ih;
+    const d = "M"+x+","+y0+" V"+(y0-alt+r)+" Q"+x+","+(y0-alt)+" "+(x+r)+","+(y0-alt)+" H"+(x+larg-r)+" Q"+(x+larg)+","+(y0-alt)+" "+(x+larg)+","+(y0-alt+r)+" V"+y0+" Z";
+    const ult = i === semanas.length-1;
+    g += '<g class="col" data-i="'+i+'"><rect x="'+(m.l+bw*i)+'" y="'+m.t+'" width="'+bw+'" height="'+ih+'" fill="transparent"/>' +
+      '<path class="barra'+(s.videos?"":" zero")+'" d="'+d+'"/>' +
+      (ult && s.videos ? '<text class="rotulo" x="'+cx+'" y="'+(y0-alt-6)+'" text-anchor="middle">'+s.videos+'</text>' : "") +
+      '<text class="eixo" x="'+cx+'" y="'+(H-6)+'" text-anchor="middle">'+(ult ? "Esta" : dataCurta(s.inicio+"T12:00"))+'</text></g>';
+  });
+  const tabela = '<table class="so-leitor"><caption>Vídeos por semana</caption><tr><th>Semana</th><th>Vídeos</th></tr>' +
+    semanas.map(s => '<tr><td>'+dataCurta(s.inicio+"T12:00")+'</td><td>'+s.videos+'</td></tr>').join("") + '</table>';
+  $("grafico").innerHTML = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Vídeos feitos por semana nas últimas 8 semanas">'+g+'</svg>'+tabela+'<div class="dica oculto" id="dica"></div>';
+  const svg = $("grafico").querySelector("svg"), dica = $("dica");
+  svg.querySelectorAll(".col").forEach(c => {
+    c.onmouseenter = () => {
+      const s = semanas[+c.dataset.i], b = c.querySelector(".barra").getBBox(), esc = svg.clientWidth / W;
+      dica.innerHTML = "Semana de " + dataCurta(s.inicio+"T12:00") + "<b>" + s.videos + (s.videos === 1 ? " vídeo" : " vídeos") + "</b>";
+      dica.style.left = (b.x + b.width/2) * esc + "px"; dica.style.top = (b.y * esc - 8) + "px"; dica.classList.remove("oculto");
+    };
+    c.onmouseleave = () => dica.classList.add("oculto");
+  });
+}
+
+// ---------------- edicao: importar ----------------
 async function analisar(caminho){
-  erro("imp-erro"); mostra("progresso");
+  erro("imp-erro"); ocupado = true; mostra("progresso");
   $("prog-titulo").textContent = "Analisando o vídeo…";
   $("prog-sub").textContent = "Lendo o áudio, transcrevendo e achando os cortes. Na primeira vez baixa o modelo de transcrição.";
   try{
@@ -206,6 +499,7 @@ async function analisar(caminho){
     analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
     abreRevisao();
   }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
+  ocupado = false;
 }
 $("escolher").onclick = async () => {
   $("escolher").disabled = true;
@@ -218,12 +512,13 @@ const drop = $("drop");
 ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("sobre"); }));
 drop.addEventListener("drop", async e => {
   const f = e.dataTransfer.files[0]; if(!f) return;
-  mostra("progresso"); $("prog-titulo").textContent = "Copiando o vídeo…"; $("barra").style.width = "8%"; $("etapa").textContent = f.name;
+  ocupado = true; mostra("progresso"); $("prog-titulo").textContent = "Copiando o vídeo…"; $("barra").style.width = "8%"; $("etapa").textContent = f.name;
   try{ const {caminho} = await api("enviar?nome="+encodeURIComponent(f.name), f, {bruto:true, headers:{"Content-Type":"application/octet-stream"}}); await analisar(caminho); }
   catch(err){ mostra("importar"); erro("imp-erro", err.message); }
+  ocupado = false;
 });
 
-// ---- revisao ----
+// ---------------- edicao: revisao ----------------
 function abreRevisao(){
   removidas = new Set(); lado = analise.rosto || "centro";
   $("rev-arq").textContent = analise.nome + " · " + analise.largura + "×" + analise.altura;
@@ -245,11 +540,11 @@ function abreRevisao(){
       $("n-rem").textContent = removidas.size ? "· "+removidas.size+" removida(s)" : ""; };
     box.appendChild(d);
   });
-  $("n-rem").textContent = ""; erro("rev-erro"); mostra("revisao");
+  $("n-rem").textContent = ""; erro("rev-erro"); ocupado = true; mostra("revisao");
 }
 $("lados").onclick = e => { const b = e.target.closest("button"); if(!b) return; lado = b.dataset.l;
   document.querySelectorAll("#lados button").forEach(x => x.classList.toggle("on", x === b)); };
-$("voltar").onclick = () => mostra("importar");
+$("voltar").onclick = () => { ocupado = false; mostra("importar"); };
 $("gerar").onclick = async () => {
   erro("rev-erro"); mostra("progresso");
   $("prog-titulo").textContent = "Gerando o projeto no CapCut…"; $("prog-sub").textContent = "Só mais um instante."; $("barra").style.width = "0";
@@ -259,8 +554,7 @@ $("gerar").onclick = async () => {
     const r = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
     $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut.";
     $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>pedaços</div><div><b>'+(r.zooms||0)+'</b>zooms</div>';
-    $("pronto-dica").textContent = "Se o CapCut já estava aberto, feche e abra de novo para o projeto aparecer na lista.";
-    mostra("pronto");
+    ocupado = false; mostra("pronto");
   }catch(e){ mostra("revisao"); erro("rev-erro", e.message); }
 };
 $("abrir-capcut").onclick = async () => { const r = await api("abrir-capcut", {}); if(!r.ok) alert("Não achei o CapCut. Abra-o manualmente."); };

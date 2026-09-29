@@ -93,6 +93,37 @@ def test_analise_inexistente_e_arquivo_invalido(app):
     assert "expirou" in espera(r["id"])["erro"]
 
 
+def test_painel_conta_videos_e_historico(app, video_vertical, monkeypatch):
+    chama, espera, *_ = app
+    from datetime import datetime, timedelta, timezone
+    agora = datetime.now(timezone.utc)
+    datas = [agora.isoformat(), agora.isoformat(), (agora - timedelta(weeks=1)).isoformat(), (agora - timedelta(weeks=20)).isoformat()]
+    monkeypatch.setattr(conta, "processamentos", lambda: datas)
+    c, p = chama("/api/painel")
+    assert c == 200 and p["videos"] == 4 and p["fonte"] == "conta"
+    assert len(p["semanas"]) == 8 and p["semanas"][-1]["videos"] == 2 and p["semanas"][-2]["videos"] == 1
+    assert sum(s["videos"] for s in p["semanas"]) == 3                      # a de 20 semanas atras fica fora do grafico
+    assert p["recentes"] == [] and p["silencio_removido"] == 0
+
+    # gerar um projeto alimenta o historico local
+    _, r = chama("/api/analisar", {"caminho": str(video_vertical)})
+    a = espera(r["id"])["resultado"]
+    _, r = chama("/api/gerar", {"analise": a["analise"], "nome": "Hist"})
+    espera(r["id"])
+    _, p = chama("/api/painel")
+    assert p["recentes"][0]["nome"] == "Hist" and p["silencio_removido"] > 0
+
+
+def test_painel_sem_internet_usa_historico_local(app, monkeypatch):
+    chama, *_ = app
+    def offline(): raise conta.ErroConta("Sem conexão com a internet.")
+    monkeypatch.setattr(conta, "processamentos", offline)
+    servidor.historico_path().write_text(json.dumps([{"data": "2020-01-01T00:00:00+00:00", "nome": "x", "antes": 10, "depois": 7,
+                                                      "pedacos": 3, "zooms": 1, "headline": ""}]), encoding="utf-8")
+    c, p = chama("/api/painel")
+    assert c == 200 and p["fonte"] == "local" and p["videos"] == 1 and p["silencio_removido"] == 3
+
+
 # ---- conta (Supabase simulado) ----
 def _jwt(sub):
     import base64

@@ -2,6 +2,7 @@
 Toda chamada /api exige o token da sessao (so quem abriu a tela do app o conhece) e o Host local:
 assim nenhuma pagina qualquer da internet consegue mandar o app processar coisas."""
 import json, os, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil
+from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -39,6 +40,50 @@ def grava_cfg(c):
 
 def raiz_atual():
     return capcut.acha_raiz(le_cfg().get("raiz"))
+
+
+# ---------------- historico local (so neste computador; alimenta "ultimos projetos" e "silencio removido") ----------------
+def historico_path():
+    return transcricao.pasta_dados() / "historico.json"
+
+
+def le_historico():
+    try: return json.loads(historico_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError): return []
+
+
+def anota_historico(r):
+    h = [{"data": datetime.now(timezone.utc).isoformat(timespec="seconds"), "nome": r["nome"],
+          "antes": round(r["antes"], 1), "depois": round(r["depois"], 1), "pedacos": r["pedacos"],
+          "zooms": r.get("zooms", 0), "headline": (r.get("headline") or "").replace("\n", " ")}] + le_historico()
+    historico_path().write_text(json.dumps(h[:100], ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def semanas(datas, n=8):
+    """conta de videos nas ultimas n semanas (segunda a domingo), da mais antiga pra mais nova"""
+    hoje = datetime.now().astimezone().date()
+    seg = hoje - timedelta(days=hoje.weekday())
+    inicios = [seg - timedelta(weeks=k) for k in range(n - 1, -1, -1)]
+    cont = {i: 0 for i in inicios}
+    for d in datas:
+        try: dia = datetime.fromisoformat(d.replace("Z", "+00:00")).astimezone().date()
+        except ValueError: continue
+        ini = dia - timedelta(days=dia.weekday())
+        if ini in cont: cont[ini] += 1
+    return [{"inicio": i.isoformat(), "videos": cont[i]} for i in inicios]
+
+
+def painel():
+    """numeros do dashboard. Contador e grafico vem do Supabase (todos os computadores da conta);
+    sem internet, cai no historico local e avisa."""
+    hist = le_historico()
+    try:
+        datas, fonte = conta.processamentos(), "conta"
+    except conta.ErroConta:
+        datas, fonte = [x["data"] for x in hist], "local"
+    return {"videos": len(datas), "fonte": fonte, "semanas": semanas(datas),
+            "silencio_removido": round(sum(max(0.0, x["antes"] - x["depois"]) for x in hist)),
+            "recentes": hist[:5]}
 
 
 def roda_job(jid, fn):
@@ -117,6 +162,10 @@ def trabalho_gera(c):
             op["rosto"] = "centro"
         r = processa.monta_video(raiz, an, op, avisa)
         try:
+            anota_historico(r)
+        except OSError:
+            traceback.print_exc()
+        try:
             conta.registra_processamento()               # so contagem: nenhum video sai da maquina
         except conta.ErroConta:
             traceback.print_exc()                        # falha de contagem nao invalida o projeto ja gravado
@@ -161,6 +210,8 @@ class H(BaseHTTPRequestHandler):
         try:
             if u.path == "/api/sessao":
                 return self._json(conta.estado())
+            if u.path == "/api/painel":
+                return self._json(painel())
             if u.path == "/api/estado":
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
