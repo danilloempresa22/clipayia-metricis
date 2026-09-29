@@ -190,7 +190,7 @@ $("entrar").onclick = async () => {
 $("senha").onkeydown = e => { if(e.key === "Enter") $("entrar").click(); };
 $("sair").onclick = async () => { await api("logout", {}); sessao = {logado:false}; aplicaSessao(); };
 $("reverificar").onclick = async () => { try{ sessao = await api("sessao"); aplicaSessao(); }catch(e){ alert(e.message); } };
-$("abrir-site").onclick = () => window.open(site || "http://localhost:3000", "_blank");
+$("abrir-site").onclick = () => window.open(site || "https://clipayia-metricis.vercel.app", "_blank");
 $("salvar-raiz").onclick = async () => {
   try{ await api("raiz", {raiz: $("raiz").value}); $("sem-capcut").classList.add("oculto"); erro("imp-erro"); }
   catch(e){ erro("imp-erro", e.message); }

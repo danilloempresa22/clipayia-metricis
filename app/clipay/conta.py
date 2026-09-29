@@ -7,7 +7,7 @@ from . import transcricao
 _CFG = json.loads((Path(__file__).resolve().parent / "config_publica.json").read_text(encoding="utf-8"))
 SUPABASE_URL = os.environ.get("SUPABASE_URL", _CFG["supabase_url"])
 ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", _CFG["anon_key"])
-SITE_URL = os.environ.get("CLIPAY_SITE", "http://localhost:3000")
+SITE_URL = os.environ.get("CLIPAY_SITE", "https://clipayia-metricis.vercel.app")
 
 
 class ErroConta(Exception):
