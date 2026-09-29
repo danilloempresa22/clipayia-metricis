@@ -17,7 +17,7 @@ def _gera_video(destino, largura, altura, com_audio=True):
     cmd = [audio.ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c=gray:s={largura}x{altura}:r=30:d=10"]
     if com_audio:
         cmd += ["-f", "lavfi", "-i", tom]
-    cmd += ["-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast"]
+    cmd += ["-pix_fmt", "yuv420p", "-c:v", "mpeg4", "-q:v", "5"]   # encoder nativo: existe ate no ffmpeg LGPL do app/CI
     cmd += (["-c:a", "aac", "-shortest"] if com_audio else ["-an"])
     subprocess.run(cmd + [str(destino)], check=True, capture_output=True)
     return destino
