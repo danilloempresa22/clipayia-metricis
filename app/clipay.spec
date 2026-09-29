@@ -1,20 +1,19 @@
-# PyInstaller: gera o app do Clipay.ia (Windows).
+# PyInstaller: gera o Clipay.exe (arquivo unico, Windows).
 # rodar de dentro de app/:  pyinstaller clipay.spec --noconfirm
-import sys
+# Precisa de app/bin/ffmpeg.exe (o CI baixa; localmente copie um build LGPL).
 from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
 
 datas = [("clipay/assets", "clipay/assets"), ("clipay/config_publica.json", "clipay")]
-binaries = collect_dynamic_libs("onnxruntime")
-binaries += [("bin/ffmpeg.exe", "bin")]
-try:
-    datas += collect_data_files("webview")
-except Exception:
-    pass
+binaries = collect_dynamic_libs("onnxruntime") + [("bin/ffmpeg.exe", "bin")]
+for pacote in ("webview", "cv2"):                    # cv2: traz o haarcascade do detector de rosto
+    try:
+        datas += collect_data_files(pacote)
+    except Exception:
+        pass
 
 a = Analysis(["app.py"], pathex=["."], binaries=binaries, datas=datas,
-             hiddenimports=["onnxruntime", "webview"], excludes=["matplotlib", "PyQt5", "PySide6"])
+             hiddenimports=["onnxruntime", "webview", "cv2", "tkinter", "tkinter.filedialog"],
+             excludes=["matplotlib", "PyQt5", "PySide6", "pytest"])
 pyz = PYZ(a.pure)
-# Fase 5 decide onefile vs pasta; por ora pasta (COLLECT) como o CortesApp original.
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Clipay",
-          console=False, icon=None)
-coll = COLLECT(exe, a.binaries, a.datas, name="Clipay")
+exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name="Clipay", console=False, icon=None,
+          upx=False, runtime_tmpdir=None)

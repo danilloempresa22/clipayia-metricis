@@ -4,7 +4,27 @@ MicroSaaS que automatiza o fluxo de edição "cortes + headline" no CapCut: usu�
 
 Design completo validado em `docs/plans/2026-09-29-clipay-ia-design.md`. Este arquivo é o resumo operacional para trabalhar no código; consulte o design doc para o "porquê" das decisões.
 
-**Nome do produto: Clipay.ia — não CortesApp.** Este arquivo hoje mora dentro da pasta/repositório antigo `CortesApp` (é de lá que o motor reaproveitado vem), mas isso é legado, não o nome definitivo. **Primeira tarefa de implementação:** renomear a pasta/repositório e o pacote Python interno (`cortesapp/` → algo como `clipay/`) para refletir o nome Clipay.ia, ajustando os imports e o `cortesapp.spec` (nome do executável gerado, ícone) de acordo. Depois disso, tratar todo o restante deste documento como aplicável ao projeto já renomeado.
+**Nome do produto: Clipay.ia — não CortesApp.** O motor veio do CortesApp (`Downloads\capcut-kit-main\CortesApp`, mantido intocado como referência), mas este repositório já é o Clipay.ia: pacote `app/clipay/`, spec `app/clipay.spec`, executável `Clipay.exe`. Onde este documento ainda disser `cortesapp`, leia `clipay`.
+
+## Layout do repositório
+```
+app/        motor local (Python): clipay/ (pacote), app.py, clipay.spec, requirements*.txt
+web/        painel Next.js 16 (landing, cadastro, entrar, conta) — auth só no navegador via supabase-js
+supabase/   migrations 0001 + 0002 (já aplicadas no projeto oslrmcxzbsneherutmyn); aplicar_tudo.sql = só referência
+tests/      pytest (18 testes; pasta CapCut falsa + vídeo sintético via ffmpeg; nada toca o CapCut real)
+docs/       design doc + operacao.md (ativar contas, SQL úteis)
+```
+Rodar: `app\.venv\Scripts\python.exe app\app.py --navegador` · testes: `app\.venv\Scripts\python.exe -m pytest tests` · site: `cd web; npm run dev`.
+
+## Estado (atualizado)
+Feito e validado: criação de projeto CapCut do zero (`capcut.cria_draft`, moldes reais em `app/clipay/assets/moldes/`, **validado abrindo no CapCut real**), login/status/contador (`conta.py`), servidor com token de sessão, fluxo analisa → revisa → gera (`processa.analisa_video` / `monta_video`), detecção de rosto (`rosto.py`, OpenCV **<5**, detector carregado da memória por causa de caminhos com acento), painel web, `Clipay.exe` onefile (~131 MB) com `--autoteste`.
+Falta: publicar o site (Vercel) e o `.exe` (GitHub Release, ver `.github/workflows/build.yml`), preencher `NEXT_PUBLIC_DOWNLOAD_URL`, testar "baixa, abre, usa" em máquina limpa, testar em 2+ versões do CapCut, ícone do app.
+
+## Correções em relação ao texto original
+- Servidor local é `http.server` da stdlib (não Flask/FastAPI). Sem framework novo.
+- Vídeo é escolhido por **caminho** (diálogo nativo do tkinter), sem copiar arquivo; arrastar-e-soltar grava em blocos como plano B.
+- ffmpeg **não** vai no git: `app/bin/ffmpeg.exe` (build LGPL da BtbN, baixado pelo CI).
+- Molde/fixtures têm ids da máquina zerados e o usuário trocado por `USUARIO`; manter assim ao recapturar.
 
 ## O que este projeto NÃO é
 
@@ -78,13 +98,6 @@ Seguir o estilo já usado no motor existente (`cortes_headline.py`, `audio.py` e
 
 **Fora por enquanto:** Mac · modo vlog-youtube · cobrança automatizada · geração de headline via IA · sincronização de configs entre dispositivos · auto-updater.
 
-## Próximos passos técnicos
+## Próximos passos
 
-0. Renomear a pasta/repositório e o pacote `cortesapp/` para o nome definitivo Clipay.ia (ver nota acima) antes de mexer no resto.
-1. Confirmar/completar a criação de projeto CapCut do zero a partir de vídeo bruto em `capcut.py`.
-2. Rodar `supabase/migrations/0001_init.sql` no projeto Supabase.
-3. Adaptar `servidor.py` + `assets/index.html` para login, upload de vídeo cru e tela de revisão.
-4. Remover `headline.py`/Claude API do fluxo padrão (manter arquivo, só não chamar).
-5. Testar detecção de `draft_content.json` criptografado em pelo menos 2 versões do CapCut.
-6. Gerar o `.exe` com `cortesapp.spec` (renomeado) e testar "baixa, abre, usa" numa máquina limpa (sem Python instalado).
-7. Painel web simples (cadastro, status da conta, download do app).
+Ver 'Estado (atualizado)' no topo. Ordem: publicar site -> publicar .exe (tag vX.Y.Z) -> teste em máquina limpa e em outra versão do CapCut -> ícone.
