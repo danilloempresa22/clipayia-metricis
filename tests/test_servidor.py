@@ -186,3 +186,64 @@ def test_estado_e_exige_ativa(monkeypatch, tmp_path):
     with pytest.raises(conta.ErroConta, match="não está ativa"): conta.exige_ativa()
     dados["/rest/v1/subscriptions"] = [{"status": "ativo"}]
     assert conta.exige_ativa()["status"] == "ativo"
+
+
+# ---- tela de login: senha esquecida, Google, logo ----
+def test_login_recusa_email_invalido_antes_de_chamar_o_supabase(monkeypatch, tmp_path):
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
+    monkeypatch.setattr(conta, "_chama", lambda *a, **k: (_ for _ in ()).throw(AssertionError("nao devia chamar")))
+    with pytest.raises(conta.ErroConta, match="não parece válido"):
+        conta.login("sem-arroba", "12345678")
+
+
+def test_recuperar_senha_manda_link_pro_site(app, monkeypatch):
+    chama, *_ = app
+    pedidos = []
+    monkeypatch.setattr(conta, "_chama", lambda m, p, corpo=None, **k: pedidos.append((p, corpo)))
+    assert chama("/api/recuperar", {"email": "x"})[0] == 400                      # sem e-mail valido: erro na tela
+    c, r = chama("/api/recuperar", {"email": "a@b.com"})
+    assert c == 200 and pedidos[-1][0] == "/auth/v1/recover"
+    assert pedidos[-1][1]["redirect_to"].endswith("/redefinir-senha")
+
+
+def test_google_indisponivel_avisa_sem_abrir_navegador(app, monkeypatch):
+    chama, *_ = app
+    abriu = []
+    monkeypatch.setattr(servidor.webbrowser, "open", lambda u: abriu.append(u))
+    monkeypatch.setattr(conta, "_chama", lambda *a, **k: {"external": {"google": False}})
+    c, r = chama("/api/google", {})
+    assert c == 400 and "Google ainda não está disponível" in r["erro"] and not abriu
+
+
+def test_google_volta_com_codigo_de_uso_unico(app, monkeypatch):
+    chama, _, _, base = app
+    abriu = []
+    monkeypatch.setattr(servidor.webbrowser, "open", lambda u: abriu.append(u))
+    monkeypatch.setattr(conta, "google_disponivel", lambda: True)
+    entrou = []
+    monkeypatch.setattr(conta, "entra_com_tokens", lambda a, r, e=3600: entrou.append(a))
+    assert chama("/api/google", {})[0] == 200
+    from urllib.parse import urlparse, parse_qs
+    volta = parse_qs(urlparse(abriu[0]).query)["redirect_to"][0]
+    assert volta.startswith("http://127.0.0.1:") and "/auth/retorno?estado=" in volta
+    estado = parse_qs(urlparse(volta).query)["estado"][0]
+    assert chama("/api/google-tokens", {"estado": "forjado", "access_token": "x"})[0] == 400      # outra pagina nao entra
+    c, _ = chama("/api/google-tokens", {"estado": estado, "access_token": "tok", "refresh_token": "r"})
+    assert c == 200 and entrou == ["tok"]
+    assert chama("/api/google-tokens", {"estado": estado, "access_token": "tok"})[0] == 400       # uso unico
+    pagina = urllib.request.urlopen(base + "/auth/retorno?estado=x").read().decode()
+    assert servidor.TOKEN in pagina and "__TOKEN__" not in pagina
+
+
+def test_logo_e_abrir_site(app, monkeypatch):
+    chama, _, _, base = app
+    r = urllib.request.urlopen(base + "/assets/img/logo-clipay.png")
+    assert r.status == 200 and r.headers["Content-Type"] == "image/png"
+    try:
+        urllib.request.urlopen(base + "/assets/img/..%2F..%2Fconta.py"); assert False
+    except urllib.error.HTTPError as e:
+        assert e.code == 404
+    abriu = []
+    monkeypatch.setattr(servidor.webbrowser, "open", lambda u: abriu.append(u))
+    assert chama("/api/abrir-site", {"caminho": "/cadastro"})[0] == 200 and abriu[0].endswith("/cadastro")
+    assert chama("/api/abrir-site", {"caminho": "https://malicioso.com"})[0] == 400

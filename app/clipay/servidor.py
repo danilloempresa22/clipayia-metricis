@@ -1,7 +1,7 @@
 """Servidor local (so 127.0.0.1) que serve a tela do app e roda as edicoes em segundo plano.
 Toda chamada /api exige o token da sessao (so quem abriu a tela do app o conhece) e o Host local:
 assim nenhuma pagina qualquer da internet consegue mandar o app processar coisas."""
-import json, os, re, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil
+import json, os, re, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil, time
 from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -13,6 +13,23 @@ if not ASSETS.exists():
     ASSETS = Path(__file__).resolve().parent / "assets"
 
 TOKEN = secrets.token_urlsafe(24)
+GOOGLE_ESTADOS = {}                                  # codigo de uso unico de cada login com Google em andamento -> hora
+RETORNO_GOOGLE = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Clipay.ia</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e0e0e;color:#fbfbfb;
+font:15px/1.5 "Segoe UI",system-ui,sans-serif}div{text-align:center;max-width:420px;padding:24px}p{color:#999}</style></head>
+<body><div><h2 id="t">Conectando…</h2><p id="s"></p></div><script>
+const h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
+const fim = (t, s) => { document.getElementById("t").textContent = t; document.getElementById("s").textContent = s; };
+const erro = h.get("error_description") || q.get("error_description");
+if (erro) fim("Não deu certo", erro.replace(/\\+/g, " ") + ". Volte ao Clipay.ia e tente de novo.");
+else if (!h.get("access_token")) fim("Não deu certo", "O Google não devolveu o login. Volte ao Clipay.ia e tente de novo.");
+else fetch("/api/google-tokens", {method: "POST", headers: {"X-Clipay-Token": "__TOKEN__", "Content-Type": "application/json"},
+  body: JSON.stringify({estado: q.get("estado"), access_token: h.get("access_token"), refresh_token: h.get("refresh_token"),
+  expires_in: h.get("expires_in")})}).then(r => r.json()).then(d => {
+  history.replaceState(null, "", location.pathname);
+  d.erro ? fim("Não deu certo", d.erro) : fim("Pronto!", "Você entrou no Clipay.ia. Pode fechar esta aba e voltar ao app.");
+}).catch(() => fim("Não deu certo", "O Clipay.ia não respondeu. Ele ainda está aberto?"));
+</script></body></html>"""
 JOBS = {}
 ANALISES = {}                                        # id -> resultado de processa.analisa_video
 TRAVA = threading.Lock()
@@ -250,6 +267,23 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
+        if u.path.startswith("/assets/img/"):            # so imagens da pasta de assets (logo)
+            nome = Path(u.path).name
+            p = ASSETS / "img" / nome
+            if nome.lower().endswith(".png") and p.is_file():
+                b = p.read_bytes()
+                self.send_response(200); self.send_header("Content-Type", "image/png")
+                self.send_header("Cache-Control", "max-age=3600")
+                self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
+            self.send_response(404); self.end_headers(); return
+        if u.path == "/auth/retorno":                    # volta do login com Google (aberto no navegador padrao)
+            host = (self.headers.get("Host") or "").split(":")[0]
+            if host not in ("127.0.0.1", "localhost"):
+                self.send_response(403); self.end_headers(); return
+            b = RETORNO_GOOGLE.replace("__TOKEN__", TOKEN).encode("utf-8")
+            self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
         if not u.path.startswith("/api/"):
             self.send_response(404); self.end_headers(); return
         if u.path == "/api/video":                       # previa da revisao: <video> nao manda cabecalho, token vai na URL
@@ -316,6 +350,27 @@ class H(BaseHTTPRequestHandler):
             c = self._corpo()
             if u.path == "/api/login":
                 conta.login(c.get("email", ""), c.get("senha", ""))
+                return self._json(conta.estado())
+            if u.path == "/api/abrir-site":              # navegador padrao (a janela do app nao abre abas)
+                caminho = c.get("caminho", "/")
+                if caminho not in ("/", "/cadastro", "/conta", "/entrar"):
+                    return self._json({"erro": "pedido inválido"}, 400)
+                webbrowser.open(conta.SITE_URL + caminho)
+                return self._json({"ok": True})
+            if u.path == "/api/recuperar":
+                conta.recupera_senha(c.get("email", ""))
+                return self._json({"ok": True})
+            if u.path == "/api/google":
+                estado = secrets.token_urlsafe(16)
+                GOOGLE_ESTADOS[estado] = time.time()
+                volta = f"http://127.0.0.1:{self.server.server_address[1]}/auth/retorno?estado={estado}"
+                webbrowser.open(conta.url_google(volta))
+                return self._json({"ok": True})
+            if u.path == "/api/google-tokens":
+                t0 = GOOGLE_ESTADOS.pop(c.get("estado", ""), None)       # uso unico: evita login forjado por outra pagina
+                if t0 is None or time.time() - t0 > 600:
+                    return self._json({"erro": "Esse link de login expirou. Tente de novo pelo Clipay.ia."}, 400)
+                conta.entra_com_tokens(c.get("access_token", ""), c.get("refresh_token", ""), int(c.get("expires_in") or 3600))
                 return self._json(conta.estado())
             if u.path == "/api/logout":
                 conta.logout(); return self._json({"ok": True})

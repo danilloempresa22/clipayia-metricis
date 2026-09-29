@@ -1,6 +1,6 @@
 """Conta do usuario no Supabase: login, status ativo/inativo e contador de uso.
 So urllib. A chave anon e' publica por desenho (o RLS protege os dados); a service_role NUNCA entra aqui."""
-import os, json, time, base64, urllib.request, urllib.error
+import os, re, json, time, base64, urllib.request, urllib.error, urllib.parse
 from pathlib import Path
 from . import transcricao
 
@@ -39,6 +39,8 @@ def _traduz(d, codigo):
     m = (d.get("error_description") or d.get("msg") or d.get("message") or "").lower()
     if "invalid login" in m or "invalid_grant" in m: return "E-mail ou senha incorretos."
     if "not confirmed" in m: return "Confirme seu e-mail (link enviado no cadastro) antes de entrar."
+    if "rate limit" in m or "security purposes" in m or codigo == 429: return "Muitas tentativas. Aguarde um minuto e tente de novo."
+    if "invalid" in m and "email" in m: return "Esse e-mail não parece válido."
     if codigo in (401, 403) or "jwt" in m: return "Sessão expirada. Entre de novo."
     return d.get("error_description") or d.get("msg") or d.get("message") or f"Erro do servidor ({codigo})."
 
@@ -60,10 +62,44 @@ def _guarda(d):
     return s
 
 
+EMAIL_OK = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 def login(email, senha):
     if not email or not senha:
         raise ErroConta("Preencha e-mail e senha.")
+    if not EMAIL_OK.match(email.strip()):
+        raise ErroConta("Esse e-mail não parece válido.")
     return _guarda(_chama("POST", "/auth/v1/token?grant_type=password", {"email": email.strip(), "password": senha}))
+
+
+def recupera_senha(email):
+    """e-mail de redefinicao de senha do Supabase; o link leva pra pagina do site que grava a senha nova"""
+    if not EMAIL_OK.match((email or "").strip()):
+        raise ErroConta("Digite seu e-mail no campo acima para receber o link.")
+    _chama("POST", "/auth/v1/recover", {"email": email.strip(), "redirect_to": SITE_URL + "/redefinir-senha"})
+
+
+# ---------------- login com Google (abre no navegador padrao: o Google bloqueia janela embutida) ----------------
+def google_disponivel():
+    try:
+        return bool((_chama("GET", "/auth/v1/settings") or {}).get("external", {}).get("google"))
+    except ErroConta:
+        return False
+
+
+def url_google(volta):
+    if not google_disponivel():
+        raise ErroConta("O login com Google ainda não está disponível. Entre com e-mail e senha.")
+    return SUPABASE_URL + "/auth/v1/authorize?" + urllib.parse.urlencode({"provider": "google", "redirect_to": volta})
+
+
+def entra_com_tokens(access_token, refresh_token, expires_in=3600):
+    """tokens que voltaram do Google (via Supabase). Confere com o Supabase antes de guardar: nao aceita token inventado."""
+    u = _chama("GET", "/auth/v1/user", token=access_token)
+    if not u or not u.get("id"):
+        raise ErroConta("Não consegui confirmar o login com Google. Tente de novo.")
+    return _guarda({"access_token": access_token, "refresh_token": refresh_token, "expires_in": expires_in, "user": u})
 
 
 def logout():
