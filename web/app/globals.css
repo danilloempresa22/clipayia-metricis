@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0e0f13;
+  --card: #171922;
+  --linha: #272a36;
+  --txt: #eceef4;
+  --mudo: #9096a8;
+  --cor: #7c5cff;
+  --cor2: #a48bff;
+  --ok: #3ecf8e;
+  --erro: #ff6b6b;
+  --aviso: #f5b84b;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-linha: var(--linha);
+  --color-txt: var(--txt);
+  --color-mudo: var(--mudo);
+  --color-cor: var(--cor);
+  --color-cor2: var(--cor2);
+  --color-ok: var(--ok);
+  --color-erro: var(--erro);
+  --color-aviso: var(--aviso);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--cor);
+  outline-offset: 2px;
+}

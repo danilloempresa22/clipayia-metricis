@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+app/bin/
+node_modules/
+.next/
+tests/fixtures/*.mp4
+*.bak_cortes
