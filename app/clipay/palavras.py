@@ -1,12 +1,15 @@
-"""Tempo por palavra sem modelo de alinhamento: o audio e' dividido nos trechos de fala (pausas >= 250 ms, a mesma
-regua do corte), os trechos sao agrupados em blocos curtos pro Whisper, e as palavras de cada bloco sao espalhadas
-pelo tempo de fala do bloco proporcionalmente ao tamanho de cada palavra. O limite dos cortes vem do audio (exato);
-o instante de cada palavra dentro de um trecho e' aproximado."""
+"""Tempo por palavra sem modelo de alinhamento dedicado:
+1) o audio e' dividido nos trechos de fala (pausas >= 250 ms, a mesma regua do corte — limite exato, vem do audio);
+2) os trechos sao agrupados em blocos de ate 25 s e o Whisper transcreve cada bloco COM marcas de tempo (20 ms),
+   o que prende cada frase curta (~2 s) no seu lugar;
+3) dentro de cada frase, as palavras sao espalhadas so pelo tempo de fala, proporcional ao tamanho de cada palavra.
+Medido contra a legenda automatica do CapCut (tempo real por palavra) em 4 videos: erro mediano ~100-140 ms,
+2-4% das palavras com erro > 0,5 s (o metodo antigo, sem marcas de tempo, errava > 0,5 s em ate 23%)."""
 import numpy as np
 from . import audio
 from .legenda import CORTE_MIN
 
-BLOCO_MAX = 8.0                      # s por chamada do Whisper (curto: tempo mais preciso; nao curto demais: menos alucinacao)
+BLOCO_MAX = 25.0                     # s por chamada do Whisper (a janela dele e' 30 s)
 FALA_MIN = 0.08                      # trecho de fala mais curto que isso e' ruido
 
 
@@ -33,6 +36,12 @@ def blocos(trechos, maximo=BLOCO_MAX):
         else:
             out.append([t])
     return out
+
+
+def recorta(trechos, a, b):
+    """trechos de fala dentro de [a,b] (a frase que o Whisper marcou); sem fala dentro, a frase inteira"""
+    r = [[max(x, a), min(y, b)] for x, y in trechos if min(y, b) - max(x, a) > 0.02]
+    return r or [[a, b]]
 
 
 def espalha(texto, trechos):
@@ -62,9 +71,10 @@ def transcreve(w, x, progresso=None):
     bs = blocos(trechos_de_fala(x))
     out = []
     for i, bl in enumerate(bs):
-        a, b = bl[0][0], bl[-1][1]
-        ia, ib = int(max(0.0, a - 0.05) * audio.SR), int((b + 0.05) * audio.SR)
-        txt = w.texto(x[ia:ib]) if ib > ia else ""
-        out += espalha(txt, bl)
+        a, b = max(0.0, bl[0][0] - 0.05), bl[-1][1] + 0.05
+        for s0, s1, txt in (w.segmentos(x[int(a * audio.SR):int(b * audio.SR)]) if b > a else []):
+            s0, s1 = a + s0, a + min(s1, b - a)
+            if s1 > s0:
+                out += espalha(txt, recorta(bl, s0, s1))
         if progresso: progresso(i + 1, len(bs))
-    return out
+    return sorted(out, key=lambda p: p["a"])

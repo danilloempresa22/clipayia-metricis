@@ -140,6 +140,8 @@ def alinha(toks, palavras):
     b = [norm(p["t"]) for p in palavras]
     tempo = [None] * len(toks)
     for bl in difflib.SequenceMatcher(None, a, b, autojunk=False).get_matching_blocks():
+        if bl.size == 1 and len(a[bl.a]) < 4:
+            continue                         # "que", "e", "é" sozinhos casam com a ocorrencia errada e puxam as vizinhas
         for k in range(bl.size):
             tempo[bl.a + k] = palavras[bl.b + k]["a"]
     # casamento aproximado para quem sobrou (erro de transcricao corrigido a mao): mesma posicao relativa

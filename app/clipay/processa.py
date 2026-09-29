@@ -64,8 +64,8 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
     f, total = legenda.mapa_tempo(keep)
     for t in toks:
         t["t0"] = f(t["t0"])
-    for i in range(1, len(toks)):
-        toks[i]["t0"] = max(toks[i]["t0"], toks[i - 1]["t0"] + 0.01)
+    for i in range(1, len(toks)):                                      # palavras no mesmo instante nao piscam
+        toks[i]["t0"] = max(toks[i]["t0"], toks[i - 1]["t0"] + 0.06)
     zoom = op.get("zoom")
     segs = legenda.monta(toks, total, bool(zoom))
     erros = legenda.verifica(segs, total)

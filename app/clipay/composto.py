@@ -180,8 +180,13 @@ def monta(base, meta, keep, segs_leg, op, cache):
         s_cortes["clip"] = dict(s_cortes["clip"], scale={"x": z, "y": z}, transform={"x": 0.0, "y": 0.0})
     else:
         s_cortes["clip"] = dict(s_cortes["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
-    s_leg, _, _ = seg_composto(MOLDE["dentro_corpo"]["legenda"], e_leg, dco["materials"], total, canvas)
+    # a legenda leva o efeito das edicoes aprovadas (Estroboscopio de tremor, mesmos parametros do molde)
+    s_leg, _, porcat = seg_composto(MOLDE["dentro_corpo"]["legenda"], e_leg, dco["materials"], total, canvas,
+                                    sem=("material_animations",))
     s_leg["clip"] = dict(s_leg["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
+    if "video_effects" in porcat:
+        ef = porcat["video_effects"]
+        ef["path"] = caminho_no_cache(ef.get("resource_id") or ef.get("effect_id", ""), cache)
     dco["tracks"] = [trilha("trilha_video_modelo", [s_cortes]), trilha("trilha_video_modelo", [s_leg], flag=2)]
 
     # --- Raiz: Corpo acelerado + fade-in (+ musica)

@@ -133,6 +133,62 @@ class Whisper:
         return b.decode("utf-8", errors="ignore").strip()
 
 
+    def segmentos(self, x):
+        """transcricao COM marcas de tempo do proprio Whisper (resolucao 20 ms): [(ini, fim, texto)] em s do audio x.
+        Regras de tempo do Whisper original: comeca com tempo; tempos em pares; tempo nunca volta; se a soma
+        das probabilidades de tempo ganha do melhor texto, sai tempo."""
+        mel = logmel(x)
+        mel = np.pad(mel, ((0, max(0, 3000 - mel.shape[0])), (0, 0)))[:3000]
+        ck, cv = self.enc.run(None, {self.enc.get_inputs()[0].name: mel.T[None]})
+        kc = np.zeros((self.L, 1, self.C, self.S), np.float32); vc = kc.copy()
+
+        def passo(tk, kc, vc, off):
+            lg, kc, vc = self.dec.run(None, dict(zip(self.nomes, [tk, kc, vc, ck, cv, off])))[:3]
+            return lg[0, -1].astype(np.float64), kc, vc
+        seq = self.seq[:-1]                                  # sem <|notimestamps|>
+        tb = self.nots + 1                                   # <|0.00|>
+        dur = len(x) / SR
+        lim = tb + int(min(30.0, dur + 0.5) / 0.02) + 1
+        lg, kc, vc = passo(np.array([seq], np.int64), kc, vc, np.zeros(1, np.int64))
+        off = np.array([len(seq)], np.int64); out = []; ult_ts = None
+        for _ in range(224):
+            lg[[self.nots, self.sot, self.nosp, self.tr]] = -np.inf
+            ult = out[-1] if out else None; pen = out[-2] if len(out) > 1 else None
+            if ult is None:
+                lg[:tb] = -np.inf                            # comeca com tempo
+            elif ult >= tb and (pen is None or pen >= tb):
+                lg[tb:] = -np.inf                            # par fechado (ou abertura): vem texto
+            elif ult >= tb:
+                eot = lg[self.eot]; lg[:tb] = -np.inf; lg[self.eot] = eot     # fechou: novo tempo ou fim
+            if ult_ts is not None:
+                lg[tb:ult_ts] = -np.inf                      # tempo nunca volta
+            lg[lim:] = -np.inf
+            fin = np.isfinite(lg)
+            if fin[tb:].any() and fin[:tb].any():
+                p = np.exp(lg - lg[fin].max()); p[~fin] = 0
+                if p[tb:].sum() > p[:tb].max():
+                    lg[:tb] = -np.inf
+            t = int(lg.argmax())
+            if t == self.eot: break
+            out.append(t)
+            if t >= tb: ult_ts = t
+            if len(out) > 30 and out[-10:] == out[-20:-10]: break          # trava de repeticao
+            lg, kc, vc = passo(np.array([[t]], np.int64), kc, vc, off); off = off + 1
+        txt = lambda ks: b"".join(base64.b64decode(self.tok[k]) for k in ks if k in self.tok).decode("utf-8", errors="ignore").strip()
+        segs, cur, t0 = [], [], None
+        for t in out:
+            if t < tb:
+                cur.append(t); continue
+            if t0 is None:
+                t0 = (t - tb) * 0.02
+            else:
+                if txt(cur): segs.append((t0, (t - tb) * 0.02, txt(cur)))
+                cur, t0 = [], None
+        if cur and t0 is not None and txt(cur):
+            segs.append((t0, dur, txt(cur)))
+        return segs
+
+
 def frases(w, x, progresso=None, max_s=15.0, min_s=6.0):
     """divide o audio em pausas (6-15s) e transcreve cada pedaco -> [[ini, fim, texto]] em s do audio."""
     h = 160; n = len(x) // h

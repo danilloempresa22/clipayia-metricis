@@ -103,6 +103,27 @@ def test_checklist_pega_sobreposicao_por_altura_y_fora_da_tela_e_duracao():
 
 
 # ---------------- tempo por palavra ----------------
+def test_palavra_curta_isolada_nao_casa_com_ocorrencia_distante():
+    pal = [P("eu", 1, 1.2), P("acho", 1.3, 1.6), P("isso", 1.7, 2.0), P("que", 9.0, 9.2), P("fim", 9.3, 9.6)]
+    al = legenda.alinha(legenda.tokens("eu acho que isso fim"), pal)       # "que" mudou de lugar no texto editado
+    assert al[2]["t0"] < 2.0                                                # nao vai parar em 9 s arrastando "isso"
+
+
+def test_whisper_com_tempo_prende_cada_frase_no_seu_lugar():
+    class W:                                                                # frases do Whisper com tempo (relativo ao bloco)
+        def segmentos(self, x): return [(0.0, 1.0, "primeira frase"), (4.4, 7.6, "segunda frase aqui")]
+    x = __import__("numpy").zeros(16000 * 10, "float32")
+    import clipay.palavras as pw
+    orig = pw.trechos_de_fala
+    pw.trechos_de_fala = lambda x: [[0.05, 1.0], [4.5, 5.5], [6.0, 7.5]]
+    try:
+        pal = pw.transcreve(W(), x)
+    finally:
+        pw.trechos_de_fala = orig
+    assert [p["t"] for p in pal] == ["primeira", "frase", "segunda", "frase", "aqui"]
+    assert all(p["a"] < 1.0 for p in pal[:2]) and all(p["a"] >= 4.5 for p in pal[2:])
+
+
 def test_palavras_sao_espalhadas_so_no_tempo_de_fala():
     pal = palavras.espalha("um dois três quatro", [[1.0, 2.0], [3.0, 4.0]])
     assert len(pal) == 4 and pal[0]["a"] == pytest.approx(1.0, abs=0.01)
