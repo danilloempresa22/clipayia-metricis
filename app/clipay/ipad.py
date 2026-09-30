@@ -315,8 +315,11 @@ def monta(raiz, an, op):
     ps["target_timerange"] = {"start": 0, "duration": total_c}
     ps["clip"] = copy.deepcopy(clip_p)
     pts = pontos_zoom(sub, zooms, us(sp), comum, clip_p)
-    ps["common_keyframes"] = ([_kf("KFTypeScaleX", [(t, s) for t, s, _ in pts]),
-                               _kf("KFTypePositionX", [(t, x) for t, _, x in pts])] if pts else [])
+    # os 4 juntos, como o CapCut grava: sem o PositionY ele assume y = 0 e a pessoa subia pra tras do iPad
+    ps["common_keyframes"] = ([_kf("KFTypePositionX", [(t, x) for t, _, x in pts]),
+                               _kf("KFTypePositionY", [(t, clip_p["transform"]["y"]) for t, _, _ in pts]),
+                               _kf("KFTypeScaleX", [(t, s) for t, s, _ in pts]),
+                               _kf("KFTypeRotation", [(t, 0.0) for t, _, _ in pts])] if pts else [])
     ps["uniform_scale"] = {"on": True, "value": 1.0}
     ent["_zooms"] = sum(1 for z in zooms if z)
     segs_p = [ps]

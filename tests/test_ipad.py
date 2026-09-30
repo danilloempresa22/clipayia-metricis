@@ -84,7 +84,11 @@ def test_compostos_sincronizados_cortados_e_leves(raiz_capcut, an):
     assert fim(pessoa) == fim(ip) == c["duration"]
     assert ip["segments"][0]["common_keyframes"] == [] and ip["segments"][0]["clip"]["scale"]["x"] == 1.0   # iPad sem zoom
     kfs = {k["property_type"]: k["keyframe_list"] for k in pessoa["segments"][0]["common_keyframes"]}
-    assert set(kfs) == {"KFTypeScaleX", "KFTypePositionX"} and max(k["values"][0] for k in kfs["KFTypeScaleX"]) > 1.0
+    # os 4 juntos (sem PositionY o CapCut pos a pessoa em y = 0, atras do iPad), y sempre o do enquadramento
+    assert set(kfs) == {"KFTypeScaleX", "KFTypePositionX", "KFTypePositionY", "KFTypeRotation"}
+    assert max(k["values"][0] for k in kfs["KFTypeScaleX"]) > 1.0
+    assert {k["values"][0] for k in kfs["KFTypePositionY"]} == {-0.169}
+    assert len({tuple(k["time_offset"] for k in v) for v in kfs.values()}) == 1       # mesmos instantes
     assert len(json.dumps(c)) < 60_000                                               # leve: antes eram ~800 KB por copia
     # Video: os cortes sao segmentos do MESMO composto, cada um com material proprio
     cortes = fin["tracks"][0]["segments"]
