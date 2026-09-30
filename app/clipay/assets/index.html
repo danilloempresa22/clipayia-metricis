@@ -236,10 +236,6 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 .ip-botoes{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
 .ip-botoes button{padding:6px 10px;font-size:13px}
 .ip-rel{min-width:86px;text-align:center;font-variant-numeric:tabular-nums}
-.ip-grupos{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:6px}
-.ip-grupo{display:flex;align-items:center;gap:10px}
-.ip-grupo span{min-width:52px;font-size:12px;color:var(--mudo);font-variant-numeric:tabular-nums}
-.ip-grupo input{padding:8px 10px;text-transform:uppercase}
 @media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos{grid-template-columns:1fr}}
 
 /* ---------- login (tela cheia, sem sidebar) ---------- */
@@ -552,8 +548,17 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 
         <div id="tela-ipad-revisao" class="oculto pilha">
           <div id="ip-rev-erro" class="msg erro oculto"></div>
-          <div class="card"><div class="nums">
-            <div><b id="ip-n-antes">–</b>em comum</div><div><b class="ok" id="ip-n-depois">–</b>depois dos cortes</div><div><b id="ip-n-ped">–</b>trechos</div></div></div>
+          <div class="card">
+            <h2>Cortes</h2>
+            <p class="sub" style="font-size:13px">Os dois vídeos vão juntos num <b>clipe composto</b> já sincronizado, e os cortes são feitos nele: o iPad e a pessoa nunca desalinham, e no CapCut você ajusta qualquer corte puxando a borda.
+              O app só corta pausas, nunca no meio de uma palavra.</p>
+            <div class="modos" id="ip-cortes" role="radiogroup" aria-label="Intensidade dos cortes">
+              <button class="modo" data-corte="leve" role="radio"><b>Leve</b><span id="ip-c-leve"></span></button>
+              <button class="modo" data-corte="media" role="radio"><b>Média</b><span id="ip-c-media"></span></button>
+              <button class="modo" data-corte="forte" role="radio"><b>Forte</b><span id="ip-c-forte"></span></button>
+            </div>
+            <p class="sub" style="margin:0;font-size:12px">Trecho em comum dos dois vídeos: <b id="ip-n-antes">–</b>. Leve só tira pausas longas; forte tira também as pausas curtas.</p>
+          </div>
           <div class="card">
             <h2>Headline</h2>
             <div class="campo"><label for="ip-headline">Aparece no começo, logo acima do iPad (quebra em 2 linhas sozinha)</label>
@@ -565,10 +570,6 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <h2>Zoom na pessoa</h2>
             <label class="chave"><input type="checkbox" id="ip-zoom-on" checked> Aplicar zooms (o iPad nunca recebe zoom)</label>
             <div class="deslize" id="ip-int-box"><input type="range" id="ip-int" min="0.5" max="1.5" step="0.05" value="1"><output id="ip-int-v">moderado</output></div>
-          </div>
-          <div class="card">
-            <h2>Legenda <span class="sub" style="font-size:13px;font-weight:400">· revise o texto; ela sai em MAIÚSCULAS</span></h2>
-            <div class="ip-grupos" id="ip-grupos"></div>
           </div>
           <div class="card">
             <div class="campo"><label for="ip-nome">Nome do projeto no CapCut</label><input type="text" id="ip-nome"></div>
@@ -708,7 +709,7 @@ function pagina(nome){
 function mostra(tela){
   telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
   $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", "revisao-legenda":"Revise a legenda", progresso:"Processando",
-    "ipad-enquadrar":"Enquadrar", "ipad-sincronia":"Sincronizar", "ipad-revisao":"Legenda e headline",
+    "ipad-enquadrar":"Enquadrar", "ipad-sincronia":"Sincronizar", "ipad-revisao":"Cortes e headline",
     pronto:"Edição concluída"}[tela] || "Edição";
   if(tela !== "revisao-legenda"){ const v = $("lg-video"); if(!v.paused) v.pause(); }
 }
@@ -1190,8 +1191,8 @@ $("ip-voltar-2").onclick = () => { syPara(); mostra("ipad-enquadrar"); requestAn
 $("ip-sync-ok").onclick = async () => {
   syPara(); erro("ip-sync-erro");
   const off = Math.round(IP.off * 1000) / 1000;
-  mostra("progresso"); $("prog-titulo").textContent = "Cortando e transcrevendo…";
-  $("prog-sub").textContent = "Achando os cortes no áudio da pessoa e transcrevendo a legenda."; $("barra").style.width = "0";
+  mostra("progresso"); $("prog-titulo").textContent = "Achando os cortes…";
+  $("prog-sub").textContent = "Terminando a transcrição (ela protege as palavras nos cortes) e achando as pausas."; $("barra").style.width = "0";
   try{
     const {id} = await api("ipad/analisar", {sessao: IP.ses.sessao, offset: off});
     IP.an = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
@@ -1200,20 +1201,20 @@ $("ip-sync-ok").onclick = async () => {
 };
 
 // ---------- legenda, headline, zoom ----------
+let corteIpad = "media";
 function abreRevisaoIpad(){
   const a = IP.an;
-  $("ip-n-antes").textContent = seg(a.antes); $("ip-n-depois").textContent = seg(a.depois); $("ip-n-ped").textContent = a.pedacos;
+  $("ip-n-antes").textContent = seg(a.antes);
+  for(const k of ["leve","media","forte"]) $("ip-c-" + k).textContent = seg(a.cortes[k].depois) + " · " + a.cortes[k].trechos + " trechos";
+  escolheCorte(corteIpad);
   $("ip-nome").value = IP.ses.pessoa.nome.replace(/\.[^.]+$/, "") + " - ipad";
-  const box = $("ip-grupos"); box.innerHTML = "";
-  if(!a.grupos.length) box.innerHTML = '<p class="sub" style="margin:0">Nenhuma fala transcrita.</p>';
-  a.grupos.forEach((g, i) => {
-    const d = document.createElement("div"); d.className = "ip-grupo";
-    d.innerHTML = '<span>' + seg(g.ini) + '</span><input type="text" maxlength="60">';
-    const inp = d.querySelector("input"); inp.value = g.txt; inp.dataset.i = i;
-    box.appendChild(d);
-  });
   erro("ip-rev-erro"); mostra("ipad-revisao");
 }
+function escolheCorte(k){
+  corteIpad = k;
+  document.querySelectorAll("#ip-cortes .modo").forEach(b => { const on = b.dataset.corte === k; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+}
+document.querySelectorAll("#ip-cortes .modo").forEach(b => b.onclick = () => escolheCorte(b.dataset.corte));
 $("ip-head-s").oninput = () => { $("ip-head-s-v").textContent = fmt($("ip-head-s").value, 1) + " s"; };
 $("ip-int").oninput = () => { const v = Number($("ip-int").value); $("ip-int-v").textContent = v < 0.8 ? "leve" : v > 1.2 ? "forte" : "moderado"; };
 $("ip-zoom-on").onchange = () => $("ip-int-box").classList.toggle("desligado", !$("ip-zoom-on").checked);
@@ -1221,10 +1222,9 @@ $("ip-voltar-3").onclick = () => abreSincronia();
 $("ip-gerar").onclick = async () => {
   erro("ip-rev-erro"); mostra("progresso");
   $("prog-titulo").textContent = "Montando o projeto no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
-  const grupos = IP.an.grupos.map((g, i) => ({ini: g.ini, fim: g.fim, txt: document.querySelector('#ip-grupos input[data-i="' + i + '"]').value}));
   try{
     const {id} = await api("gerar", {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
-      grupos, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value});
+      cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value});
     pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
   }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
 };

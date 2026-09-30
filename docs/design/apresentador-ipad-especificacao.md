@@ -97,3 +97,18 @@ Código: `app/clipay/ipad.py` (lógica), `processa.analisa_ipad` / `monta_ipad`,
 - **Legenda**: ProximaNova Bold do catálogo (`7098268696795156993`), escala **0,45** pela altura das maiúsculas da referência, centro a 72,6% → `y = -0,452`. Frase longa diminui até caber (1,3).
 - **iPad**: `transform.y = 1 - altura_do_recorte_na_tela`; com o recorte do 0930 dá 0,68134 (0930: 0,68165).
 - **Aceitação (0930)**: tela de sincronia → iPad em 9,0 s + 3 quadros = +9,100 s; projeto gerado nos brutos reais com todos os 74 trechos em `iPad.source - pessoa.source = 9100000`.
+
+## Revisão (2026-09-30): composto, cortes suaves, sem legenda
+
+Decisões do Danillo depois do primeiro teste:
+- **Sem legenda** neste modo. A transcrição continua (em segundo plano) só pra **proteger as palavras** nos cortes.
+- **Cortes feitos num clipe composto**: o composto "iPad + pessoa" tem os dois vídeos INTEIROS e sincronizados
+  (pessoa no trilho principal, iPad por cima com `flag 2`); a raiz tem os trechos mantidos, cada um um segmento do
+  mesmo composto com material próprio (mesmo formato do "João 1 - legendado", 4 segmentos → composto `AF7A90B8`).
+  Ajustar um corte no CapCut = puxar a borda do segmento; iPad e pessoa nunca desalinham.
+- **Régua nova de corte** (a do Cortes + Headline cortava sílaba e jogava fora o desenho feito em silêncio). Medido no
+  "1.MOV" (533 palavras): régua antiga 6 palavras cortadas no meio e 18 coladas na borda; régua nova 0 e 0.
+  Intensidades (pausa mínima / folga antes / folga depois): leve 0,8/0,15/0,25 s · média 0,5/0,15/0,25 · forte 0,35/0,12/0,20.
+  No bruto: 200,5 s → leve 189,0 s (5 trechos), média 186,2 s (9), forte 184,1 s (12).
+- **Zoom** dentro do composto, só na pessoa: trechos longos são divididos numa micropausa (`reels.divide_longos`) só pra
+  trocar o enquadramento — sem tirar nada. Resultado no bruto: 27 zooms em 186 s.

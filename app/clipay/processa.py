@@ -130,35 +130,44 @@ def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None, palavras_prontas
     if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
         raise capcut.ErroProjeto("Não encontrei fala no vídeo da pessoa nesse trecho.")
     capcut.sonda_capcut(raiz)                                          # falha cedo se o CapCut criptografa os projetos
-    avisa("Achando os cortes", 0.1)
-    keep = ipad.cortes(x)
     if palavras_prontas is not None:
         pal = [dict(p, a=round(p["a"] - sp, 3), b=round(p["b"] - sp, 3)) for p in palavras_prontas if sp <= p["a"] < sp + comum]
     else:
         w = _whisper(op.get("modelo", "preciso"), avisa, 0.12, 0.2)
-        pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a legenda", 0.2 + 0.78 * i / n))
-    return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keep": keep, "palavras": pal,
-            "grupos": ipad.grupos(pal, keep)}
+        pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a fala", 0.2 + 0.7 * i / n))
+    avisa("Achando os cortes", 0.95)
+    keeps = {k: ipad.cortes(x, pal, k) for k in ipad.INTENSIDADES}   # a transcricao protege as palavras
+    e, v = audio.analisa(x)                                          # trocas de zoom: trecho longo divide numa micropausa
+    zooms = {k: reels.divide_longos(e, v, [kp[:2] for kp in keeps[k]]) for k in keeps}
+    return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keeps": keeps, "zooms": zooms, "palavras": pal}
 
 
 def monta_ipad(raiz, an, opcoes=None, avisa=None):
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
-    avisa("Montando os dois trilhos", 0.2)
-    novo, meta = ipad.monta(raiz, an, op)
-    erros = ipad.verifica(novo)
+    avisa("Montando o clipe composto", 0.2)
+    raiz_d, meta, compostos = ipad.monta(raiz, an, op)
+    erros = ipad.verifica(raiz_d)
     if erros:
         raise capcut.ErroProjeto("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(erros[:4]))
     avisa("Gravando no CapCut", 0.8)
     with tempfile.TemporaryDirectory() as tmp:
         capa = Path(tmp) / "draft_cover.jpg"
         audio.capa(an["pessoa"]["video"], capa, an["janela"][0] + 0.5)
+        capa = capa if capa.exists() else None
+
+        def extras(pasta):
+            composto.grava_subdrafts(pasta, compostos, capa)
+            e = ipad.verifica(raiz_d, pasta)                         # a pasta subdraft existe de verdade
+            if e:
+                raise capcut.ErroProjeto("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(e[:4]))
         nome = capcut.grava_projeto(raiz, op.get("nome") or Path(an["pessoa"]["video"]).stem + " - ipad",
-                                    novo, meta, capa if capa.exists() else None)
+                                    composto.limpa_para_gravar(raiz_d), meta, capa, extras)
     avisa("Pronto", 1.0)
-    trechos = capcut.trilha_principal(novo)["segments"]
-    return {"nome": nome, "modo": "ipad", "antes": an["janela"][2], "depois": novo["duration"] / 1e6,
-            "pedacos": len(trechos), "legendas": len(op.get("grupos") or []), "zooms": sum(1 for s in trechos if s["clip"]["scale"]["x"] > float((op.get("pessoa") or {}).get("escala", 1.0)) + 1e-3)}
+    pessoa = compostos[0]["draft"]["tracks"][0]["segments"]
+    return {"nome": nome, "modo": "ipad", "antes": an["janela"][2], "depois": raiz_d["duration"] / 1e6,
+            "pedacos": len(raiz_d["tracks"][0]["segments"]), "zooms": sum(1 for s in pessoa if s["common_keyframes"] or
+                        s["clip"]["scale"]["x"] > float((op.get("pessoa") or {}).get("escala", 1.0)) + 1e-3)}
 
 
 def processa(raiz, pasta, modo, opcoes=None, avisa=None):

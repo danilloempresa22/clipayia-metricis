@@ -1,8 +1,8 @@
-"""Apresentador + iPad: sincronia, cortes iguais nos dois trilhos, ordem das faixas, legenda/headline e verificacao."""
+"""Apresentador + iPad: sincronia, cortes que nunca cortam palavra, clipe composto cortado por fora, headline e verificacao."""
 import copy, json, os
 from pathlib import Path
 import pytest
-from clipay import audio, capcut, ipad, palavras, processa, transcricao
+from clipay import audio, capcut, composto, ipad, palavras, processa, transcricao
 
 
 def test_janela_da_sincronia_positiva_negativa_e_sem_cruzamento():
@@ -14,18 +14,23 @@ def test_janela_da_sincronia_positiva_negativa_e_sem_cruzamento():
 
 
 def test_passo_de_um_quadro_alcanca_o_ajuste_do_0930():
-    quadros = round(9.1 / ipad.QUADRO)                                              # arrastando/avancando quadro a quadro
+    quadros = round(9.1 / ipad.QUADRO)
     assert abs(quadros * ipad.QUADRO - 9.1) < 1 / 60                                  # margem de 1 quadro do original (60 fps)
 
 
-def test_grupos_de_2_a_4_palavras_so_do_que_ficou():
-    pal = [{"t": t, "a": a, "b": a + 0.3} for t, a in
-           (("você", 0.0), ("vai", 0.35), ("ter", 0.7), ("que", 1.05), ("mapear", 1.4), ("isso", 3.0), ("aqui", 3.35))]
-    keep = [[0.0, 1.8, False], [2.9, 3.8, False]]
-    g = ipad.grupos(pal, keep)
-    assert [x["txt"] for x in g] == ["você vai ter que", "mapear", "isso aqui"]      # pausa grande separa; "mapear" isolado
-    assert g[1]["fim"] <= g[2]["ini"] and g[2]["ini"] == pytest.approx(1.9, abs=0.01)  # timeline cortada: 1,8 + (3,0 - 2,9)
-    assert ipad.maiusculas(" você  vai ") == "VOCÊ VAI"
+def test_cortes_nunca_cortam_palavra_e_respeitam_a_intensidade(video_vertical):
+    x = audio.pcm(video_vertical)                        # tom em 0-3 s, 4,5-7,5 s e 9-10 s (pausas de 1,5 s)
+    # palavra "sussurrada" no meio da pausa: o audio nao ve, a transcricao ve -> nao pode sumir
+    pal = [{"t": "baixinho", "a": 3.5, "b": 3.9}]
+    for k in ipad.INTENSIDADES:
+        keep = ipad.cortes(x, pal, k)
+        assert any(a <= 3.5 and 3.9 <= b for a, b, _ in keep), k
+    leve, forte = ipad.cortes(x, [], "leve"), ipad.cortes(x, [], "forte")
+    assert sum(b - a for a, b, _ in leve) >= sum(b - a for a, b, _ in forte)
+    assert len(forte) >= 2                                                           # pausas de 1,5 s viram corte
+    pausa, pre, pos = ipad.INTENSIDADES["media"]
+    k = ipad.cortes(x, [], "media")
+    assert k[0][1] >= 3.0 + pos - 0.02                                                # folga depois da fala
 
 
 @pytest.fixture
@@ -40,63 +45,65 @@ def an(video_vertical, video_horizontal, raiz_capcut, monkeypatch):
 
 
 def gera(raiz, a, **op):
-    base = {"headline": "Como levar um CEO para 10 mil seguidores", "grupos": a["grupos"], "zoom": True, "intensidade": 1.0,
+    base = {"headline": "Como levar um CEO para 10 mil seguidores", "cortes": "forte", "zoom": True, "intensidade": 1.0,
             "pessoa": {"escala": 1.0, "x": 0.0, "y": -0.169}, "crop_ipad": [0.0, 0.11, 1.0, 0.93], "nome": "iPad teste"}
     return processa.monta_ipad(raiz, a, dict(base, **op))
 
 
 def abre(raiz, nome):
-    return json.loads((Path(raiz) / nome / "draft_content.json").read_text(encoding="utf-8"))
+    p = Path(raiz) / nome
+    return json.loads((p / "draft_content.json").read_text(encoding="utf-8")), p
 
 
-def test_dois_trilhos_com_os_mesmos_trechos_e_ipad_por_cima(raiz_capcut, an):
+def test_composto_sincronizado_cortado_por_fora(raiz_capcut, an):
     a = an(1.2)                                                                       # iPad comecou 1,2 s antes
     r = gera(raiz_capcut, a)
-    d = abre(raiz_capcut, r["nome"])
+    d, pasta = abre(raiz_capcut, r["nome"])
     assert (d["canvas_config"]["width"], d["canvas_config"]["height"]) == (1080, 1920)
-    vids = [t for t in d["tracks"] if t["type"] == "video"]
-    pessoa, ip = vids
-    assert d["tracks"].index(ip) > d["tracks"].index(pessoa) and ip["flag"] == 2
-    alvo = lambda t: [(s["target_timerange"]["start"], s["target_timerange"]["duration"]) for s in t["segments"]]
-    assert alvo(pessoa) == alvo(ip) and len(pessoa["segments"]) >= 2               # cortou, e igual nos dois
-    for sp_, si_ in zip(pessoa["segments"], ip["segments"]):
-        assert si_["source_timerange"]["start"] - sp_["source_timerange"]["start"] == 1_200_000   # sincronia em us
-        assert si_["common_keyframes"] == [] and si_["clip"]["scale"]["x"] == 1.0              # iPad nunca tem zoom
-    mats = {m["id"]: m for m in d["materials"]["videos"]}
-    m_ip = mats[ip["segments"][0]["material_id"]]
-    assert m_ip["path"].endswith("horizontal.mp4") and m_ip["crop"]["upper_left_y"] == 0.11
-    assert ip["segments"][0]["clip"]["transform"]["y"] == pytest.approx(1 - ipad.altura_ipad(a["ipad"]["info"], [0, 0.11, 1, 0.93]), abs=1e-5)
+    ents = d["materials"]["drafts"]
+    assert len(ents) == 1                                                             # um composto, na raiz
+    c = ents[0]["draft"]
+    assert c["materials"].get("drafts", []) == [] and (pasta / "subdraft" / c["id"] / "draft_content.json").exists()
+    # dentro do composto: pessoa embaixo e iPad por cima, os dois INTEIROS e sincronizados
+    pessoa, ip = [t for t in c["tracks"] if t["type"] == "video"]
+    assert pessoa["flag"] == 0 and ip["flag"] == 2 and c["tracks"].index(ip) > c["tracks"].index(pessoa)
+    assert len(ip["segments"]) == 1 and ip["segments"][0]["source_timerange"]["start"] == 1_200_000
+    assert pessoa["segments"][0]["source_timerange"]["start"] == 0
+    fim = lambda t: t["segments"][-1]["target_timerange"]["start"] + t["segments"][-1]["target_timerange"]["duration"]
+    assert fim(pessoa) == fim(ip) == c["duration"]
+    assert ip["segments"][0]["common_keyframes"] == [] and ip["segments"][0]["clip"]["scale"]["x"] == 1.0   # iPad sem zoom
     assert any(s["clip"]["scale"]["x"] > 1.0 for s in pessoa["segments"])             # zoom so na pessoa
-    assert ipad.verifica(d) == []
+    # raiz: os cortes sao segmentos do MESMO composto, cada um com material proprio
+    raizv = d["tracks"][0]["segments"]
+    assert len(raizv) >= 2 and len({s["material_id"] for s in raizv}) == len(raizv)
+    assert all(s["extra_material_refs"][0] == ents[0]["id"] for s in raizv)
+    assert r["depois"] < r["antes"]
+    assert ipad.verifica(d, pasta) == []
 
 
 def test_sincronia_negativa(raiz_capcut, an):
     r = gera(raiz_capcut, an(-1.5))
-    d = abre(raiz_capcut, r["nome"])
-    pessoa, ip = [t for t in d["tracks"] if t["type"] == "video"]
-    for sp_, si_ in zip(pessoa["segments"], ip["segments"]):
-        assert sp_["source_timerange"]["start"] - si_["source_timerange"]["start"] == 1_500_000
+    d, _ = abre(raiz_capcut, r["nome"])
+    c = d["materials"]["drafts"][0]["draft"]
+    pessoa, ip = [t for t in c["tracks"] if t["type"] == "video"]
+    assert pessoa["segments"][0]["source_timerange"]["start"] == 1_500_000 and ip["segments"][0]["source_timerange"]["start"] == 0
 
 
-def test_legenda_e_headline_nas_posicoes_da_referencia(raiz_capcut, an):
+def test_headline_no_comeco_e_sem_legenda(raiz_capcut, an):
     r = gera(raiz_capcut, an(0.0), headline_s=7.0)
-    d = abre(raiz_capcut, r["nome"])
-    txt = {m["id"]: m for m in d["materials"]["texts"]}
-    textos = [(s, txt[s["material_id"]]) for t in d["tracks"] if t["type"] == "text" for s in t["segments"]]
-    head = [(s, m) for s, m in textos if m["font_resource_id"] != ipad.FONTE_LEGENDA["id"]]
-    leg = [(s, m) for s, m in textos if m["font_resource_id"] == ipad.FONTE_LEGENDA["id"]]
-    s, m = head[0]
-    assert s["target_timerange"] == {"start": 0, "duration": 7_000_000}
-    assert s["clip"]["transform"]["y"] == ipad.Y_HEADLINE and "\n" in json.loads(m["content"])["text"]
-    assert leg and all(json.loads(m["content"])["text"].isupper() for _, m in leg)
-    assert all(s["clip"]["transform"]["y"] == ipad.Y_LEGENDA for s, _ in leg)
-    assert all(m["border_width"] == 0 and m["has_shadow"] for _, m in leg)
+    d, _ = abre(raiz_capcut, r["nome"])
+    textos = [t for t in d["tracks"] if t["type"] == "text"]
+    assert len(textos) == 1 and len(textos[0]["segments"]) == 1                      # so a headline, nenhuma legenda
+    s = textos[0]["segments"][0]
+    assert s["target_timerange"] == {"start": 0, "duration": 7_000_000} and s["clip"]["transform"]["y"] == ipad.Y_HEADLINE
+    c = d["materials"]["drafts"][0]["draft"]
+    assert not c["materials"].get("texts")
 
 
 def test_zoom_desligado(raiz_capcut, an):
     r = gera(raiz_capcut, an(0.0), zoom=False)
-    d = abre(raiz_capcut, r["nome"])
-    pessoa = [t for t in d["tracks"] if t["type"] == "video"][0]
+    d, _ = abre(raiz_capcut, r["nome"])
+    pessoa = d["materials"]["drafts"][0]["draft"]["tracks"][0]
     assert all(s["clip"]["scale"]["x"] == 1.0 and not s["common_keyframes"] for s in pessoa["segments"])
 
 
@@ -106,18 +113,19 @@ def test_verificacao_trava_source_alem_do_arquivo_e_ordem_errada(raiz_capcut, an
     guardado = {}
     monkeypatch.setattr(processa.ipad, "monta", lambda *x, **k: guardado.setdefault("r", real(*x, **k)))
     gera(raiz_capcut, a)
-    d, _ = guardado["r"]
-    q = copy.deepcopy(d)
-    ip = [t for t in q["tracks"] if t["type"] == "video"][1]
-    ip["segments"][-1]["source_timerange"]["start"] += 60_000_000                     # passa do fim do arquivo do iPad
+    raiz_d = guardado["r"][0]
+    q = copy.deepcopy(raiz_d)
+    ip = [t for t in q["materials"]["drafts"][0]["draft"]["tracks"] if t["type"] == "video"][1]
+    ip["segments"][0]["source_timerange"]["start"] += 60_000_000                    # passa do fim do arquivo do iPad
     assert any("passa do fim do arquivo" in e for e in ipad.verifica(q))
-    q = copy.deepcopy(d)
-    vids = [t for t in q["tracks"] if t["type"] == "video"]
-    i, j = q["tracks"].index(vids[0]), q["tracks"].index(vids[1])
-    q["tracks"][i], q["tracks"][j] = q["tracks"][j], q["tracks"][i]
-    assert any("atrás da pessoa" in e or "mesmos trechos" in e for e in ipad.verifica(q))
-    # e a gravacao trava de verdade
-    monkeypatch.setattr(processa.ipad, "verifica", lambda d: ["trecho do vídeo do iPad passa do fim do arquivo"])
+    q = copy.deepcopy(raiz_d)
+    ts = q["materials"]["drafts"][0]["draft"]["tracks"]
+    ts[0], ts[1] = ts[1], ts[0]
+    assert any("atrás da pessoa" in e for e in ipad.verifica(q))
+    q = copy.deepcopy(raiz_d)
+    q["tracks"][0]["segments"][-1]["source_timerange"]["duration"] += 60_000_000    # corte alem do composto
+    assert any("passa do fim do clipe composto" in e for e in ipad.verifica(q))
+    monkeypatch.setattr(processa.ipad, "verifica", lambda d, p=None: ["trecho do vídeo do iPad passa do fim do arquivo"])
     antes = set(os.listdir(raiz_capcut))
     with pytest.raises(capcut.ErroProjeto, match="NÃO foi gravado"):
         gera(raiz_capcut, a, nome="nao deve existir")
@@ -130,11 +138,11 @@ def test_previa_leve_em_h264_com_o_mesmo_tempo(video_horizontal, tmp_path):
     assert abs(i["duracao"] - audio.probe_video(video_horizontal)["duracao"]) < 0.1 and max(i["largura"], i["altura"]) == 854
 
 
-def test_transcricao_em_segundo_plano_e_recortada_pela_sincronia(an, video_vertical, video_horizontal, raiz_capcut):
-    # transcricao feita no video INTEIRO da pessoa (tempos absolutos) antes da sincronia
+def test_transcricao_em_segundo_plano_e_recortada_pela_sincronia(video_vertical, video_horizontal, raiz_capcut):
     prontas = [{"t": "antes", "a": 0.2, "b": 0.5}, {"t": "isso", "a": 1.6, "b": 1.9}, {"t": "aqui", "a": 2.0, "b": 2.3}]
     vids = {"pessoa": {"video": str(video_vertical), "info": audio.probe_video(video_vertical)},
             "ipad": {"video": str(video_horizontal), "info": audio.probe_video(video_horizontal)}}
     a = processa.analisa_ipad(raiz_capcut, vids, -1.5, {}, None, palavras_prontas=prontas)    # pessoa comecou 1,5 s antes
-    assert [p["t"] for p in a["palavras"]] == ["isso", "aqui"]                                   # "antes" ficou fora da janela
-    assert a["palavras"][0]["a"] == pytest.approx(0.1)                                          # 1,6 - 1,5: relativo a janela
+    assert [p["t"] for p in a["palavras"]] == ["isso", "aqui"]
+    assert a["palavras"][0]["a"] == pytest.approx(0.1)
+    assert set(a["keeps"]) == set(ipad.INTENSIDADES)

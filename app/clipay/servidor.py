@@ -192,11 +192,10 @@ def trabalho_gera(c):
             crop = [num(v, 0.0, 1.0, 0.0) for v in (c.get("crop_ipad") or [0, 0, 1, 1])][:4]
             if len(crop) != 4 or crop[2] - crop[0] < 0.05 or crop[3] - crop[1] < 0.05:
                 raise capcut.ErroProjeto("O recorte do iPad ficou pequeno demais. Ajuste na tela de enquadrar.")
-            grupos = [{"ini": num(g.get("ini"), 0, 1e6, 0), "fim": num(g.get("fim"), 0, 1e6, 0), "txt": str(g.get("txt", ""))[:80]}
-                      for g in (c.get("grupos") or []) if isinstance(g, dict)]
             op = {"headline": (c.get("headline") or "").strip()[:120],
                   "headline_s": num(c.get("headline_s"), 1, 60, ipad.HEADLINE_S),
-                  "grupos": grupos, "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),
+                  "cortes": c.get("cortes") if c.get("cortes") in ipad.INTENSIDADES else "media",
+                  "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),
                   "pessoa": {"escala": num(pes.get("escala"), 0.5, 4.0, 1.0), "x": num(pes.get("x"), -3, 3, 0.0),
                              "y": num(pes.get("y"), -3, 3, 0.0)},
                   "crop_ipad": crop, "nome": (c.get("nome") or "").strip() or None}
@@ -302,14 +301,14 @@ def trabalho_analisa_ipad(sid, offset):
         if est and est["video"] != ses["pessoa"]["video"]:          # videos invertidos depois: a transcricao era do outro
             transcreve_em_segundo_plano(sid); est = ses["legenda"]
         while est and not est["pronto"]:                          # termina a legenda que ja estava sendo feita
-            avisa("Terminando a transcrição da legenda", 0.1 + 0.85 * est["fracao"])
+            avisa("Terminando a transcrição da fala (protege as palavras nos cortes)", 0.1 + 0.85 * est["fracao"])
             time.sleep(0.5)
         pal = est["palavras"] if est and not est["erro"] else None
         an = processa.analisa_ipad(raiz, ses, offset, {}, avisa, palavras_prontas=pal)
         aid = uuid.uuid4().hex[:10]
         ANALISES[aid] = an
         return {"analise": aid, "modo": "ipad", "offset": an["offset"], "antes": an["janela"][2],
-                "depois": sum(b - a for a, b, *_ in an["keep"]), "pedacos": len(an["keep"]), "grupos": an["grupos"]}
+                "cortes": {k: {"depois": round(sum(b - a for a, b, *_ in kp), 1), "trechos": len(kp)} for k, kp in an["keeps"].items()}}
     return fn
 
 

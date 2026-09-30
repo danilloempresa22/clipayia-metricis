@@ -11,7 +11,6 @@ ASSETS = Path(__file__).resolve().parent.parent / "clipay" / "assets"
 CACHE = Path(os.path.expandvars(r"%LOCALAPPDATA%\CapCut\User Data\Cache\effect"))
 FONTES = {
     "larguras_arial.json": Path(r"C:\Windows\Fonts\arial.ttf"),
-    "larguras_proximanova_bold.json": next(iter(sorted(CACHE.glob("7098268696795156993/*/*.ttf"))), None),
     "larguras_classic.json": next(iter(sorted(CACHE.glob("7545362071773367568/*/*.ttf"))), None),
 }
 chars = [chr(c) for c in range(32, 0x250)] + list("“”‘’–—…•ªº")
