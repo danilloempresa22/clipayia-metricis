@@ -202,8 +202,10 @@ def test_recuperar_senha_manda_link_pro_site(app, monkeypatch):
     monkeypatch.setattr(conta, "_chama", lambda m, p, corpo=None, **k: pedidos.append((p, corpo)))
     assert chama("/api/recuperar", {"email": "x"})[0] == 400                      # sem e-mail valido: erro na tela
     c, r = chama("/api/recuperar", {"email": "a@b.com"})
-    assert c == 200 and pedidos[-1][0] == "/auth/v1/recover"
-    assert pedidos[-1][1]["redirect_to"].endswith("/redefinir-senha")
+    assert c == 200 and pedidos[-1][0].startswith("/auth/v1/recover?redirect_to=")
+    from urllib.parse import urlparse, parse_qs
+    assert parse_qs(urlparse(pedidos[-1][0]).query)["redirect_to"][0].endswith("/redefinir-senha")   # na URL, nao no corpo
+    assert pedidos[-1][1] == {"email": "a@b.com"}
 
 
 def test_google_indisponivel_avisa_sem_abrir_navegador(app, monkeypatch):

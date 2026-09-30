@@ -77,7 +77,9 @@ def recupera_senha(email):
     """e-mail de redefinicao de senha do Supabase; o link leva pra pagina do site que grava a senha nova"""
     if not EMAIL_OK.match((email or "").strip()):
         raise ErroConta("Digite seu e-mail no campo acima para receber o link.")
-    _chama("POST", "/auth/v1/recover", {"email": email.strip(), "redirect_to": SITE_URL + "/redefinir-senha"})
+    # o Supabase so le redirect_to na URL (no corpo ele ignora e manda pra pagina inicial do site)
+    volta = urllib.parse.quote(SITE_URL + "/redefinir-senha", safe="")
+    _chama("POST", f"/auth/v1/recover?redirect_to={volta}", {"email": email.strip()})
 
 
 # ---------------- login com Google (abre no navegador padrao: o Google bloqueia janela embutida) ----------------

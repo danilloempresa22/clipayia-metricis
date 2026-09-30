@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import { LinkDeRecuperacao } from "@/components/LinkDeRecuperacao";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </nav>
           </div>
         </header>
+        <LinkDeRecuperacao />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-linha py-6 text-center text-xs text-mudo">
           © {new Date().getFullYear()} Clipay.ia · Seus vídeos nunca saem do seu computador.
