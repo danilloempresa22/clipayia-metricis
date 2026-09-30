@@ -434,6 +434,8 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 
         <div id="tela-ipad-enquadrar" class="oculto pilha">
           <p class="sub">Posicione a pessoa e recorte o iPad. É esse enquadramento que o vídeo final e os zooms usam.</p>
+          <div id="ip-invertido" class="msg ok oculto">Os vídeos estavam nos lugares trocados, então inverti: o vídeo com a fala ficou como câmera.</div>
+          <div id="ip-enq-erro" class="msg erro oculto"></div>
           <div class="ip-grade">
             <div class="card">
               <h2>Prévia 9:16</h2>
@@ -454,7 +456,7 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
               <input type="range" id="ip-quadro" min="0" max="1" step="0.1" value="0" style="width:100%;accent-color:var(--acc)">
             </div>
           </div>
-          <div class="linha"><button id="ip-ir-sync">Continuar para a sincronia</button><button class="sec" id="ip-voltar-1">Trocar os vídeos</button></div>
+          <div class="linha"><button id="ip-ir-sync">Continuar para a sincronia</button><button class="sec" id="ip-inverter">Inverter os vídeos</button><button class="sec" id="ip-voltar-1">Escolher outros vídeos</button></div>
         </div>
 
         <div id="tela-ipad-sincronia" class="oculto pilha">
@@ -926,7 +928,8 @@ $("outro").onclick = () => mostra("importar");
 // ================= APRESENTADOR + iPAD =================
 const IP = {arquivos: {ipad: "", pessoa: ""}, ses: null, pessoa: {escala: 1, x: 0, y: -0.17}, crop: [0, 0, 1, 1], off: 0, an: null};
 const QUADRO = 1 / 30;
-const url = q => "/api/video?sessao=" + IP.ses.sessao + "&q=" + q + "&t=" + encodeURIComponent(TOKEN);
+const url = q => "/api/video?sessao=" + IP.ses.sessao + "&q=" + q + "&t=" + encodeURIComponent(TOKEN)
+  + "&v=" + encodeURIComponent(IP.ses[q].nome);             // muda quando os videos sao invertidos: nao reaproveita a previa errada
 const hms = s => { s = Math.max(0, s); const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(3).padStart(6, "0"); };
 
 document.querySelectorAll("[data-escolhe]").forEach(b => b.onclick = async () => {
@@ -945,7 +948,9 @@ $("ip-preparar").onclick = async () => {
   try{
     const {id} = await api("ipad/preparar", IP.arquivos);
     IP.ses = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    SV.ipad.removeAttribute("src"); SV.pessoa.removeAttribute("src");
     abreEnquadrar();
+    $("ip-invertido").classList.toggle("oculto", !IP.ses.invertido);
   }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
   ocupado = false;
 };
@@ -1009,6 +1014,14 @@ arrasta($("ip-alca"), (dx, dy) => {
   IP.crop = [x0, y0, x1, y1];
 });
 $("ip-voltar-1").onclick = () => { ocupado = false; mostra("importar"); };
+$("ip-inverter").onclick = async () => {
+  erro("ip-enq-erro");
+  try{
+    IP.ses = await api("ipad/trocar", {sessao: IP.ses.sessao});
+    SV.ipad.removeAttribute("src"); SV.pessoa.removeAttribute("src");
+    $("ip-invertido").classList.add("oculto"); abreEnquadrar();
+  }catch(e){ erro("ip-enq-erro", e.message); }
+};
 $("ip-ir-sync").onclick = () => abreSincronia();
 
 // ---------- sincronizar (sempre por TEMPO, nunca por numero de quadro) ----------

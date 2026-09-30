@@ -54,6 +54,22 @@ def gera_previa(origem, destino, lado=854, com_audio=True, avisa=None, dur=None)
     return destino
 
 
+VOZ_MIN = 0.05                       # fracao minima de quadros com voz pra dizer que o video tem fala
+
+
+def fracao_de_voz(video, info):
+    """quanto de um trecho do meio do video tem voz. A gravacao de tela do iPad costuma ter trilha de audio MUDA,
+    entao 'tem trilha de audio' nao basta pra saber qual video e' a camera."""
+    if not info.get("tem_audio"):
+        return 0.0
+    dur = info["duracao"]; trecho = min(30.0, dur)
+    x = audio.pcm(video, max(0.0, dur / 2 - trecho / 2), trecho)
+    if len(x) < audio.SR or float(abs(x).max()) < 1e-4:
+        return 0.0
+    e, v = audio.analisa(x)
+    return float(((v > 0.42) & (e > 8.0)).mean())
+
+
 # ---------------- sincronia ----------------
 def janela(offset, dur_pessoa, dur_ipad):
     """offset = t_ipad - t_pessoa (s) no mesmo momento. Devolve (inicio na pessoa, inicio no iPad, duracao em comum)."""

@@ -262,3 +262,24 @@ def test_botao_google_so_aparece_quando_ligado(app, monkeypatch):
     assert chama("/api/estado")[1]["google"] is False
     monkeypatch.setattr(conta, "google_disponivel", lambda: True)
     assert chama("/api/estado")[1]["google"] is True
+
+
+def test_ipad_videos_escolhidos_trocados_sao_invertidos_pela_fala(app, video_vertical, video_mudo):
+    chama, espera, *_ = app
+    # a "camera" escolhida nao tem fala e o "iPad" tem: o app inverte e avisa
+    c, r = chama("/api/ipad/preparar", {"ipad": str(video_vertical), "pessoa": str(video_mudo)})
+    assert c == 200
+    j = espera(r["id"]); assert "erro" not in j, j
+    s = j["resultado"]
+    assert s["invertido"] is True and s["pessoa"]["nome"] == "vertical.mp4" and s["ipad"]["nome"] == "sem_audio.mp4"
+    # inverter de novo pelo botao: recusado, porque o outro video nao tem fala
+    c, r = chama("/api/ipad/trocar", {"sessao": s["sessao"]})
+    assert c == 400 and "não tem fala" in r["erro"]
+
+
+def test_ipad_sem_fala_em_nenhum_video_avisa(app, video_mudo, tmp_path):
+    chama, espera, *_ = app
+    import shutil
+    outro = tmp_path / "outro_mudo.mp4"; shutil.copy(video_mudo, outro)
+    c, r = chama("/api/ipad/preparar", {"ipad": str(video_mudo), "pessoa": str(outro)})
+    assert "Não encontrei fala" in espera(r["id"])["erro"]

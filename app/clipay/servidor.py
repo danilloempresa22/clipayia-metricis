@@ -237,28 +237,39 @@ def previa_de(video, com_audio, avisa):
     return ipad.gera_previa(video, pasta / f"{chave}.mp4", com_audio=com_audio, avisa=avisa, dur=info["duracao"]), info
 
 
+def resumo_ipad(sid, invertido=False):
+    ses = IPAD[sid]
+
+    def r(q):
+        return {"nome": Path(ses[q]["video"]).name, "largura": ses[q]["info"]["largura"],
+                "altura": ses[q]["info"]["altura"], "duracao": ses[q]["info"]["duracao"]}
+    return {"sessao": sid, "ipad": r("ipad"), "pessoa": r("pessoa"), "quadro": ipad.QUADRO,
+            "proporcao_ipad": ipad.PROPORCAO_IPAD, "invertido": invertido}
+
+
 def trabalho_prepara_ipad(v_ipad, v_pessoa):
     def fn(avisa):
         conta.exige_ativa()
         out = {}
-        passos = (("ipad", v_ipad, False, "do iPad"), ("pessoa", v_pessoa, True, "da pessoa"))
-        for i, (qual, video, com_audio, rot) in enumerate(passos):
-            aviso = lambda f, i=i, rot=rot: avisa(f"Preparando a prévia {rot}", 0.02 + 0.49 * (i + f))
+        passos = (("ipad", v_ipad, "do iPad"), ("pessoa", v_pessoa, "da câmera"))
+        for i, (qual, video, rot) in enumerate(passos):
+            aviso = lambda f, i=i, rot=rot: avisa(f"Preparando a prévia {rot}", 0.02 + 0.47 * (i + f))
             try:
-                previa, info = previa_de(video, com_audio, aviso)
+                previa, info = previa_de(video, True, aviso)       # as duas com audio: da pra inverter sem refazer
             except RuntimeError as e:
                 raise capcut.ErroProjeto(str(e))
             out[qual] = {"video": video, "info": info, "previa": str(previa)}
-        if not out["pessoa"]["info"]["tem_audio"]:
-            raise capcut.ErroProjeto("O vídeo da pessoa não tem áudio: sem áudio não dá pra achar os cortes nem a legenda.")
+        avisa("Conferindo qual vídeo tem a fala", 0.96)
+        for q in out:
+            out[q]["voz"] = ipad.fracao_de_voz(out[q]["video"], out[q]["info"])
+        invertido = out["pessoa"]["voz"] < ipad.VOZ_MIN <= out["ipad"]["voz"]
+        if invertido:                                             # escolhidos trocados: a camera e' a que tem fala
+            out["ipad"], out["pessoa"] = out["pessoa"], out["ipad"]
+        if out["pessoa"]["voz"] < ipad.VOZ_MIN:
+            raise capcut.ErroProjeto("Não encontrei fala em nenhum dos dois vídeos. O vídeo da câmera precisa ter a voz da pessoa.")
         sid = uuid.uuid4().hex[:10]
         IPAD[sid] = out
-
-        def resumo(q):
-            return {"nome": Path(out[q]["video"]).name, "largura": out[q]["info"]["largura"],
-                    "altura": out[q]["info"]["altura"], "duracao": out[q]["info"]["duracao"]}
-        return {"sessao": sid, "ipad": resumo("ipad"), "pessoa": resumo("pessoa"), "quadro": ipad.QUADRO,
-                "proporcao_ipad": ipad.PROPORCAO_IPAD}
+        return resumo_ipad(sid, invertido)
     return fn
 
 
@@ -474,6 +485,14 @@ class H(BaseHTTPRequestHandler):
                     return self._json({"erro": "Os dois vídeos são o mesmo arquivo."}, 400)
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_prepara_ipad(vs["ipad"], vs["pessoa"]))})
+            if u.path == "/api/ipad/trocar":                # botao "Inverter os videos" na tela de enquadrar
+                ses = IPAD.get(c.get("sessao", ""))
+                if not ses:
+                    return self._json({"erro": "Essa sessão expirou. Escolha os vídeos de novo."}, 400)
+                if ses["ipad"].get("voz", 0) < ipad.VOZ_MIN:
+                    return self._json({"erro": "O outro vídeo não tem fala, então ele não pode ser o da câmera."}, 400)
+                ses["ipad"], ses["pessoa"] = ses["pessoa"], ses["ipad"]
+                return self._json(resumo_ipad(c["sessao"]))
             if u.path == "/api/ipad/analisar":
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_analisa_ipad(c.get("sessao", ""), float(c.get("offset", 0))))})
