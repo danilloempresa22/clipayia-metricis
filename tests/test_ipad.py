@@ -126,24 +126,30 @@ def test_headline_no_comeco_e_sem_legenda_quando_desmarcada(raiz_capcut, an):
     assert not c["materials"].get("texts") and not d["materials"].get("texts")
 
 
-def test_legenda_no_estilo_do_molde(raiz_capcut, an):
+def test_legenda_automatica_do_capcut(raiz_capcut, an):
     a = an(0.0)
     r = gera(raiz_capcut, a, legenda=True)
     d, pasta = abre(raiz_capcut, r["nome"])
     fin, _ = partes(d)
-    txt = {m["id"]: m for m in fin["materials"]["texts"]}
-    legs = [s for t in fin["tracks"] if t["type"] == "text" for s in t["segments"] if s["clip"]["transform"]["y"] < 0]
+    mol = ipad.MOLDE_AUTO
+    trilhas = [t for t in fin["tracks"] if t["type"] == "text" and t.get("flag") == mol["trilha"]["flag"]]
+    assert len(trilhas) == 1                                                          # trilha de LEGENDA (flag 1)
+    legs = trilhas[0]["segments"]
     assert legs and r["legendas"] == len(legs)
-    frases = [json.loads(txt[s["material_id"]]["content"])["text"] for s in legs]
+    tpls = {m["id"]: m for m in fin["materials"]["text_templates"]}
+    txt = {m["id"]: m for m in fin["materials"]["texts"]}
+    dentro = [txt[tpls[s["material_id"]]["text_info_resources"][0]["text_material_id"]] for s in legs]
+    assert all(tpls[s["material_id"]]["effect_id"] == mol["modelo"]["effect_id"] for s in legs)   # modelo 逐页短句
+    frases = [json.loads(m["content"])["text"] for m in dentro]
     assert " ".join(frases) == "ISSO AQUI MUDA TUDO VOCÊ NUNCA TENTOU"                 # maiusculas, na ordem
-    m = txt[legs[0]["material_id"]]
-    mol = ipad.MOLDE_LEG["material"]
-    for k in ("font_size", "letter_spacing", "has_shadow", "shadow_distance", "shadow_smoothing", "shadow_angle",
-              "border_alpha", "text_color", "line_max_width"):
-        assert m[k] == mol[k], k
-    st = json.loads(m["content"])["styles"][0]
-    assert st["bold"] and st["shadows"] and st["range"] == [0, len(frases[0])]
-    assert legs[0]["clip"] == dict(legs[0]["clip"], **ipad.MOLDE_LEG["clip"])
+    for k in ("font_size", "letter_spacing", "has_shadow", "shadow_distance", "text_color", "add_type", "language"):
+        assert dentro[0][k] == mol["texto"][k], k
+    assert len({m["group_id"] for m in dentro}) == 1 and dentro[0]["recognize_task_id"] == fin["config"]["subtitle_taskinfo"][0]["id"]
+    w = dentro[0]["words"]
+    assert [t for t in w["text"] if t != " "] == dentro[0]["recognize_text"].split() and w["start_time"] == sorted(w["start_time"])
+    assert w["end_time"][-1] <= legs[0]["target_timerange"]["duration"] // 1000
+    assert legs[0]["clip"] == mol["segmento"]["clip"]
+    assert "{CACHE}" not in json.dumps(fin) and "{FONTE}" not in json.dumps(fin)
     ts = sorted((s["target_timerange"]["start"], s["target_timerange"]["duration"]) for s in legs)
     assert all(a + b <= c for (a, b), (c, _) in zip(ts, ts[1:]))                     # uma de cada vez
     assert ipad.verifica(d, pasta) == []

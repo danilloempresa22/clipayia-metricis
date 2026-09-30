@@ -197,8 +197,12 @@ def pontos_zoom(sub, zooms, sp_us, comum, clip0):
     return enx if any(p[1:] != (base_s, base_x) for p in enx) else []
 
 
-# ---------------- legenda (estilo feito a mao no CapCut: frases curtas em maiusculas) ----------------
-MOLDE_LEG = json.loads((_ASSETS / "moldes" / "legenda_ipad.json").read_text(encoding="utf-8"))
+# ---------------- legenda AUTOMATICA do CapCut (modelo 逐页短句 + Creato Display Black) ----------------
+# Nao da pra apertar o "legendas automaticas" do CapCut de fora (o reconhecimento roda no servidor dele). Entao a
+# legenda sai EXATAMENTE como ele grava a automatica (molde tirado do projeto do usuario): trilha de legenda,
+# cada frase um modelo de legenda com o texto dentro, tempo de cada palavra e o grupo "reconhecido em pt-BR".
+# So o texto e os tempos vem da nossa transcricao.
+MOLDE_AUTO = json.loads((_ASSETS / "moldes" / "legenda_auto.json").read_text(encoding="utf-8"))
 FRASE_MAX = 46                       # letras por frase (na edicao feita a mao: ate 46-54; o CapCut quebra em 2 linhas)
 PAUSA_FRASE = 0.25                   # pausa que fecha a frase (s)
 COLA = 0.30                          # buraco menor que isso entre frases: a anterior fica ate a proxima entrar
@@ -209,7 +213,7 @@ _PENDURADA = {"a", "o", "e", "de", "do", "da", "que", "no", "na", "em", "um", "u
 
 def fonte_legenda():
     """a fonte da legenda (Creato Display Black) mora no Windows, nao no cache do CapCut. Vazio = nao instalada."""
-    nome = MOLDE_LEG["fonte_arquivo"]
+    nome = MOLDE_AUTO["fonte_arquivo"]
     for p in (Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Windows" / "Fonts" / nome,
               Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / nome):
         if p.exists():
@@ -218,7 +222,8 @@ def fonte_legenda():
 
 
 def frases(palavras, keep):
-    """palavras (s no composto) -> frases na timeline cortada [{txt, ini, fim}] em quadros inteiros, sem se cruzar"""
+    """palavras (s no composto) -> frases na timeline cortada [{txt, ini, fim, palavras}] em quadros inteiros, sem
+    se cruzar. palavras = [(falada em minusculas, a, b)] pro tempo de cada palavra da legenda automatica"""
     f, total = legenda.mapa_tempo([k[:2] for k in keep])
     ws = []
     for p in palavras:
@@ -238,7 +243,8 @@ def frases(palavras, keep):
         cur.append(w)
     if cur:
         grupos.append(cur)
-    out = [{"txt": " ".join(w[0] for w in g), "ini": g[0][1], "fim": g[-1][2]} for g in grupos]
+    out = [{"txt": " ".join(w[0] for w in g), "ini": g[0][1], "fim": g[-1][2],
+            "palavras": [(w[0].lower(), w[1], w[2]) for w in g]} for g in grupos]
     fps, fim_q, ult = audio.FPS, int(np.floor(total * audio.FPS + 1e-6)), 0
     res = []
     for i, s in enumerate(out):
@@ -247,26 +253,47 @@ def frases(palavras, keep):
         I = max(int(round(s["ini"] * fps)), ult)
         F = min(max(int(round(fim * fps)), I + 3), fim_q)
         if F > I:
-            res.append({"txt": s["txt"], "ini": I / fps, "fim": F / fps}); ult = F
+            res.append({"txt": s["txt"], "ini": I / fps, "fim": F / fps, "palavras": s["palavras"]}); ult = F
     return res
 
 
-def seg_legenda(mats, fr, fonte, trilha_idx):
-    seg, m, _ = composto.instancia(composto.MOLDE["texto"], mats)
-    novo = copy.deepcopy(MOLDE_LEG["material"]); novo["id"] = m["id"]
-    c = json.loads(novo["content"])
-    c["text"] = fr["txt"]
-    for st in c["styles"]:
-        st["range"] = [0, len(fr["txt"])]; st["font"] = dict(st.get("font") or {}, path=fonte)
-    novo["content"] = json.dumps(c, ensure_ascii=False)
-    novo["font_path"] = fonte
-    m.clear(); m.update(novo)
-    A, B = audio.quadro_us(fr["ini"]), audio.quadro_us(fr["fim"])
-    seg["target_timerange"] = {"start": A, "duration": B - A}
-    seg["clip"] = dict(seg["clip"], **copy.deepcopy(MOLDE_LEG["clip"]))
-    seg["track_render_index"] = trilha_idx; seg["render_index"] = 14000 + trilha_idx
-    seg["common_keyframes"] = []
-    return seg
+def legenda_auto(d, frs, raiz, fonte):
+    """poe as frases em d (draft) como a legenda automatica do CapCut: devolve a trilha de legenda"""
+    import time, uuid
+    cache = str(Path(raiz).parent.parent / "Cache").replace("\\", "/")
+    mol = json.loads(json.dumps(MOLDE_AUTO, ensure_ascii=False).replace("{CACHE}", cache).replace("{FONTE}", fonte))
+    tarefa, grupo, nome = f"{uuid.uuid4().hex[:24]}_8_0", f"pt-BR_{int(time.time() * 1000)}", capcut.uid()
+    mats = d["materials"]; segs = []
+    for i, fr in enumerate(frs):
+        A, B = audio.quadro_us(fr["ini"]), audio.quadro_us(fr["fim"])
+        an = copy.deepcopy(mol["animacao"]); an["id"] = capcut.uid()
+        mats.setdefault("material_animations", []).append(an)
+        tx = copy.deepcopy(mol["texto"]); tx["id"] = capcut.uid()
+        c = json.loads(tx["content"]); c["text"] = fr["txt"]
+        for st in c["styles"]:
+            st["range"] = [0, len(fr["txt"])]
+        tx["content"] = json.dumps(c, ensure_ascii=False)
+        ini, fim, txt = [], [], []                        # tempo de cada palavra em ms desde o inicio da frase
+        for j, (w, a, b) in enumerate(fr["palavras"]):
+            s0 = max(0, int(round(a * 1000 - A / 1000))); s1 = max(s0, min(int(round(b * 1000 - A / 1000)), (B - A) // 1000))
+            ini.append(s0); fim.append(s1); txt.append(w)
+            if j + 1 < len(fr["palavras"]):
+                ini.append(s1); fim.append(s1); txt.append(" ")
+        tx.update({"recognize_task_id": tarefa, "recognize_text": " ".join(w for w, _, _ in fr["palavras"]),
+                   "group_id": grupo, "name": nome, "words": {"start_time": ini, "end_time": fim, "text": txt}})
+        mats.setdefault("texts", []).append(tx)
+        tt = copy.deepcopy(mol["modelo"]); tt["id"] = capcut.uid()
+        r = tt["text_info_resources"][0]
+        r.update({"id": capcut.uid(), "text_material_id": tx["id"], "extra_material_refs": [an["id"]]})
+        r["attach_info"] = dict(r["attach_info"], start_time=0, duration=B - A)
+        mats.setdefault("text_templates", []).append(tt)
+        sg = copy.deepcopy(mol["segmento"]); sg["id"] = capcut.uid()
+        sg.update({"material_id": tt["id"], "extra_material_refs": [an["id"]], "render_index": 14001 + i,
+                   "target_timerange": {"start": A, "duration": B - A}})
+        segs.append(sg)
+    cfg = copy.deepcopy(mol["config"]); cfg["subtitle_taskinfo"][0]["id"] = tarefa
+    d["config"] = dict(d.get("config") or {}, **cfg)
+    return dict(copy.deepcopy(mol["trilha"]), id=capcut.uid(), segments=segs)
 
 
 def _velocidade(seg, porcat, dentro_us, vel):
@@ -377,7 +404,7 @@ def monta(raiz, an, op):
                                     "a legenda vai aparecer com a fonte padrão do CapCut.")
         frs = frases(an.get("palavras") or [], keep)
         if frs:
-            dv["tracks"].append(composto.trilha("trilha_modelo", [seg_legenda(dv["materials"], f, fonte, 2) for f in frs]))
+            dv["tracks"].append(legenda_auto(dv, frs, raiz, fonte))
         ent_v["_legendas"] = len(frs)
 
     # --- raiz: o "Video" (acelerado ou nao) + musica
@@ -462,10 +489,16 @@ def verifica(raiz, pasta=None):
         if src["start"] < 0 or src["start"] + src["duration"] > d["duration"] + 1000:
             erros.append("um corte passa do fim do clipe composto")
     txt = {m["id"]: m for m in dv["materials"].get("texts", [])}
+    tpls = {m["id"]: m for m in dv["materials"].get("text_templates", [])}
     for t in dv["tracks"]:
         if t["type"] != "text": continue
         for s in t["segments"]:
             m = txt.get(s["material_id"])
+            if not m and s["material_id"] in tpls:        # legenda automatica: modelo -> texto de dentro
+                ids = [r.get("text_material_id") for r in tpls[s["material_id"]].get("text_info_resources", [])]
+                if not ids or any(i not in txt for i in ids):
+                    erros.append("legenda automática aponta pra um texto que não existe"); continue
+                m = txt[ids[0]]
             if not m: continue
             c = json.loads(m["content"]) if isinstance(m["content"], str) else m["content"]
             if s["clip"]["transform"]["y"] > 0:           # headline (em cima) dentro da tela
