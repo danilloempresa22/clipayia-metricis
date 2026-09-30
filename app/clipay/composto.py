@@ -276,7 +276,8 @@ def verifica(raiz, pasta=None):
                 tt = s["target_timerange"]
                 segs.append({"txt": c["text"], "ini": tt["start"] / 1e6, "fim": (tt["start"] + tt["duration"]) / 1e6,
                              "x": s["clip"]["transform"]["x"], "y": s["clip"]["transform"]["y"], "esc": s["clip"]["scale"]["x"]})
-        erros += [f"{rot}: {x}" for x in legenda.verifica(segs, d.get("duration", 0) / 1e6)]
+        if not any(t["type"] == "video" and t["segments"] for t in d.get("tracks", [])):   # so o composto "Legenda"
+            erros += [f"{rot}: {x}" for x in legenda.verifica(segs, d.get("duration", 0) / 1e6)]
     # 6. todo segmento de composto aponta (1a ref) pra uma entrada da raiz
     todos = [raiz] + [e.get("draft") or {} for e in entradas]
     for d in todos:

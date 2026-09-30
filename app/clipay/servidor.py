@@ -192,7 +192,10 @@ def trabalho_gera(c):
             crop = [num(v, 0.0, 1.0, 0.0) for v in (c.get("crop_ipad") or [0, 0, 1, 1])][:4]
             if len(crop) != 4 or crop[2] - crop[0] < 0.05 or crop[3] - crop[1] < 0.05:
                 raise capcut.ErroProjeto("O recorte do iPad ficou pequeno demais. Ajuste na tela de enquadrar.")
-            op = {"headline": (c.get("headline") or "").strip()[:120],
+            musica = (c.get("musica") or "").strip()
+            if musica and (not Path(musica).is_file() or Path(musica).suffix.lower() not in EXT_AUDIO):
+                raise capcut.ErroProjeto("Não achei o arquivo da música. Escolha de novo.")
+            op = {"legenda": bool(c.get("legenda")), "velocidade": bool(c.get("velocidade")), "musica": musica or None,"headline": (c.get("headline") or "").strip()[:120],
                   "headline_s": num(c.get("headline_s"), 1, 60, ipad.HEADLINE_S),
                   "cortes": c.get("cortes") if c.get("cortes") in ipad.CORTES else "seco",
                   "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),

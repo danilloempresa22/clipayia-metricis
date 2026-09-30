@@ -145,7 +145,13 @@ def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None, palavras_prontas
 def monta_ipad(raiz, an, opcoes=None, avisa=None):
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
-    avisa("Montando o clipe composto", 0.2)
+    avisa("Montando os clipes compostos", 0.2)
+    if op.get("musica") and not isinstance(op["musica"], dict):
+        p = Path(op["musica"])
+        try:
+            op["musica"] = {"path": p, "nome": p.stem, "dur": audio.duracao(p)}
+        except (RuntimeError, OSError) as e:
+            raise capcut.ErroProjeto(f"Não consegui usar a música: {e}")
     raiz_d, meta, compostos = ipad.monta(raiz, an, op)
     erros = ipad.verifica(raiz_d)
     if erros:
@@ -164,10 +170,11 @@ def monta_ipad(raiz, an, opcoes=None, avisa=None):
         nome = capcut.grava_projeto(raiz, op.get("nome") or Path(an["pessoa"]["video"]).stem + " - ipad",
                                     composto.limpa_para_gravar(raiz_d), meta, capa, extras)
     avisa("Pronto", 1.0)
-    pessoa = compostos[0]["draft"]["tracks"][0]["segments"]
+    fin, dentro = compostos
     return {"nome": nome, "modo": "ipad", "antes": an["janela"][2], "depois": raiz_d["duration"] / 1e6,
-            "pedacos": len(raiz_d["tracks"][0]["segments"]), "zooms": sum(1 for s in pessoa if s["common_keyframes"] or
-                        s["clip"]["scale"]["x"] > float((op.get("pessoa") or {}).get("escala", 1.0)) + 1e-3)}
+            "pedacos": len(fin["draft"]["tracks"][0]["segments"]), "zooms": dentro.get("_zooms", 0),
+            "legendas": fin.get("_legendas", 0), "velocidade": raiz_d["tracks"][0]["segments"][0]["speed"],
+            "musica": bool(op.get("musica")), "avisos": fin.get("_avisos", [])}
 
 
 def processa(raiz, pasta, modo, opcoes=None, avisa=None):

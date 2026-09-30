@@ -574,6 +574,14 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <div class="deslize" id="ip-int-box"><input type="range" id="ip-int" min="0.5" max="1.5" step="0.05" value="1"><output id="ip-int-v">moderado</output></div>
           </div>
           <div class="card">
+            <h2>Acabamento</h2>
+            <p class="sub" style="font-size:13px">Tudo vai dentro de um clipe composto final (cortes, headline e legenda). A velocidade é aplicada nele, e a música fica por baixo.</p>
+            <label class="chave"><input type="checkbox" id="ip-leg-on" checked> Legenda (frases curtas em maiúsculas, fonte Creato Display Black, embaixo)</label>
+            <label class="chave"><input type="checkbox" id="ip-vel-on" checked> Acelerar o vídeo para 1,13x</label>
+            <label class="chave"><input type="checkbox" id="ip-mus-on"> Música de fundo (fica a −25 dB)</label>
+            <div class="linha oculto" id="ip-mus-box"><button class="sec" id="ip-musica">Escolher música</button><span id="ip-musica-nome" class="sub" style="margin:0">Nenhuma</span></div>
+          </div>
+          <div class="card">
             <div class="campo"><label for="ip-nome">Nome do projeto no CapCut</label><input type="text" id="ip-nome"></div>
             <div class="linha"><button id="ip-gerar">Gerar projeto no CapCut</button><button class="sec" id="ip-voltar-3">Voltar à sincronia</button></div>
           </div>
@@ -916,10 +924,10 @@ $("gerar").onclick = async () => {
   }catch(e){ mostra("revisao"); erro("rev-erro", e.message); }
 };
 function pronto(r){
-  $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut.";
+  $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut." + (r.avisos && r.avisos.length ? " Atenção: " + r.avisos.join(" ") : "");
   const extra = r.modo === "legenda"
     ? '<div><b>'+r.legendas+'</b>legendas</div><div><b>'+r.enfases+'</b>ênfases</div>'
-    : '<div><b>'+(r.zooms||0)+'</b>zooms</div>';
+    : '<div><b>'+(r.zooms||0)+'</b>zooms</div>' + (r.legendas ? '<div><b>'+r.legendas+'</b>legendas</div>' : '');
   $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>trechos</div>' + extra;
   ocupado = false; mostra("pronto");
 }
@@ -1221,12 +1229,23 @@ $("ip-head-s").oninput = () => { $("ip-head-s-v").textContent = fmt($("ip-head-s
 $("ip-int").oninput = () => { const v = Number($("ip-int").value); $("ip-int-v").textContent = v < 0.8 ? "leve" : v > 1.2 ? "forte" : "moderado"; };
 $("ip-zoom-on").onchange = () => $("ip-int-box").classList.toggle("desligado", !$("ip-zoom-on").checked);
 $("ip-voltar-3").onclick = () => abreSincronia();
+let musicaIpad = "";
+$("ip-mus-on").onchange = () => $("ip-mus-box").classList.toggle("oculto", !$("ip-mus-on").checked);
+$("ip-musica").onclick = async () => {
+  try{ const {caminho} = await api("escolher-arquivo", {tipo: "musica"});
+    if(caminho){ musicaIpad = caminho; $("ip-musica-nome").textContent = caminho.split(/[\\/]/).pop(); } }
+  catch(e){ erro("ip-rev-erro", e.message); }
+};
 $("ip-gerar").onclick = async () => {
-  erro("ip-rev-erro"); mostra("progresso");
+  erro("ip-rev-erro");
+  const musica = $("ip-mus-on").checked ? musicaIpad : "";
+  if($("ip-mus-on").checked && !musica){ erro("ip-rev-erro", "Escolha a música (ou desmarque “Música de fundo”)."); return; }
+  mostra("progresso");
   $("prog-titulo").textContent = "Montando o projeto no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
   try{
     const {id} = await api("gerar", {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
-      cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value});
+      cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value,
+      legenda: $("ip-leg-on").checked, velocidade: $("ip-vel-on").checked, musica});
     pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
   }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
 };

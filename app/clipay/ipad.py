@@ -1,12 +1,16 @@
 """Modo APRESENTADOR + iPAD: junta a camera (pessoa falando) e a gravacao de tela do iPad num projeto 1080x1920,
 iPad em cima (recortado) e pessoa embaixo, sincronizados pelo usuario, zoom so na pessoa e headline no inicio.
-Os dois videos vao juntos num CLIPE COMPOSTO sincronizado, e os cortes sao feitos no composto (na raiz): assim o
-iPad e a pessoa nunca desalinham e os cortes podem ser ajustados no CapCut puxando as bordas.
+Estrutura (de dentro pra fora):
+  "iPad + pessoa"  os dois videos INTEIROS e sincronizados; a pessoa e' UM segmento so, zoom por keyframes
+  "Video"          os cortes (segmentos do composto acima) + headline + legenda (opcional)
+  RAIZ             o composto "Video" (velocidade 1,13x opcional) + musica a -25 dB (opcional)
+O CapCut guarda uma COPIA do "iPad + pessoa" pra cada corte: por isso ele tem que ser leve (2 segmentos; com a
+pessoa picada em 124 pedacos o projeto chegou a 46 MB e travava).
 Especificacao: docs/design/apresentador-ipad-especificacao.md."""
-import copy, json, subprocess, re
+import copy, json, os, subprocess, re
 import numpy as np
 from pathlib import Path
-from . import audio, capcut, reels, composto, vlog
+from . import audio, capcut, reels, composto, vlog, legenda
 
 # ---------------- medidas calibradas na referencia (resultado final ipad.mp4) e nas capas do CapCut ----------------
 PROPORCAO_IPAD = 0.347               # altura padrao da faixa do iPad (fracao da tela)
@@ -16,6 +20,8 @@ Y_HEADLINE = 0.408                   # centro a 29,6% da altura (y do CapCut: 1 
 HEADLINE_S = 7.0
 SEGURANCA = 1.3
 QUADRO = 1 / 30                      # passo de "avancar 1 quadro" na tela de sincronia (as previas sao 30 fps)
+VELOCIDADE = 1.13                    # opcional, no composto final (em cima de tudo, ate da legenda)
+MUSICA_DB = -25.0                    # volume da musica de fundo
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
 _LARG = {n: json.loads((_ASSETS / f"larguras_{n}.json").read_text(encoding="utf-8")) for n in ("classic",)}
@@ -164,33 +170,117 @@ def altura_ipad(info_ipad, crop):
     return (info_ipad["altura"] * (y1 - y0)) / (info_ipad["largura"] * (x1 - x0)) * 1080 / 1920
 
 
-def _pedacos(sub, total):
-    """divide a timeline do composto: trechos mantidos ja subdivididos pras trocas de zoom (sem tirar nada) e os
-    buracos entre eles (cortados por fora). [(a, b, mantido, forca)] cobrindo 0..total"""
-    out, cur = [], 0.0
-    for a, b, forca in sub:
-        if a > cur + 1e-3: out.append((cur, a, False, False))
-        out.append((max(a, cur), b, True, forca)); cur = b
-    if cur < total - 1e-3: out.append((cur, total, False, False))
-    return out
+def _kf(prop, pts):
+    return {"id": capcut.uid(), "material_id": "", "property_type": prop, "keyframe_list": [
+        {"id": capcut.uid(), "curveType": "Line", "time_offset": int(t), "left_control": {"x": 0.0, "y": 0.0},
+         "right_control": {"x": 0.0, "y": 0.0}, "values": [float(v)], "string_value": "", "graphID": ""} for t, v in pts]}
 
 
-def _zoom(ns, z, clip0):
-    """mesmo punch-in do Cortes + Headline (reels.montar), so na pessoa"""
-    base_s = clip0["scale"]["x"]; base_x = clip0["transform"]["x"]; base_y = clip0["transform"]["y"]
-    clip = copy.deepcopy(clip0); ns["common_keyframes"] = []
-    if z:
-        tipo, sc, dx = z
-        clip["scale"] = {"x": base_s * sc, "y": base_s * sc}; clip["transform"]["x"] = base_x + dx
-        if tipo == "empurra":
-            A = ns["source_timerange"]["start"]; B = A + ns["source_timerange"]["duration"]
-            t0, t1 = A, B - int(1e6 / audio.FPS)
-            ns["common_keyframes"] = [reels.kf("KFTypePositionX", t0, t1, base_x, base_x + dx),
-                                      reels.kf("KFTypePositionY", t0, t1, base_y, base_y),
-                                      reels.kf("KFTypeScaleX", t0, t1, base_s, base_s * sc),
-                                      reels.kf("KFTypeRotation", t0, t1, 0.0, 0.0)]
-            ns["uniform_scale"] = {"on": True, "value": 1.0}
-    ns["clip"] = clip
+def pontos_zoom(sub, zooms, sp_us, comum, clip0):
+    """zoom da pessoa como keyframes de UM segmento so: [(tempo na origem em us, escala, x)], ja enxuto.
+    Mesmo punch-in do Cortes + Headline: 'fixo' segura a escala o trecho todo, 'empurra' vai de 1 ate a escala.
+    A troca acontece de um quadro pro outro (keyframe no ultimo quadro do trecho e no primeiro do seguinte).
+    time_offset dos keyframes do CapCut = tempo na ORIGEM (conferido num keyframe de volume feito a mao)."""
+    base_s, base_x = clip0["scale"]["x"], clip0["transform"]["x"]
+    pts = []
+    for (a, b, _), z in zip(sub, zooms):
+        S = sp_us + audio.quadro_us(a)
+        E = sp_us + audio.quadro_us(min(b, comum) - QUADRO)
+        v0 = v1 = (base_s, base_x)
+        if z:
+            tipo, sc, dx = z
+            v1 = (base_s * sc, base_x + dx)
+            v0 = (base_s, base_x) if tipo == "empurra" else v1
+        pts.append((S, *v0))
+        if E > S: pts.append((E, *v1))
+    enx = [p for i, p in enumerate(pts) if i in (0, len(pts) - 1) or not (pts[i - 1][1:] == p[1:] == pts[i + 1][1:])]
+    return enx if any(p[1:] != (base_s, base_x) for p in enx) else []
+
+
+# ---------------- legenda (estilo feito a mao no CapCut: frases curtas em maiusculas) ----------------
+MOLDE_LEG = json.loads((_ASSETS / "moldes" / "legenda_ipad.json").read_text(encoding="utf-8"))
+FRASE_MAX = 46                       # letras por frase (na edicao feita a mao: ate 46-54; o CapCut quebra em 2 linhas)
+PAUSA_FRASE = 0.25                   # pausa que fecha a frase (s)
+COLA = 0.30                          # buraco menor que isso entre frases: a anterior fica ate a proxima entrar
+_PONTO = re.compile(r"[.,;:!?…]+[\"'”’)»]*$")
+_ENFEITE = re.compile(r"^[-–—\"'“‘(«]+|[\"'”’)»]+$")    # travessao de dialogo e aspas que o Whisper poe
+_PENDURADA = {"a", "o", "e", "de", "do", "da", "que", "no", "na", "em", "um", "uma", "os", "as", "pra", "para", "com", "se", "eu"}
+
+
+def fonte_legenda():
+    """a fonte da legenda (Creato Display Black) mora no Windows, nao no cache do CapCut. Vazio = nao instalada."""
+    nome = MOLDE_LEG["fonte_arquivo"]
+    for p in (Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Windows" / "Fonts" / nome,
+              Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / nome):
+        if p.exists():
+            return str(p).replace("\\", "/")
+    return ""
+
+
+def frases(palavras, keep):
+    """palavras (s no composto) -> frases na timeline cortada [{txt, ini, fim}] em quadros inteiros, sem se cruzar"""
+    f, total = legenda.mapa_tempo([k[:2] for k in keep])
+    ws = []
+    for p in palavras:
+        t = _ENFEITE.sub("", _PONTO.sub("", p["t"].strip())).upper()
+        a, b = f(p["a"]), f(p["b"])
+        if t and b - a > 0.02:                            # palavra que caiu inteira num corte nao entra
+            ws.append((t, a, b, bool(_PONTO.search(p["t"].strip()))))
+    grupos, cur = [], []
+    for w in ws:
+        if cur:
+            longa = len(" ".join(x[0] for x in cur + [w])) > FRASE_MAX
+            if w[1] - cur[-1][2] >= PAUSA_FRASE or cur[-1][3] or longa:
+                if longa and len(cur) > 1 and cur[-1][0].lower() in _PENDURADA:
+                    grupos.append(cur[:-1]); cur = [cur[-1]]      # "de", "que"... vai pra frase seguinte
+                else:
+                    grupos.append(cur); cur = []
+        cur.append(w)
+    if cur:
+        grupos.append(cur)
+    out = [{"txt": " ".join(w[0] for w in g), "ini": g[0][1], "fim": g[-1][2]} for g in grupos]
+    fps, fim_q, ult = audio.FPS, int(np.floor(total * audio.FPS + 1e-6)), 0
+    res = []
+    for i, s in enumerate(out):
+        prox = out[i + 1]["ini"] if i + 1 < len(out) else total
+        fim = prox if prox - s["fim"] < COLA else s["fim"] + 0.1
+        I = max(int(round(s["ini"] * fps)), ult)
+        F = min(max(int(round(fim * fps)), I + 3), fim_q)
+        if F > I:
+            res.append({"txt": s["txt"], "ini": I / fps, "fim": F / fps}); ult = F
+    return res
+
+
+def seg_legenda(mats, fr, fonte, trilha_idx):
+    seg, m, _ = composto.instancia(composto.MOLDE["texto"], mats)
+    novo = copy.deepcopy(MOLDE_LEG["material"]); novo["id"] = m["id"]
+    c = json.loads(novo["content"])
+    c["text"] = fr["txt"]
+    for st in c["styles"]:
+        st["range"] = [0, len(fr["txt"])]; st["font"] = dict(st.get("font") or {}, path=fonte)
+    novo["content"] = json.dumps(c, ensure_ascii=False)
+    novo["font_path"] = fonte
+    m.clear(); m.update(novo)
+    A, B = audio.quadro_us(fr["ini"]), audio.quadro_us(fr["fim"])
+    seg["target_timerange"] = {"start": A, "duration": B - A}
+    seg["clip"] = dict(seg["clip"], **copy.deepcopy(MOLDE_LEG["clip"]))
+    seg["track_render_index"] = trilha_idx; seg["render_index"] = 14000 + trilha_idx
+    seg["common_keyframes"] = []
+    return seg
+
+
+def _velocidade(seg, porcat, dentro_us, vel):
+    """segmento de composto acelerado: duracao de fora em quadros inteiros e velocidade EXATA dentro/fora
+    (fora da grade o CapCut mexe na velocidade sozinho)"""
+    q = 1e6 / audio.FPS
+    fora = audio.quadro_us(round(dentro_us / q / vel) / audio.FPS) if vel != 1.0 else dentro_us
+    real = dentro_us / fora
+    seg["speed"] = real
+    seg["source_timerange"] = {"start": 0, "duration": dentro_us}
+    seg["target_timerange"] = {"start": 0, "duration": fora}
+    if "speeds" in porcat:
+        porcat["speeds"]["speed"] = real
+    return fora
 
 
 def monta(raiz, an, op):
@@ -218,18 +308,18 @@ def monta(raiz, an, op):
     clip_p = dict(copy.deepcopy(orig["clip"]), scale={"x": esc_p, "y": esc_p},
                   transform={"x": float(pes.get("x", 0.0)), "y": float(pes.get("y", 0.0))})
     sub = (an.get("zooms") or {}).get(op.get("cortes") or "seco") or [[a, b, False] for a, b, *_ in keep]
-    pedacos = _pedacos(sub, comum)
     intens = float(op.get("intensidade", 1.0)) if op.get("zoom", True) else 0.0
-    mantidos = [(b - a, forca) for a, b, m, forca in pedacos if m]
-    zooms = iter(reels.plano_zoom(mantidos, "centro", intens))
-    segs_p = []
-    for a, b, mantido, _ in pedacos:                      # pessoa dividida nos cortes e nas trocas de zoom
-        ns = capcut.clona_segmento(orig, idx, dc["materials"])
-        A, B = us(a), us(min(b, comum))
-        ns["source_timerange"] = {"start": us(sp) + A, "duration": B - A}
-        ns["target_timerange"] = {"start": A, "duration": B - A}
-        _zoom(ns, next(zooms) if mantido else None, clip_p)
-        segs_p.append(ns)
+    zooms = reels.plano_zoom([(b - a, forca) for a, b, forca in sub], "centro", intens)
+    ps = capcut.clona_segmento(orig, idx, dc["materials"])          # a pessoa INTEIRA num segmento so
+    ps["source_timerange"] = {"start": us(sp), "duration": total_c}
+    ps["target_timerange"] = {"start": 0, "duration": total_c}
+    ps["clip"] = copy.deepcopy(clip_p)
+    pts = pontos_zoom(sub, zooms, us(sp), comum, clip_p)
+    ps["common_keyframes"] = ([_kf("KFTypeScaleX", [(t, s) for t, s, _ in pts]),
+                               _kf("KFTypePositionX", [(t, x) for t, _, x in pts])] if pts else [])
+    ps["uniform_scale"] = {"on": True, "value": 1.0}
+    ent["_zooms"] = sum(1 for z in zooms if z)
+    segs_p = [ps]
     crop = [float(v) for v in (op.get("crop_ipad") or [0, 0, 1, 1])]
     ns = capcut.clona_segmento(orig, idx, dc["materials"])
     mi = [v for v in dc["materials"]["videos"] if v["id"] == ns["material_id"]][0]
@@ -248,28 +338,63 @@ def monta(raiz, an, op):
                     dict(copy.deepcopy(trilha), id=capcut.uid(), flag=2, segments=[ns])]      # iPad POR CIMA
     capcut.poda(dc)
 
-    # --- raiz: o composto cortado (cada trecho mantido e' um segmento do MESMO composto, com material proprio)
-    raiz_d = composto.esqueleto(base); raiz_d["id"] = capcut.uid()
+    # --- composto "Video": o "iPad + pessoa" cortado (cada trecho mantido e' um segmento dele, material proprio)
+    #     + headline + legenda. O composto existe sempre: e' nele que vai a velocidade, em cima de tudo.
+    comp = [(us(a), us(min(b, comum))) for a, b, *_ in keep]
+    total_v = sum(B - A for A, B in comp)
+    ent_v = composto.composto("Vídeo", base, canvas, total_v)
+    dv = ent_v["draft"]
     segs, cur = [], 0
-    for a, b, *_ in keep:
-        s, _, _ = composto.seg_composto(composto.MOLDE["raiz"]["corpo"], ent, raiz_d["materials"], total_c, canvas)
-        A, B = us(a), us(min(b, comum))
+    for A, B in comp:
+        s, _, porcat = composto.seg_composto(composto.MOLDE["raiz"]["corpo"], ent, dv["materials"], total_c, canvas)
         s["source_timerange"] = {"start": A, "duration": B - A}
         s["target_timerange"] = {"start": cur, "duration": B - A}
         s["clip"] = dict(s["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
+        if "speeds" in porcat: porcat["speeds"]["speed"] = 1.0
         segs.append(s); cur += B - A
-    raiz_d["tracks"] = [composto.trilha("trilha_video_modelo", segs)]
-    raiz_d["duration"] = cur
+    dv["tracks"] = [composto.trilha("trilha_video_modelo", segs)]
+    vel = VELOCIDADE if op.get("velocidade") else 1.0
 
-    # --- headline: so no comeco (padrao 7 s), logo acima do iPad
+    # headline: so no comeco, logo acima do iPad. Duracao contada no video FINAL (ja acelerado)
     if (op.get("headline") or "").strip():
         tpl = reels.carrega_tpl(capcut.cache_efeitos(raiz))
-        th = reels.headline(raiz_d["materials"], tpl, reels.quebra_2_linhas(op["headline"].strip()), cur)
+        th = reels.headline(dv["materials"], tpl, reels.quebra_2_linhas(op["headline"].strip()), cur)
+        dur_h = min(cur, audio.quadro_us(float(op.get("headline_s", HEADLINE_S)) * vel))
         for s in th["segments"]:
-            s["target_timerange"] = {"start": 0, "duration": min(cur, int(round(float(op.get("headline_s", HEADLINE_S)) * 1e6)))}
+            s["target_timerange"] = {"start": 0, "duration": dur_h}
             s["clip"] = dict(s["clip"], scale={"x": ESC_HEADLINE, "y": ESC_HEADLINE}, transform={"x": 0.0, "y": Y_HEADLINE})
-        raiz_d["tracks"].append(th)
-    raiz_d["materials"]["drafts"] = [ent]                 # entrada do composto na RAIZ (lista plana)
+        dv["tracks"].append(th)
+
+    # legenda: frases curtas no estilo do molde, na timeline ja cortada
+    ent_v["_avisos"], ent_v["_legendas"] = [], 0            # campos "_" nao vao pro disco (limpa_para_gravar)
+    if op.get("legenda"):
+        fonte = fonte_legenda()
+        if not fonte:
+            ent_v["_avisos"].append("A fonte Creato Display Black não está instalada neste computador: "
+                                    "a legenda vai aparecer com a fonte padrão do CapCut.")
+        frs = frases(an.get("palavras") or [], keep)
+        if frs:
+            dv["tracks"].append(composto.trilha("trilha_modelo", [seg_legenda(dv["materials"], f, fonte, 2) for f in frs]))
+        ent_v["_legendas"] = len(frs)
+
+    # --- raiz: o "Video" (acelerado ou nao) + musica
+    raiz_d = composto.esqueleto(base); raiz_d["id"] = capcut.uid()
+    s_v, _, porcat = composto.seg_composto(composto.MOLDE["raiz"]["corpo"], ent_v, raiz_d["materials"], total_v, canvas)
+    s_v["clip"] = dict(s_v["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
+    fora = _velocidade(s_v, porcat, total_v, vel)
+    raiz_d["tracks"] = [composto.trilha("trilha_video_modelo", [s_v])]
+    mus = op.get("musica")
+    if mus:
+        s_m, m_m, _ = composto.instancia(composto.MOLDE["raiz"]["musica"], raiz_d["materials"])
+        dur_m = int(round(mus["dur"] * 1e6))
+        usa = min(fora, audio.quadro_us(np.floor(mus["dur"] * audio.FPS) / audio.FPS))
+        m_m.update({"path": str(mus["path"]).replace("\\", "/"), "name": mus["nome"], "duration": dur_m})
+        s_m["source_timerange"] = {"start": 0, "duration": usa}
+        s_m["target_timerange"] = {"start": 0, "duration": usa}
+        s_m["volume"] = s_m["last_nonzero_volume"] = round(10 ** (MUSICA_DB / 20), 6)
+        raiz_d["tracks"].append(composto.trilha("trilha_audio_modelo", [s_m]))
+    raiz_d["duration"] = fora
+    raiz_d["materials"]["drafts"] = [ent_v, ent]          # entradas de TODOS os compostos na RAIZ (lista plana)
 
     try:                                                  # registra o iPad tambem na midia do projeto
         item = copy.deepcopy(meta["draft_materials"][0]["value"][0])
@@ -279,16 +404,37 @@ def monta(raiz, an, op):
         meta["draft_materials"][0]["value"].append(item)
     except (KeyError, IndexError):
         pass
-    return raiz_d, meta, [ent]
+    return raiz_d, meta, [ent_v, ent]
 
 
 # ---------------- verificacao (trava e avisa em vez de gravar projeto quebrado) ----------------
 def verifica(raiz, pasta=None):
-    erros = list(composto.verifica(raiz, pasta))          # estrutura do composto: entrada na raiz, refs, limites, subdraft
-    ents = raiz["materials"].get("drafts", [])
-    if len(ents) != 1:
-        return erros + ["o projeto precisa ter exatamente um clipe composto (iPad + pessoa)"]
-    d = ents[0]["draft"]
+    erros = list(composto.verifica(raiz, pasta))          # estrutura dos compostos: entradas na raiz, refs, limites, subdraft
+    ents = {e["id"]: e for e in raiz["materials"].get("drafts", [])}
+
+    def mostra(d):                                        # compostos que a 1a trilha de video de d mostra
+        v = [t for t in d.get("tracks", []) if t["type"] == "video"]
+        refs = {s["extra_material_refs"][0] for s in (v[0]["segments"] if v else []) if s.get("extra_material_refs")}
+        return [ents[r] for r in refs if r in ents]
+    fin = mostra(raiz)
+    if len(fin) != 1 or len(raiz["tracks"][0]["segments"]) != 1:
+        return erros + ["a raiz precisa ter um único clipe composto (o vídeo final)"]
+    dv = fin[0]["draft"]
+    dentro = mostra(dv)
+    if len(dentro) != 1 or len(ents) != 2:
+        return erros + ["os cortes precisam ser todos do clipe composto iPad + pessoa"]
+    d = dentro[0]["draft"]
+    sv = raiz["tracks"][0]["segments"][0]
+    if abs(sv["source_timerange"]["duration"] - dv["duration"]) > 1000 or abs(sv["speed"] * sv["target_timerange"]["duration"] - sv["source_timerange"]["duration"]) > 1000:
+        erros.append("a velocidade do vídeo final não bate com a duração dele")
+    if len(d["tracks"][0]["segments"]) > 1:
+        erros.append("a pessoa ficou picada dentro do composto (deixa o projeto pesado)")
+    for t in raiz["tracks"]:
+        for s in t["segments"]:
+            if t["type"] == "audio":
+                m = {x["id"]: x for x in raiz["materials"].get("audios", [])}.get(s["material_id"], {})
+                if m.get("path") and not Path(m["path"]).exists():
+                    erros.append(f"música não encontrada: {m.get('name')}")
     vids = [t for t in d["tracks"] if t["type"] == "video"]
     pessoa = next((t for t in vids if t.get("flag", 0) == 0), None)
     ipad = next((t for t in vids if t.get("flag", 0) == 2), None)
@@ -308,18 +454,21 @@ def verifica(raiz, pasta=None):
                 erros.append(f"arquivo não encontrado: {m.get('material_name')}")
     if d["tracks"].index(ipad) < d["tracks"].index(pessoa):
         erros.append("o iPad ficou atrás da pessoa")
-    for s in raiz["tracks"][0]["segments"]:               # cortes de fora dentro do composto
+    for s in dv["tracks"][0]["segments"]:                 # cortes dentro do composto
         src = s["source_timerange"]
         if src["start"] < 0 or src["start"] + src["duration"] > d["duration"] + 1000:
             erros.append("um corte passa do fim do clipe composto")
-    txt = {m["id"]: m for m in raiz["materials"].get("texts", [])}
-    for t in raiz["tracks"]:                               # headline dentro da tela
+    txt = {m["id"]: m for m in dv["materials"].get("texts", [])}
+    for t in dv["tracks"]:
         if t["type"] != "text": continue
         for s in t["segments"]:
             m = txt.get(s["material_id"])
             if not m: continue
             c = json.loads(m["content"]) if isinstance(m["content"], str) else m["content"]
-            maior = max(c["text"].split("\n"), key=len)
-            if largura_px(maior, s["clip"]["scale"]["x"], "classic") * SEGURANCA > 1080 + 1:
-                erros.append(f"a headline '{maior}' sai da tela: use um texto mais curto")
+            if s["clip"]["transform"]["y"] > 0:           # headline (em cima) dentro da tela
+                maior = max(c["text"].split("\n"), key=len)
+                if largura_px(maior, s["clip"]["scale"]["x"], "classic") * SEGURANCA > 1080 + 1:
+                    erros.append(f"a headline '{maior}' sai da tela: use um texto mais curto")
+            elif len(c["text"]) > FRASE_MAX * 1.5:        # legenda (embaixo): no maximo 2 linhas
+                erros.append(f"legenda longa demais: '{c['text']}'")
     return sorted(set(erros))
