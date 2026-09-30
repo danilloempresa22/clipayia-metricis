@@ -198,6 +198,18 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 .ret{position:absolute;border:2px solid var(--acc);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move}
 .alca{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:var(--acc);border-radius:3px;cursor:nwse-resize}
 .ip-sync{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sy-grade{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:14px;align-items:start}
+.sy-tela{max-width:340px}
+.sy-controles{display:flex;align-items:center;gap:10px;margin-top:12px}
+.sy-controles input{flex:1;accent-color:var(--acc)}
+.sy-play{width:44px;height:44px;border-radius:50%;padding:0;font-size:16px;flex:none}
+.sy-ajuste{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sy-ajuste button{padding:10px 6px;font-size:13px}
+.sy-rotulos{display:flex;justify-content:space-between;font-size:11px;color:var(--mudo);margin:8px 2px 0}
+.sy-off{margin-top:16px}
+.sy-off b{font-size:24px;font-variant-numeric:tabular-nums}
+.sy-fora{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:10px;font-size:12px;color:var(--mudo)}
+@media (max-width:900px){.sy-grade{grid-template-columns:1fr}.sy-ajuste{grid-template-columns:repeat(2,1fr)}}
 .ip-sv{background:#000;border-radius:10px;overflow:hidden;height:340px;display:grid;place-items:center}
 .ip-sv video{max-width:100%;max-height:100%}
 .ip-tempo{width:100%;margin:12px 0 8px;accent-color:var(--acc)}
@@ -443,7 +455,9 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
                 <video id="ip-l-pessoa" class="ip-pessoa" muted playsinline preload="auto"></video>
                 <div class="ip-topo" id="ip-topo"><video id="ip-l-ipad" muted playsinline preload="auto"></video></div>
               </div>
-              <label for="ip-escala" style="margin-top:14px">Zoom da pessoa</label>
+              <div class="sy-controles"><button id="ip-enq-play" class="sy-play" aria-label="Tocar">▶</button>
+                <span class="sub" style="margin:0;font-size:12px">Toca os dois para você ver o enquadramento em movimento</span></div>
+              <label for="ip-escala" style="margin-top:10px">Zoom da pessoa</label>
               <div class="deslize"><input type="range" id="ip-escala" min="1" max="3" step="0.01" value="1"><output id="ip-escala-v">1,00×</output></div>
               <p class="sub" style="margin:8px 0 0;font-size:12px">Arraste a pessoa na prévia para posicionar o rosto.</p>
             </div>
@@ -460,28 +474,38 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
         </div>
 
         <div id="tela-ipad-sincronia" class="oculto pilha">
-          <p class="sub">Deixe os dois vídeos no <b>mesmo momento</b> (por exemplo: o instante em que a caneta toca o iPad). Use os botões de quadro para o ajuste fino e confira tocando os dois juntos.</p>
-          <div class="ip-sync">
-            <div class="card ip-col" data-q="ipad">
-              <h2>Tela do iPad</h2>
-              <div class="ip-sv"><video id="ip-s-ipad" muted playsinline preload="auto"></video></div>
-              <input type="range" class="ip-tempo" id="ip-t-ipad" min="0" max="1" step="0.0333333" value="0" aria-label="Tempo do vídeo do iPad">
-              <div class="ip-botoes"><button class="sec" data-p="-1">−1 s</button><button class="sec" data-p="-q">−1 quadro</button>
-                <b class="ip-rel" id="ip-rel-ipad">0:00.000</b><button class="sec" data-p="+q">+1 quadro</button><button class="sec" data-p="+1">+1 s</button></div>
+          <p class="sub">Aperte <b>play</b> e veja os dois juntos, já no formato final. Olhe a mão da pessoa e o desenho no iPad:
+            se o desenho aparece <b>antes</b> da mão desenhar, aperte <b>−</b>; se aparece <b>depois</b>, aperte <b>+</b>. Dá pra ajustar com o vídeo tocando.</p>
+          <div class="sy-grade">
+            <div class="card">
+              <div class="tela916 sy-tela" id="sy-tela">
+                <video id="ip-s-pessoa" class="ip-pessoa" playsinline preload="auto"></video>
+                <div class="ip-topo" id="sy-topo"><video id="ip-s-ipad" muted playsinline preload="auto"></video>
+                  <div class="sy-fora oculto" id="sy-fora">O vídeo do iPad ainda não começou neste ponto</div></div>
+              </div>
+              <div class="sy-controles">
+                <button id="sy-play" class="sy-play" aria-label="Tocar">▶</button>
+                <input type="range" id="sy-tempo" min="0" max="1" step="0.0333333" value="0" aria-label="Tempo">
+                <span id="sy-t" class="ip-rel">0:00.000</span>
+              </div>
             </div>
-            <div class="card ip-col" data-q="pessoa">
-              <h2>Câmera</h2>
-              <div class="ip-sv"><video id="ip-s-pessoa" playsinline preload="auto"></video></div>
-              <input type="range" class="ip-tempo" id="ip-t-pessoa" min="0" max="1" step="0.0333333" value="0" aria-label="Tempo do vídeo da câmera">
-              <div class="ip-botoes"><button class="sec" data-p="-1">−1 s</button><button class="sec" data-p="-q">−1 quadro</button>
-                <b class="ip-rel" id="ip-rel-pessoa">0:00.000</b><button class="sec" data-p="+q">+1 quadro</button><button class="sec" data-p="+1">+1 s</button></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="linha" style="justify-content:space-between">
-              <div><div class="sub" style="margin:0;font-size:13px">Diferença entre os vídeos</div><b id="ip-off" style="font-size:22px">+0,000 s</b>
-                <div class="sub" style="margin:0;font-size:12px" id="ip-off-txt"></div></div>
-              <div class="linha"><button class="sec" id="ip-juntos">▶ Tocar os dois juntos</button><button class="sec" id="ip-final">Conferir o final</button></div>
+            <div class="pilha" style="min-width:0">
+              <div class="card">
+                <h2>Momento do iPad</h2>
+                <div class="sy-ajuste">
+                  <button class="sec" data-a="-10">−10 s</button><button class="sec" data-a="-1">−1 s</button><button class="sec" data-a="-0.1">−0,1 s</button><button class="sec" data-a="-q">−1 quadro</button>
+                  <button class="sec" data-a="+q">+1 quadro</button><button class="sec" data-a="+0.1">+0,1 s</button><button class="sec" data-a="+1">+1 s</button><button class="sec" data-a="+10">+10 s</button>
+                </div>
+                <div class="sy-rotulos"><span>− desenho aparece mais tarde</span><span>desenho aparece mais cedo +</span></div>
+                <div class="sy-off"><div class="sub" style="margin:0;font-size:13px">Ajuste atual</div><b id="ip-off">+0,000 s</b>
+                  <div class="sub" style="margin:0;font-size:12px" id="ip-off-txt"></div></div>
+                <button class="sec" id="sy-rever" style="margin-top:14px">↺ Rever os últimos 3 s</button>
+              </div>
+              <div class="card">
+                <h2>Conferir</h2>
+                <p class="sub" style="font-size:13px">Confira em mais de um ponto: se bate no começo e no final, bate no vídeo todo.</p>
+                <div class="linha"><button class="sec" id="sy-inicio">Ver o começo</button><button class="sec" id="ip-final">Ver o final</button></div>
+              </div>
             </div>
           </div>
           <div id="ip-sync-erro" class="msg erro oculto"></div>
@@ -971,6 +995,18 @@ function abreEnquadrar(){
   requestAnimationFrame(desenhaEnquadrar);
 }
 function alturaIpad(){ const i = IP.ses.ipad, [x0, y0, x1, y1] = IP.crop; return (i.altura * (y1 - y0)) / (i.largura * (x1 - x0)) * 1080 / 1920; }
+function posiciona(tela, vP, topoEl, vI){
+  const W = tela.clientWidth, H = tela.clientHeight; if(!W) return;
+  const p = IP.ses.pessoa, ap = p.largura / p.altura;
+  let bw, bh; if(ap <= 9 / 16){ bh = H; bw = H * ap; } else { bw = W; bh = W / ap; }
+  const w = bw * IP.pessoa.escala, h = bh * IP.pessoa.escala;
+  const cx = W / 2 + IP.pessoa.x * W / 2, cy = H / 2 - IP.pessoa.y * H / 2;
+  Object.assign(vP.style, {width: w + "px", height: h + "px", left: (cx - w / 2) + "px", top: (cy - h / 2) + "px"});
+  const [x0, y0, x1, y1] = IP.crop, i = IP.ses.ipad;
+  const fw = W / (x1 - x0), fh = fw * i.altura / i.largura;
+  topoEl.style.height = alturaIpad() * H + "px";
+  Object.assign(vI.style, {width: fw + "px", height: fh + "px", left: (-x0 * fw) + "px", top: (-y0 * fh) + "px"});
+}
 function desenhaEnquadrar(){
   const tela = $("ip-tela"), W = tela.clientWidth, H = tela.clientHeight; if(!W) return;
   // pessoa: o CapCut encaixa o video inteiro na tela (contain) e multiplica pela escala; x/y em meias-telas
@@ -989,7 +1025,16 @@ function desenhaEnquadrar(){
   $("ip-crop").style.height = ch + "px";
   Object.assign($("ip-ret").style, {left: x0 * cw + "px", top: y0 * ch + "px", width: (x1 - x0) * cw + "px", height: (y1 - y0) * ch + "px"});
 }
-window.addEventListener("resize", () => { if(!$("tela-ipad-enquadrar").classList.contains("oculto")) desenhaEnquadrar(); });
+window.addEventListener("resize", () => {
+  if(!$("tela-ipad-enquadrar").classList.contains("oculto")) desenhaEnquadrar();
+  if(!$("tela-ipad-sincronia").classList.contains("oculto")) posiciona($("sy-tela"), SV.pessoa, $("sy-topo"), SV.ipad);
+});
+// play no enquadramento: os tres videos da tela andam juntos
+$("ip-enq-play").onclick = () => {
+  const vs = ["ip-l-pessoa","ip-l-ipad","ip-c-ipad"].map($);
+  if(vs[0].paused){ const t0 = vs[0].currentTime; vs.forEach(v => { v.currentTime = t0; v.play().catch(() => {}); }); $("ip-enq-play").textContent = "⏸"; }
+  else { vs.forEach(v => v.pause()); $("ip-enq-play").textContent = "▶"; }
+};
 $("ip-escala").oninput = () => { IP.pessoa.escala = Number($("ip-escala").value); $("ip-escala-v").textContent = fmt(IP.pessoa.escala, 2) + "×"; desenhaEnquadrar(); };
 $("ip-quadro").oninput = () => { const t = Number($("ip-quadro").value); ["ip-l-pessoa","ip-l-ipad","ip-c-ipad"].forEach(id => $(id).currentTime = t); };
 function arrasta(el, fn){
@@ -1025,53 +1070,60 @@ $("ip-inverter").onclick = async () => {
 $("ip-ir-sync").onclick = () => abreSincronia();
 
 // ---------- sincronizar (sempre por TEMPO, nunca por numero de quadro) ----------
+// a camera manda no tempo; o iPad segue: tempo_iPad = tempo_camera + IP.off
 const SV = {ipad: $("ip-s-ipad"), pessoa: $("ip-s-pessoa")};
-let juntos = null;
+let syLaco = null;
 function abreSincronia(){
-  for(const q of ["ipad","pessoa"]){
-    if(!SV[q].src) SV[q].src = url(q);
-    $("ip-t-" + q).max = IP.ses[q].duracao.toFixed(3); $("ip-t-" + q).step = QUADRO;
-  }
-  mostraTempo(); erro("ip-sync-erro"); mostra("ipad-sincronia");
+  ["ip-l-pessoa","ip-l-ipad","ip-c-ipad"].forEach(id => $(id).pause()); $("ip-enq-play").textContent = "▶";
+  for(const q of ["ipad","pessoa"]) if(!SV[q].src) SV[q].src = url(q);
+  $("sy-tempo").max = IP.ses.pessoa.duracao.toFixed(3);
+  erro("ip-sync-erro"); mostra("ipad-sincronia");
+  requestAnimationFrame(() => { posiciona($("sy-tela"), SV.pessoa, $("sy-topo"), SV.ipad); acompanhaIpad(true); mostraOff(); });
 }
-function mostraTempo(){
-  for(const q of ["ipad","pessoa"]){ $("ip-rel-" + q).textContent = hms(SV[q].currentTime); $("ip-t-" + q).value = SV[q].currentTime; }
-  IP.off = SV.ipad.currentTime - SV.pessoa.currentTime;
+function mostraOff(){
   $("ip-off").textContent = (IP.off >= 0 ? "+" : "−") + fmt(Math.abs(IP.off), 3) + " s";
-  $("ip-off-txt").textContent = Math.abs(IP.off) < 0.001 ? "Os dois começaram juntos." :
+  $("ip-off-txt").textContent = Math.abs(IP.off) < 0.001 ? "Os dois vídeos alinhados pelo começo." :
     IP.off > 0 ? "O iPad começou a gravar " + fmt(IP.off, 2) + " s antes da câmera." : "A câmera começou a gravar " + fmt(-IP.off, 2) + " s antes do iPad.";
 }
-function vaiPara(q, t){ const v = SV[q]; v.currentTime = Math.min(IP.ses[q].duracao, Math.max(0, t)); }
-for(const q of ["ipad","pessoa"]){
-  SV[q].addEventListener("timeupdate", mostraTempo); SV[q].addEventListener("seeked", mostraTempo);
-  $("ip-t-" + q).oninput = () => { paraJuntos(); vaiPara(q, Number($("ip-t-" + q).value)); };
-  document.querySelectorAll('.ip-col[data-q="' + q + '"] [data-p]').forEach(b => b.onclick = () => {
-    paraJuntos(); const p = b.dataset.p, d = p === "-q" ? -QUADRO : p === "+q" ? QUADRO : Number(p);
-    // "1 quadro" = 1/30 s arredondado na grade de quadros da previa: 9,1 s = 273 quadros, exato
-    vaiPara(q, Math.round((SV[q].currentTime + d) / QUADRO) * QUADRO);
-  });
+function acompanhaIpad(forca){
+  const t = SV.pessoa.currentTime + IP.off, fora = t < 0 || t > IP.ses.ipad.duracao;
+  $("sy-fora").classList.toggle("oculto", !fora); SV.ipad.style.visibility = fora ? "hidden" : "visible";
+  const tocando = !SV.pessoa.paused;
+  if(fora){ if(!SV.ipad.paused) SV.ipad.pause(); }
+  else {
+    const dif = t - SV.ipad.currentTime;                     // > 0: iPad atrasado
+    if(forca || !tocando || Math.abs(dif) > 0.25){ SV.ipad.currentTime = t; SV.ipad.playbackRate = 1; }
+    else SV.ipad.playbackRate = Math.abs(dif) < 0.01 ? 1 : Math.min(1.25, Math.max(0.8, 1 + dif * 2.5));   // encosta sem pular
+    if(tocando && SV.ipad.paused) SV.ipad.play().catch(() => {});
+    if(!tocando && !SV.ipad.paused) SV.ipad.pause();
+  }
+  $("sy-tempo").value = SV.pessoa.currentTime; $("sy-t").textContent = hms(SV.pessoa.currentTime);
 }
-function paraJuntos(){ if(juntos){ clearInterval(juntos); juntos = null; } SV.ipad.pause(); SV.pessoa.pause(); $("ip-juntos").textContent = "▶ Tocar os dois juntos"; }
-function tocaJuntos(off){
-  paraJuntos();
-  SV.ipad.currentTime = SV.pessoa.currentTime + off;
-  Promise.all([SV.ipad.play(), SV.pessoa.play()]).catch(() => {});
-  $("ip-juntos").textContent = "⏸ Pausar";
-  juntos = setInterval(() => {                               // mantem a diferenca escolhida enquanto toca (correcao de deriva)
-    const alvo = SV.pessoa.currentTime + off;
-    if(Math.abs(SV.ipad.currentTime - alvo) > 0.08) SV.ipad.currentTime = alvo;
-    if(SV.pessoa.ended || SV.ipad.ended) paraJuntos();
-  }, 500);
+function syToca(){
+  SV.pessoa.play().catch(() => {}); $("sy-play").textContent = "⏸";
+  clearInterval(syLaco); syLaco = setInterval(() => { acompanhaIpad(false); if(SV.pessoa.ended) syPara(); }, 100);
+  acompanhaIpad(true);
 }
-$("ip-juntos").onclick = () => juntos ? paraJuntos() : tocaJuntos(IP.off);
+function syPara(){ clearInterval(syLaco); syLaco = null; SV.pessoa.pause(); SV.ipad.pause(); $("sy-play").textContent = "▶"; acompanhaIpad(true); }
+function paraJuntos(){ syPara(); }
+$("sy-play").onclick = () => SV.pessoa.paused ? syToca() : syPara();
+$("sy-tempo").oninput = () => { SV.pessoa.currentTime = Number($("sy-tempo").value); acompanhaIpad(true); };
+SV.pessoa.addEventListener("seeked", () => acompanhaIpad(true));
+document.querySelectorAll(".sy-ajuste [data-a]").forEach(b => b.onclick = () => {
+  const a = b.dataset.a, d = a === "-q" ? -QUADRO : a === "+q" ? QUADRO : Number(a);
+  IP.off = a.endsWith("q") ? Math.round((IP.off + d) / QUADRO) * QUADRO : Math.round((IP.off + d) * 1000) / 1000;
+  mostraOff(); acompanhaIpad(true);
+});
+$("sy-rever").onclick = () => { SV.pessoa.currentTime = Math.max(0, SV.pessoa.currentTime - 3); syToca(); };
+$("sy-inicio").onclick = () => { SV.pessoa.currentTime = Math.max(0, -IP.off); syToca(); };
 $("ip-final").onclick = () => {
-  const off = IP.off, fim = Math.min(IP.ses.pessoa.duracao, IP.ses.ipad.duracao - off);
-  SV.pessoa.currentTime = Math.max(0, fim - 8); tocaJuntos(off);
+  const fim = Math.min(IP.ses.pessoa.duracao, IP.ses.ipad.duracao - IP.off);
+  SV.pessoa.currentTime = Math.max(0, fim - 8); syToca();
 };
-$("ip-voltar-2").onclick = () => { paraJuntos(); mostra("ipad-enquadrar"); requestAnimationFrame(desenhaEnquadrar); };
+$("ip-voltar-2").onclick = () => { syPara(); mostra("ipad-enquadrar"); requestAnimationFrame(desenhaEnquadrar); };
 $("ip-sync-ok").onclick = async () => {
-  paraJuntos(); erro("ip-sync-erro");
-  const off = Math.round((SV.ipad.currentTime - SV.pessoa.currentTime) * 1000) / 1000;
+  syPara(); erro("ip-sync-erro");
+  const off = Math.round(IP.off * 1000) / 1000;
   mostra("progresso"); $("prog-titulo").textContent = "Cortando e transcrevendo…";
   $("prog-sub").textContent = "Achando os cortes no áudio da pessoa e transcrevendo a legenda."; $("barra").style.width = "0";
   try{
