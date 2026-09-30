@@ -185,6 +185,7 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 
 /* ---------- Apresentador + iPad ---------- */
 .modos{grid-template-columns:repeat(3,1fr)}
+#ip-cortes{grid-template-columns:repeat(4,1fr)}
 .ip-escolhe{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--linha)}
 .ip-escolhe b{display:block}
 .ip-grade{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;align-items:start}
@@ -236,7 +237,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 .ip-botoes{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
 .ip-botoes button{padding:6px 10px;font-size:13px}
 .ip-rel{min-width:86px;text-align:center;font-variant-numeric:tabular-nums}
-@media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos{grid-template-columns:1fr}}
+@media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos,#ip-cortes{grid-template-columns:1fr}}
 
 /* ---------- login (tela cheia, sem sidebar) ---------- */
 .login{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden;background:var(--bg)}
@@ -551,13 +552,14 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           <div class="card">
             <h2>Cortes</h2>
             <p class="sub" style="font-size:13px">Os dois vídeos vão juntos num <b>clipe composto</b> já sincronizado, e os cortes são feitos nele: o iPad e a pessoa nunca desalinham, e no CapCut você ajusta qualquer corte puxando a borda.
-              O app só corta pausas, nunca no meio de uma palavra.</p>
+              O app nunca corta o som de uma palavra.</p>
             <div class="modos" id="ip-cortes" role="radiogroup" aria-label="Intensidade dos cortes">
+              <button class="modo" data-corte="seco" role="radio"><b>Seco</b><span id="ip-c-seco"></span></button>
               <button class="modo" data-corte="leve" role="radio"><b>Leve</b><span id="ip-c-leve"></span></button>
               <button class="modo" data-corte="media" role="radio"><b>Média</b><span id="ip-c-media"></span></button>
               <button class="modo" data-corte="forte" role="radio"><b>Forte</b><span id="ip-c-forte"></span></button>
             </div>
-            <p class="sub" style="margin:0;font-size:12px">Trecho em comum dos dois vídeos: <b id="ip-n-antes">–</b>. Leve só tira pausas longas; forte tira também as pausas curtas.</p>
+            <p class="sub" style="margin:0;font-size:12px">Trecho em comum dos dois vídeos: <b id="ip-n-antes">–</b>. <b>Seco</b> (recomendado) tira todo silêncio e respiração, como no vlog. Leve, média e forte deixam o ritmo mais solto: leve só tira pausas longas.</p>
           </div>
           <div class="card">
             <h2>Headline</h2>
@@ -1201,11 +1203,11 @@ $("ip-sync-ok").onclick = async () => {
 };
 
 // ---------- legenda, headline, zoom ----------
-let corteIpad = "media";
+let corteIpad = "seco";
 function abreRevisaoIpad(){
   const a = IP.an;
   $("ip-n-antes").textContent = seg(a.antes);
-  for(const k of ["leve","media","forte"]) $("ip-c-" + k).textContent = seg(a.cortes[k].depois) + " · " + a.cortes[k].trechos + " trechos";
+  for(const k of ["seco","leve","media","forte"]) $("ip-c-" + k).textContent = seg(a.cortes[k].depois) + " · " + a.cortes[k].trechos + " trechos";
   escolheCorte(corteIpad);
   $("ip-nome").value = IP.ses.pessoa.nome.replace(/\.[^.]+$/, "") + " - ipad";
   erro("ip-rev-erro"); mostra("ipad-revisao");

@@ -136,7 +136,7 @@ def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None, palavras_prontas
         w = _whisper(op.get("modelo", "preciso"), avisa, 0.12, 0.2)
         pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a fala", 0.2 + 0.7 * i / n))
     avisa("Achando os cortes", 0.95)
-    keeps = {k: ipad.cortes(x, pal, k) for k in ipad.INTENSIDADES}   # a transcricao protege as palavras
+    keeps = {k: ipad.keep_de(x, pal, k) for k in ipad.CORTES}         # a transcricao protege as palavras
     e, v = audio.analisa(x)                                          # trocas de zoom: trecho longo divide numa micropausa
     zooms = {k: reels.divide_longos(e, v, [kp[:2] for kp in keeps[k]]) for k in keeps}
     return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keeps": keeps, "zooms": zooms, "palavras": pal}

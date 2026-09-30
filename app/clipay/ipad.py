@@ -6,7 +6,7 @@ Especificacao: docs/design/apresentador-ipad-especificacao.md."""
 import copy, json, subprocess, re
 import numpy as np
 from pathlib import Path
-from . import audio, capcut, reels, composto
+from . import audio, capcut, reels, composto, vlog
 
 # ---------------- medidas calibradas na referencia (resultado final ipad.mp4) e nas capas do CapCut ----------------
 PROPORCAO_IPAD = 0.347               # altura padrao da faixa do iPad (fracao da tela)
@@ -105,9 +105,50 @@ def cortes(x, palavras=(), intensidade="media"):
             out[-1][1] = b
         else:
             out.append([a, b])
-    out = [list(audio.na_grade(a, b)) for a, b in out if b - a > 0.15]
-    out = [[a, min(b, np.floor(dur * audio.FPS) / audio.FPS), False] for a, b in out]
-    return out or [[0.0, float(np.floor(dur * audio.FPS) / audio.FPS), False]]
+    return _fecha(out, dur, 0.15)
+
+
+# "seco": a regua SECA do vlog (sem respiracao, sem silencio) + a transcricao devolvendo o SOM das palavras que ela
+# comeu (sibilantes: "case.", "somente"). Medido no bruto "1.MOV": 173,7 s (media: 186,5 s), 6 silencios > 0,25 s
+# (media: 62), 0 palavras com som cortado (regua do vlog sozinha: 7).
+SOM_PALAVRA = 4.0                    # dB acima da porta: o pedaco da palavra que tem som de verdade (nao a folga estimada)
+FOLGA_PALAVRA = 0.03
+JUNTA_SECO = 0.12                    # buraco menor que isso nao vale o corte (picota)
+
+
+def seco(x, palavras=()):
+    dur = len(x) / audio.SR
+    e, v = audio.analisa(x)
+    porta, n, H = audio.porta_de(e, v), len(e), audio.H
+    m = np.zeros(n, bool)
+    for a, b in vlog.regua(x, dur):
+        m[int(round(a / H)):int(round(b / H))] = True
+    w = np.zeros(n, bool)
+    for p in palavras:
+        w[max(0, int(p["a"] / H)):int(p["b"] / H) + 1] = True
+    m |= audio.dil(w & (e > porta + SOM_PALAVRA), int(FOLGA_PALAVRA / H)) & w
+    out = []
+    for a, b in audio.runs(m):
+        if out and a * H - out[-1][1] < JUNTA_SECO:
+            out[-1][1] = b * H
+        else:
+            out.append([a * H, b * H])
+    return _fecha(out, dur, 0.1)
+
+
+def _fecha(out, dur, minimo):
+    """na grade de quadros e dentro do arquivo: [[a, b, False]]"""
+    fim = float(np.floor(dur * audio.FPS) / audio.FPS)
+    out = [list(audio.na_grade(a, min(b, dur))) for a, b in out if b - a > minimo]
+    out = [[a, min(b, fim), False] for a, b in out if min(b, fim) > a]
+    return out or [[0.0, fim, False]]
+
+
+CORTES = ("seco", *INTENSIDADES)     # opcoes da tela; "seco" e' o padrao
+
+
+def keep_de(x, palavras, k):
+    return seco(x, palavras) if k == "seco" else cortes(x, palavras, k)
 
 
 # ---------------- montagem: clipe composto "iPad + pessoa" sincronizado, cortado por fora ----------------
@@ -153,12 +194,12 @@ def _zoom(ns, z, clip0):
 
 
 def monta(raiz, an, op):
-    """an: analise (videos, janela, keeps por intensidade). op: headline, headline_s, cortes (leve|media|forte),
+    """an: analise (videos, janela, keeps por intensidade). op: headline, headline_s, cortes (seco|leve|media|forte),
     zoom (bool), intensidade (zoom), pessoa {escala,x,y}, crop_ipad [x0,y0,x1,y1], nome.
     Devolve (raiz_draft, meta, compostos) — compostos pra gravar as pastas subdraft."""
     ip, pe = an["ipad"], an["pessoa"]
     sp, si, comum = an["janela"]
-    keep = an["keeps"][op.get("cortes") or "media"]
+    keep = an["keeps"][op.get("cortes") or "seco"]
     comum = float(np.floor(comum * audio.FPS) / audio.FPS)        # composto com numero inteiro de quadros
     total_c = audio.quadro_us(comum)
     us = audio.quadro_us
@@ -176,7 +217,7 @@ def monta(raiz, an, op):
     esc_p = float(pes.get("escala", 1.0))
     clip_p = dict(copy.deepcopy(orig["clip"]), scale={"x": esc_p, "y": esc_p},
                   transform={"x": float(pes.get("x", 0.0)), "y": float(pes.get("y", 0.0))})
-    sub = (an.get("zooms") or {}).get(op.get("cortes") or "media") or [[a, b, False] for a, b, *_ in keep]
+    sub = (an.get("zooms") or {}).get(op.get("cortes") or "seco") or [[a, b, False] for a, b, *_ in keep]
     pedacos = _pedacos(sub, comum)
     intens = float(op.get("intensidade", 1.0)) if op.get("zoom", True) else 0.0
     mantidos = [(b - a, forca) for a, b, m, forca in pedacos if m]

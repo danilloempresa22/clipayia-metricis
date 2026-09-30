@@ -145,7 +145,7 @@ def test_transcricao_em_segundo_plano_e_recortada_pela_sincronia(video_vertical,
     a = processa.analisa_ipad(raiz_capcut, vids, -1.5, {}, None, palavras_prontas=prontas)    # pessoa comecou 1,5 s antes
     assert [p["t"] for p in a["palavras"]] == ["isso", "aqui"]
     assert a["palavras"][0]["a"] == pytest.approx(0.1)
-    assert set(a["keeps"]) == set(ipad.INTENSIDADES)
+    assert set(a["keeps"]) == set(ipad.CORTES)
 
 
 def test_ipad_na_camada_de_cima_e_cortes_em_quadros_inteiros(raiz_capcut, an):
@@ -160,3 +160,26 @@ def test_ipad_na_camada_de_cima_e_cortes_em_quadros_inteiros(raiz_capcut, an):
     for s in d["tracks"][0]["segments"] + pessoa["segments"]:
         for v in (s["source_timerange"]["duration"], s["target_timerange"]["duration"], s["target_timerange"]["start"]):
             assert abs(v / quadro - round(v / quadro)) < 0.01, v
+
+
+def test_seco_tira_toda_pausa_mas_devolve_o_som_da_palavra(video_vertical, monkeypatch):
+    x = audio.pcm(video_vertical)                        # tom em 0-3 s, 4,5-7,5 s e 9-10 s
+    k = ipad.seco(x, [])
+    assert sum(b - a for a, b, _ in k) < sum(b - a for a, b, _ in ipad.cortes(x, [], "forte"))
+    assert all(k[i + 1][0] - k[i][1] >= ipad.JUNTA_SECO for i in range(len(k) - 1))
+    # a regua do vlog comeu o fim de uma palavra que tem som (sibilante): a transcricao devolve
+    monkeypatch.setattr(ipad.vlog, "regua", lambda x, dur: [[0.0, 2.5], [4.5, 7.5]])
+    k = ipad.seco(x, [{"t": "case.", "a": 2.3, "b": 3.0}])
+    assert any(a <= 2.3 and b >= 2.95 for a, b, _ in k)
+    k = ipad.seco(x, [{"t": "fantasma", "a": 3.5, "b": 4.0}])  # palavra "ouvida" no silencio: nao volta
+    assert not any(a < 4.0 and b > 3.5 for a, b, _ in k)
+    for a, b, _ in k:                                           # na grade de quadros
+        assert abs(a * 30 - round(a * 30)) < 1e-6 and abs(b * 30 - round(b * 30)) < 1e-6
+
+
+def test_seco_e_o_padrao(raiz_capcut, an):
+    a = an(0.0)
+    assert set(a["keeps"]) == set(ipad.CORTES) and ipad.CORTES[0] == "seco"
+    base = {"headline": "x", "zoom": True, "pessoa": {"escala": 1.0, "x": 0.0, "y": 0.0}, "crop_ipad": [0.0, 0.1, 1.0, 0.9], "nome": "seco"}
+    r = processa.monta_ipad(raiz_capcut, a, base)
+    assert r["depois"] == pytest.approx(sum(b - q for q, b, _ in a["keeps"]["seco"]), abs=0.05)

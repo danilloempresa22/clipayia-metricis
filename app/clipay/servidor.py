@@ -194,7 +194,7 @@ def trabalho_gera(c):
                 raise capcut.ErroProjeto("O recorte do iPad ficou pequeno demais. Ajuste na tela de enquadrar.")
             op = {"headline": (c.get("headline") or "").strip()[:120],
                   "headline_s": num(c.get("headline_s"), 1, 60, ipad.HEADLINE_S),
-                  "cortes": c.get("cortes") if c.get("cortes") in ipad.INTENSIDADES else "media",
+                  "cortes": c.get("cortes") if c.get("cortes") in ipad.CORTES else "seco",
                   "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),
                   "pessoa": {"escala": num(pes.get("escala"), 0.5, 4.0, 1.0), "x": num(pes.get("x"), -3, 3, 0.0),
                              "y": num(pes.get("y"), -3, 3, 0.0)},
