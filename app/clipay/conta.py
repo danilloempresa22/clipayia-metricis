@@ -39,7 +39,12 @@ def _traduz(d, codigo):
     m = (d.get("error_description") or d.get("msg") or d.get("message") or "").lower()
     if "invalid login" in m or "invalid_grant" in m: return "E-mail ou senha incorretos."
     if "not confirmed" in m: return "Confirme seu e-mail (link enviado no cadastro) antes de entrar."
-    if "rate limit" in m or "security purposes" in m or codigo == 429: return "Muitas tentativas. Aguarde um minuto e tente de novo."
+    espera = re.search(r"after (\d+) seconds", m)
+    if espera:                                           # trava curta por e-mail (~60 s entre dois pedidos)
+        return f"Aguarde {espera[1]} segundos antes de pedir outro e-mail."
+    if "email rate limit" in m:                          # cota de envio de e-mail do projeto (por hora)
+        return "Limite de envio de e-mails atingido por agora. Tente de novo mais tarde — o link que já foi enviado continua valendo."
+    if "rate limit" in m or codigo == 429: return "Muitas tentativas. Aguarde alguns minutos e tente de novo."
     if "invalid" in m and "email" in m: return "Esse e-mail não parece válido."
     if codigo in (401, 403) or "jwt" in m: return "Sessão expirada. Entre de novo."
     return d.get("error_description") or d.get("msg") or d.get("message") or f"Erro do servidor ({codigo})."

@@ -297,7 +297,7 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/estado":
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
-                                   "modelo": transcricao.modelo_pronto("preciso"), "site": conta.SITE_URL})
+                                   "modelo": transcricao.modelo_pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
             if u.path == "/api/job":
                 return self._json(JOBS.get(q.get("id", [""])[0]) or {"erro": "job não existe", "fim": True})
         except conta.ErroConta as e:

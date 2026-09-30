@@ -249,3 +249,16 @@ def test_logo_e_abrir_site(app, monkeypatch):
     monkeypatch.setattr(servidor.webbrowser, "open", lambda u: abriu.append(u))
     assert chama("/api/abrir-site", {"caminho": "/cadastro"})[0] == 200 and abriu[0].endswith("/cadastro")
     assert chama("/api/abrir-site", {"caminho": "https://malicioso.com"})[0] == 400
+
+
+def test_mensagens_de_limite_de_email_do_supabase():
+    assert "60 segundos" in conta._traduz({"msg": "For security purposes, you can only request this after 60 seconds."}, 429)
+    assert "mais tarde" in conta._traduz({"msg": "email rate limit exceeded"}, 429)
+
+
+def test_botao_google_so_aparece_quando_ligado(app, monkeypatch):
+    chama, *_ = app
+    monkeypatch.setattr(conta, "google_disponivel", lambda: False)
+    assert chama("/api/estado")[1]["google"] is False
+    monkeypatch.setattr(conta, "google_disponivel", lambda: True)
+    assert chama("/api/estado")[1]["google"] is True
