@@ -2,7 +2,7 @@
 import re, tempfile
 from pathlib import Path
 import numpy as np
-from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto
+from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto, ipad
 
 
 def agrupa(pl):
@@ -104,6 +104,48 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
     return {"nome": nome, "modo": "legenda", "antes": an["info"]["duracao"], "depois": raiz_d["duration"] / 1e6,
             "pedacos": len(keep), "legendas": len(segs), "enfases": sum(1 for s in segs if s["tipo"] != "normal"),
             "zooms": 1 if zoom else 0}
+
+
+# ---------------- APRESENTADOR + iPAD ----------------
+def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None):
+    """videos = {"ipad": {"video", "info"}, "pessoa": {...}}; offset = t_ipad - t_pessoa (s), decidido pelo usuario.
+    Corta pelo audio da pessoa (so a parte em que os dois videos se cruzam) e transcreve pra legenda. NAO grava nada."""
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    ip, pe = videos["ipad"], videos["pessoa"]
+    jan = ipad.janela(float(offset), pe["info"]["duracao"], ip["info"]["duracao"])
+    sp, si, comum = jan
+    avisa("Lendo o áudio da pessoa", 0.05)
+    x = audio.pcm(pe["video"], sp, comum)
+    if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
+        raise capcut.ErroProjeto("Não encontrei fala no vídeo da pessoa nesse trecho.")
+    capcut.sonda_capcut(raiz)                                          # falha cedo se o CapCut criptografa os projetos
+    avisa("Achando os cortes", 0.1)
+    keep = ipad.cortes(x)
+    w = _whisper(op.get("modelo", "preciso"), avisa, 0.12, 0.2)
+    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a legenda", 0.2 + 0.78 * i / n))
+    return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keep": keep, "palavras": pal,
+            "grupos": ipad.grupos(pal, keep)}
+
+
+def monta_ipad(raiz, an, opcoes=None, avisa=None):
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    avisa("Montando os dois trilhos", 0.2)
+    novo, meta = ipad.monta(raiz, an, op)
+    erros = ipad.verifica(novo)
+    if erros:
+        raise capcut.ErroProjeto("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(erros[:4]))
+    avisa("Gravando no CapCut", 0.8)
+    with tempfile.TemporaryDirectory() as tmp:
+        capa = Path(tmp) / "draft_cover.jpg"
+        audio.capa(an["pessoa"]["video"], capa, an["janela"][0] + 0.5)
+        nome = capcut.grava_projeto(raiz, op.get("nome") or Path(an["pessoa"]["video"]).stem + " - ipad",
+                                    novo, meta, capa if capa.exists() else None)
+    avisa("Pronto", 1.0)
+    trechos = capcut.trilha_principal(novo)["segments"]
+    return {"nome": nome, "modo": "ipad", "antes": an["janela"][2], "depois": novo["duration"] / 1e6,
+            "pedacos": len(trechos), "legendas": len(op.get("grupos") or []), "zooms": sum(1 for s in trechos if s["clip"]["scale"]["x"] > float((op.get("pessoa") or {}).get("escala", 1.0)) + 1e-3)}
 
 
 def processa(raiz, pasta, modo, opcoes=None, avisa=None):

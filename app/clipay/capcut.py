@@ -173,12 +173,12 @@ def _novos_ids(texto):
     return _UUID.sub(troca, texto)
 
 
-def cria_draft(video, info, sonda=None):
+def cria_draft(video, info, sonda=None, molde=None):
     """Projeto novo de 1 clipe (o video inteiro), montado a partir de um projeto REAL recem-importado no
     CapCut (assets/moldes) — nada de esqueleto inventado. info = audio.probe_video(video).
     Devolve (draft, meta) prontos pra reels.montar / grava_projeto."""
     video = Path(video)
-    molde = MOLDES / ("vertical" if info["altura"] > info["largura"] else "horizontal")
+    molde = MOLDES / (molde or ("vertical" if info["altura"] > info["largura"] else "horizontal"))
     draft = json.loads(_novos_ids((molde / "draft_content.json").read_text(encoding="utf-8")))
     meta = json.loads(_novos_ids((molde / "draft_meta_info.json").read_text(encoding="utf-8")))
     dur = int(round(info["duracao"] * 1e6))

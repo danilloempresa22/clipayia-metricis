@@ -183,6 +183,33 @@ textarea{width:100%;background:var(--bg);border:1px solid var(--linha);border-ra
 textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 @media (max-width:900px){.lg-grade{grid-template-columns:1fr}.modos{grid-template-columns:1fr}}
 
+/* ---------- Apresentador + iPad ---------- */
+.modos{grid-template-columns:repeat(3,1fr)}
+.ip-escolhe{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--linha)}
+.ip-escolhe b{display:block}
+.ip-grade{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;align-items:start}
+.tela916{position:relative;width:100%;max-width:300px;aspect-ratio:9/16;overflow:hidden;background:#000;border-radius:10px;margin:0 auto;touch-action:none}
+.tela916 video.ip-pessoa{position:absolute;cursor:grab;max-width:none}
+.tela916 video.ip-pessoa:active{cursor:grabbing}
+.ip-topo{position:absolute;left:0;top:0;width:100%;overflow:hidden;background:#141414;border-bottom:1px solid rgba(255,255,255,.08)}
+.ip-topo video{position:absolute;max-width:none}
+.ip-crop{position:relative;width:100%;background:#000;border-radius:10px;overflow:hidden;touch-action:none}
+.ip-crop video{display:block;width:100%}
+.ret{position:absolute;border:2px solid var(--acc);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move}
+.alca{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:var(--acc);border-radius:3px;cursor:nwse-resize}
+.ip-sync{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ip-sv{background:#000;border-radius:10px;overflow:hidden;height:340px;display:grid;place-items:center}
+.ip-sv video{max-width:100%;max-height:100%}
+.ip-tempo{width:100%;margin:12px 0 8px;accent-color:var(--acc)}
+.ip-botoes{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.ip-botoes button{padding:6px 10px;font-size:13px}
+.ip-rel{min-width:86px;text-align:center;font-variant-numeric:tabular-nums}
+.ip-grupos{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.ip-grupo{display:flex;align-items:center;gap:10px}
+.ip-grupo span{min-width:52px;font-size:12px;color:var(--mudo);font-variant-numeric:tabular-nums}
+.ip-grupo input{padding:8px 10px;text-transform:uppercase}
+@media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos{grid-template-columns:1fr}}
+
 /* ---------- login (tela cheia, sem sidebar) ---------- */
 .login{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden;background:var(--bg)}
 .feixe{position:absolute;top:-30%;right:4%;width:320px;height:150%;pointer-events:none;transform:rotate(38deg);transform-origin:top center;
@@ -346,6 +373,21 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
               <b>Cortes + Headline</b><span>Corte seco sem respiração, zoom punch-in e frase fixa no topo.</span></button>
             <button class="modo" data-modo="legenda" role="radio" aria-checked="false">
               <b>Legenda Complexa</b><span>Legenda acumulada em escada, palavras em ênfase, música de fundo.</span></button>
+            <button class="modo" data-modo="ipad" role="radio" aria-checked="false">
+              <b>Apresentador + iPad</b><span>Junta a câmera e a tela do iPad: iPad em cima, pessoa embaixo, legenda e headline.</span></button>
+          </div>
+          <div class="card oculto" id="ipad-escolher">
+            <h2>Os dois vídeos</h2>
+            <div class="ip-escolhe">
+              <div><b>Tela do iPad</b><span id="ip-nome-ipad" class="sub" style="margin:0">Nenhum vídeo escolhido</span></div>
+              <button class="sec" data-escolhe="ipad">Escolher</button>
+            </div>
+            <div class="ip-escolhe">
+              <div><b>Câmera (a pessoa falando)</b><span id="ip-nome-pessoa" class="sub" style="margin:0">Nenhum vídeo escolhido</span></div>
+              <button class="sec" data-escolhe="pessoa">Escolher</button>
+            </div>
+            <button id="ip-preparar" disabled style="margin-top:6px">Continuar</button>
+            <p class="sub" style="margin:12px 0 0;font-size:13px">Antes de enquadrar, o app prepara uma cópia leve de cada vídeo (só para a prévia). O projeto final usa os vídeos originais.</p>
           </div>
           <div class="drop" id="drop">
             <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
@@ -387,6 +429,86 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
           <div class="card">
             <div class="campo"><label for="nome">Nome do projeto no CapCut</label><input type="text" id="nome"></div>
             <div class="linha"><button id="gerar">Gerar projeto no CapCut</button><button class="sec" id="voltar">Trocar de vídeo</button></div>
+          </div>
+        </div>
+
+        <div id="tela-ipad-enquadrar" class="oculto pilha">
+          <p class="sub">Posicione a pessoa e recorte o iPad. É esse enquadramento que o vídeo final e os zooms usam.</p>
+          <div class="ip-grade">
+            <div class="card">
+              <h2>Prévia 9:16</h2>
+              <div class="tela916" id="ip-tela">
+                <video id="ip-l-pessoa" class="ip-pessoa" muted playsinline preload="auto"></video>
+                <div class="ip-topo" id="ip-topo"><video id="ip-l-ipad" muted playsinline preload="auto"></video></div>
+              </div>
+              <label for="ip-escala" style="margin-top:14px">Zoom da pessoa</label>
+              <div class="deslize"><input type="range" id="ip-escala" min="1" max="3" step="0.01" value="1"><output id="ip-escala-v">1,00×</output></div>
+              <p class="sub" style="margin:8px 0 0;font-size:12px">Arraste a pessoa na prévia para posicionar o rosto.</p>
+            </div>
+            <div class="card" style="min-width:0">
+              <h2>Recorte do iPad</h2>
+              <div class="ip-crop" id="ip-crop"><video id="ip-c-ipad" muted playsinline preload="auto"></video>
+                <div class="ret" id="ip-ret"><span class="alca" id="ip-alca" title="Puxe para mudar o tamanho"></span></div></div>
+              <p class="sub" style="margin:10px 0 12px;font-size:12px">Arraste o retângulo para ficar só com a área escura do desenho. Puxe o canto para mudar o tamanho.</p>
+              <label for="ip-quadro">Momento do vídeo (para ver o desenho)</label>
+              <input type="range" id="ip-quadro" min="0" max="1" step="0.1" value="0" style="width:100%;accent-color:var(--acc)">
+            </div>
+          </div>
+          <div class="linha"><button id="ip-ir-sync">Continuar para a sincronia</button><button class="sec" id="ip-voltar-1">Trocar os vídeos</button></div>
+        </div>
+
+        <div id="tela-ipad-sincronia" class="oculto pilha">
+          <p class="sub">Deixe os dois vídeos no <b>mesmo momento</b> (por exemplo: o instante em que a caneta toca o iPad). Use os botões de quadro para o ajuste fino e confira tocando os dois juntos.</p>
+          <div class="ip-sync">
+            <div class="card ip-col" data-q="ipad">
+              <h2>Tela do iPad</h2>
+              <div class="ip-sv"><video id="ip-s-ipad" muted playsinline preload="auto"></video></div>
+              <input type="range" class="ip-tempo" id="ip-t-ipad" min="0" max="1" step="0.0333333" value="0" aria-label="Tempo do vídeo do iPad">
+              <div class="ip-botoes"><button class="sec" data-p="-1">−1 s</button><button class="sec" data-p="-q">−1 quadro</button>
+                <b class="ip-rel" id="ip-rel-ipad">0:00.000</b><button class="sec" data-p="+q">+1 quadro</button><button class="sec" data-p="+1">+1 s</button></div>
+            </div>
+            <div class="card ip-col" data-q="pessoa">
+              <h2>Câmera</h2>
+              <div class="ip-sv"><video id="ip-s-pessoa" playsinline preload="auto"></video></div>
+              <input type="range" class="ip-tempo" id="ip-t-pessoa" min="0" max="1" step="0.0333333" value="0" aria-label="Tempo do vídeo da câmera">
+              <div class="ip-botoes"><button class="sec" data-p="-1">−1 s</button><button class="sec" data-p="-q">−1 quadro</button>
+                <b class="ip-rel" id="ip-rel-pessoa">0:00.000</b><button class="sec" data-p="+q">+1 quadro</button><button class="sec" data-p="+1">+1 s</button></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="linha" style="justify-content:space-between">
+              <div><div class="sub" style="margin:0;font-size:13px">Diferença entre os vídeos</div><b id="ip-off" style="font-size:22px">+0,000 s</b>
+                <div class="sub" style="margin:0;font-size:12px" id="ip-off-txt"></div></div>
+              <div class="linha"><button class="sec" id="ip-juntos">▶ Tocar os dois juntos</button><button class="sec" id="ip-final">Conferir o final</button></div>
+            </div>
+          </div>
+          <div id="ip-sync-erro" class="msg erro oculto"></div>
+          <div class="linha"><button id="ip-sync-ok">Está sincronizado</button><button class="sec" id="ip-voltar-2">Voltar ao enquadramento</button></div>
+        </div>
+
+        <div id="tela-ipad-revisao" class="oculto pilha">
+          <div id="ip-rev-erro" class="msg erro oculto"></div>
+          <div class="card"><div class="nums">
+            <div><b id="ip-n-antes">–</b>em comum</div><div><b class="ok" id="ip-n-depois">–</b>depois dos cortes</div><div><b id="ip-n-ped">–</b>trechos</div></div></div>
+          <div class="card">
+            <h2>Headline</h2>
+            <div class="campo"><label for="ip-headline">Aparece no começo, logo acima do iPad (quebra em 2 linhas sozinha)</label>
+              <input type="text" id="ip-headline" maxlength="90" placeholder="Ex.: Como levar um CEO para 10 mil seguidores"></div>
+            <label for="ip-head-s">Quanto tempo fica na tela</label>
+            <div class="deslize"><input type="range" id="ip-head-s" min="1" max="15" step="0.5" value="7"><output id="ip-head-s-v">7,0 s</output></div>
+          </div>
+          <div class="card">
+            <h2>Zoom na pessoa</h2>
+            <label class="chave"><input type="checkbox" id="ip-zoom-on" checked> Aplicar zooms (o iPad nunca recebe zoom)</label>
+            <div class="deslize" id="ip-int-box"><input type="range" id="ip-int" min="0.5" max="1.5" step="0.05" value="1"><output id="ip-int-v">moderado</output></div>
+          </div>
+          <div class="card">
+            <h2>Legenda <span class="sub" style="font-size:13px;font-weight:400">· revise o texto; ela sai em MAIÚSCULAS</span></h2>
+            <div class="ip-grupos" id="ip-grupos"></div>
+          </div>
+          <div class="card">
+            <div class="campo"><label for="ip-nome">Nome do projeto no CapCut</label><input type="text" id="ip-nome"></div>
+            <div class="linha"><button id="ip-gerar">Gerar projeto no CapCut</button><button class="sec" id="ip-voltar-3">Voltar à sincronia</button></div>
           </div>
         </div>
 
@@ -469,7 +591,7 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 <script>
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
-const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","pronto"];
+const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao","pronto"];
 let modo = "cortes", gancho = null, musica = "";
 let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
 
@@ -522,6 +644,7 @@ function pagina(nome){
 function mostra(tela){
   telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
   $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", "revisao-legenda":"Revise a legenda", progresso:"Processando",
+    "ipad-enquadrar":"Enquadrar", "ipad-sincronia":"Sincronizar", "ipad-revisao":"Legenda e headline",
     pronto:"Edição concluída"}[tela] || "Edição";
   if(tela !== "revisao-legenda"){ const v = $("lg-video"); if(!v.paused) v.pause(); }
 }
@@ -655,6 +778,7 @@ function grafico(semanas){
 // ---------------- edicao: importar ----------------
 document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
   modo = b.dataset.modo;
+  $("drop").classList.toggle("oculto", modo === "ipad"); $("ipad-escolher").classList.toggle("oculto", modo !== "ipad");
   document.querySelectorAll(".modo").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
 });
 async function analisar(caminho){
@@ -798,6 +922,181 @@ $("lg-gerar").onclick = async () => {
 };
 $("abrir-capcut").onclick = async () => { const r = await api("abrir-capcut", {}); if(!r.ok) alert("Não achei o CapCut. Abra-o manualmente."); };
 $("outro").onclick = () => mostra("importar");
+
+// ================= APRESENTADOR + iPAD =================
+const IP = {arquivos: {ipad: "", pessoa: ""}, ses: null, pessoa: {escala: 1, x: 0, y: -0.17}, crop: [0, 0, 1, 1], off: 0, an: null};
+const QUADRO = 1 / 30;
+const url = q => "/api/video?sessao=" + IP.ses.sessao + "&q=" + q + "&t=" + encodeURIComponent(TOKEN);
+const hms = s => { s = Math.max(0, s); const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(3).padStart(6, "0"); };
+
+document.querySelectorAll("[data-escolhe]").forEach(b => b.onclick = async () => {
+  try{
+    const {caminho} = await api("escolher-arquivo", {tipo: "video"});
+    if(!caminho) return;
+    IP.arquivos[b.dataset.escolhe] = caminho;
+    $("ip-nome-" + b.dataset.escolhe).textContent = caminho.split(/[\\/]/).pop();
+    $("ip-preparar").disabled = !(IP.arquivos.ipad && IP.arquivos.pessoa);
+  }catch(e){ erro("imp-erro", e.message); }
+});
+$("ip-preparar").onclick = async () => {
+  erro("imp-erro"); ocupado = true; mostra("progresso");
+  $("prog-titulo").textContent = "Preparando os vídeos…";
+  $("prog-sub").textContent = "Criando uma cópia leve de cada vídeo para a prévia. Vídeos 4K longos levam alguns minutos (só na primeira vez).";
+  try{
+    const {id} = await api("ipad/preparar", IP.arquivos);
+    IP.ses = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    abreEnquadrar();
+  }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
+  ocupado = false;
+};
+
+// ---------- enquadrar ----------
+function abreEnquadrar(){
+  const i = IP.ses.ipad, alvo = IP.ses.proporcao_ipad;
+  // recorte padrao: largura toda, altura que deixa o iPad com ~34,7% da tela, centrado
+  let hf = alvo * (1920 / 1080) * (i.largura / i.altura); hf = Math.min(1, hf);
+  IP.crop = [0, +((1 - hf) / 2).toFixed(4), 1, +((1 + hf) / 2).toFixed(4)];
+  IP.pessoa = {escala: 1, x: 0, y: +(-0.5 * alturaIpad()).toFixed(4)};
+  for(const [id, q] of [["ip-l-pessoa","pessoa"],["ip-l-ipad","ipad"],["ip-c-ipad","ipad"]]){ $(id).src = url(q); }
+  $("ip-quadro").max = Math.max(1, Math.floor(i.duracao)); $("ip-quadro").value = Math.min(10, Math.floor(i.duracao / 2));
+  const t0 = Number($("ip-quadro").value);
+  ["ip-l-pessoa","ip-l-ipad","ip-c-ipad"].forEach(id => $(id).currentTime = t0);
+  $("ip-escala").value = 1; $("ip-escala-v").textContent = "1,00×";
+  ocupado = true; mostra("ipad-enquadrar");
+  requestAnimationFrame(desenhaEnquadrar);
+}
+function alturaIpad(){ const i = IP.ses.ipad, [x0, y0, x1, y1] = IP.crop; return (i.altura * (y1 - y0)) / (i.largura * (x1 - x0)) * 1080 / 1920; }
+function desenhaEnquadrar(){
+  const tela = $("ip-tela"), W = tela.clientWidth, H = tela.clientHeight; if(!W) return;
+  // pessoa: o CapCut encaixa o video inteiro na tela (contain) e multiplica pela escala; x/y em meias-telas
+  const p = IP.ses.pessoa, ap = p.largura / p.altura;
+  let bw, bh; if(ap <= 9 / 16){ bh = H; bw = H * ap; } else { bw = W; bh = W / ap; }
+  const w = bw * IP.pessoa.escala, h = bh * IP.pessoa.escala;
+  const cx = W / 2 + IP.pessoa.x * W / 2, cy = H / 2 - IP.pessoa.y * H / 2;
+  Object.assign($("ip-l-pessoa").style, {width: w + "px", height: h + "px", left: (cx - w / 2) + "px", top: (cy - h / 2) + "px"});
+  // iPad: o recorte ocupa a largura toda no topo
+  const [x0, y0, x1, y1] = IP.crop, i = IP.ses.ipad, topo = alturaIpad() * H;
+  const fw = W / (x1 - x0), fh = fw * i.altura / i.largura;
+  $("ip-topo").style.height = topo + "px";
+  Object.assign($("ip-l-ipad").style, {width: fw + "px", height: fh + "px", left: (-x0 * fw) + "px", top: (-y0 * fh) + "px"});
+  // retangulo do recorte no editor
+  const cw = $("ip-crop").clientWidth, ch = cw * i.altura / i.largura;
+  $("ip-crop").style.height = ch + "px";
+  Object.assign($("ip-ret").style, {left: x0 * cw + "px", top: y0 * ch + "px", width: (x1 - x0) * cw + "px", height: (y1 - y0) * ch + "px"});
+}
+window.addEventListener("resize", () => { if(!$("tela-ipad-enquadrar").classList.contains("oculto")) desenhaEnquadrar(); });
+$("ip-escala").oninput = () => { IP.pessoa.escala = Number($("ip-escala").value); $("ip-escala-v").textContent = fmt(IP.pessoa.escala, 2) + "×"; desenhaEnquadrar(); };
+$("ip-quadro").oninput = () => { const t = Number($("ip-quadro").value); ["ip-l-pessoa","ip-l-ipad","ip-c-ipad"].forEach(id => $(id).currentTime = t); };
+function arrasta(el, fn){
+  el.addEventListener("pointerdown", e => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId); let ux = e.clientX, uy = e.clientY;
+    const mov = ev => { fn(ev.clientX - ux, ev.clientY - uy, ev); ux = ev.clientX; uy = ev.clientY; desenhaEnquadrar(); };
+    const fim = () => { el.removeEventListener("pointermove", mov); el.removeEventListener("pointerup", fim); };
+    el.addEventListener("pointermove", mov); el.addEventListener("pointerup", fim);
+  });
+}
+arrasta($("ip-l-pessoa"), (dx, dy) => { const tela = $("ip-tela"); IP.pessoa.x += 2 * dx / tela.clientWidth; IP.pessoa.y -= 2 * dy / tela.clientHeight; });
+arrasta($("ip-ret"), (dx, dy, ev) => {
+  if(ev.target === $("ip-alca")) return;
+  const cw = $("ip-crop").clientWidth, ch = $("ip-crop").clientHeight; let [x0, y0, x1, y1] = IP.crop;
+  const w = x1 - x0, h = y1 - y0;
+  x0 = Math.min(1 - w, Math.max(0, x0 + dx / cw)); y0 = Math.min(1 - h, Math.max(0, y0 + dy / ch));
+  IP.crop = [x0, y0, x0 + w, y0 + h];
+});
+arrasta($("ip-alca"), (dx, dy) => {
+  const cw = $("ip-crop").clientWidth, ch = $("ip-crop").clientHeight; let [x0, y0, x1, y1] = IP.crop;
+  x1 = Math.min(1, Math.max(x0 + 0.1, x1 + dx / cw)); y1 = Math.min(1, Math.max(y0 + 0.08, y1 + dy / ch));
+  IP.crop = [x0, y0, x1, y1];
+});
+$("ip-voltar-1").onclick = () => { ocupado = false; mostra("importar"); };
+$("ip-ir-sync").onclick = () => abreSincronia();
+
+// ---------- sincronizar (sempre por TEMPO, nunca por numero de quadro) ----------
+const SV = {ipad: $("ip-s-ipad"), pessoa: $("ip-s-pessoa")};
+let juntos = null;
+function abreSincronia(){
+  for(const q of ["ipad","pessoa"]){
+    if(!SV[q].src) SV[q].src = url(q);
+    $("ip-t-" + q).max = IP.ses[q].duracao.toFixed(3); $("ip-t-" + q).step = QUADRO;
+  }
+  mostraTempo(); erro("ip-sync-erro"); mostra("ipad-sincronia");
+}
+function mostraTempo(){
+  for(const q of ["ipad","pessoa"]){ $("ip-rel-" + q).textContent = hms(SV[q].currentTime); $("ip-t-" + q).value = SV[q].currentTime; }
+  IP.off = SV.ipad.currentTime - SV.pessoa.currentTime;
+  $("ip-off").textContent = (IP.off >= 0 ? "+" : "−") + fmt(Math.abs(IP.off), 3) + " s";
+  $("ip-off-txt").textContent = Math.abs(IP.off) < 0.001 ? "Os dois começaram juntos." :
+    IP.off > 0 ? "O iPad começou a gravar " + fmt(IP.off, 2) + " s antes da câmera." : "A câmera começou a gravar " + fmt(-IP.off, 2) + " s antes do iPad.";
+}
+function vaiPara(q, t){ const v = SV[q]; v.currentTime = Math.min(IP.ses[q].duracao, Math.max(0, t)); }
+for(const q of ["ipad","pessoa"]){
+  SV[q].addEventListener("timeupdate", mostraTempo); SV[q].addEventListener("seeked", mostraTempo);
+  $("ip-t-" + q).oninput = () => { paraJuntos(); vaiPara(q, Number($("ip-t-" + q).value)); };
+  document.querySelectorAll('.ip-col[data-q="' + q + '"] [data-p]').forEach(b => b.onclick = () => {
+    paraJuntos(); const p = b.dataset.p, d = p === "-q" ? -QUADRO : p === "+q" ? QUADRO : Number(p);
+    // "1 quadro" = 1/30 s arredondado na grade de quadros da previa: 9,1 s = 273 quadros, exato
+    vaiPara(q, Math.round((SV[q].currentTime + d) / QUADRO) * QUADRO);
+  });
+}
+function paraJuntos(){ if(juntos){ clearInterval(juntos); juntos = null; } SV.ipad.pause(); SV.pessoa.pause(); $("ip-juntos").textContent = "▶ Tocar os dois juntos"; }
+function tocaJuntos(off){
+  paraJuntos();
+  SV.ipad.currentTime = SV.pessoa.currentTime + off;
+  Promise.all([SV.ipad.play(), SV.pessoa.play()]).catch(() => {});
+  $("ip-juntos").textContent = "⏸ Pausar";
+  juntos = setInterval(() => {                               // mantem a diferenca escolhida enquanto toca (correcao de deriva)
+    const alvo = SV.pessoa.currentTime + off;
+    if(Math.abs(SV.ipad.currentTime - alvo) > 0.08) SV.ipad.currentTime = alvo;
+    if(SV.pessoa.ended || SV.ipad.ended) paraJuntos();
+  }, 500);
+}
+$("ip-juntos").onclick = () => juntos ? paraJuntos() : tocaJuntos(IP.off);
+$("ip-final").onclick = () => {
+  const off = IP.off, fim = Math.min(IP.ses.pessoa.duracao, IP.ses.ipad.duracao - off);
+  SV.pessoa.currentTime = Math.max(0, fim - 8); tocaJuntos(off);
+};
+$("ip-voltar-2").onclick = () => { paraJuntos(); mostra("ipad-enquadrar"); requestAnimationFrame(desenhaEnquadrar); };
+$("ip-sync-ok").onclick = async () => {
+  paraJuntos(); erro("ip-sync-erro");
+  const off = Math.round((SV.ipad.currentTime - SV.pessoa.currentTime) * 1000) / 1000;
+  mostra("progresso"); $("prog-titulo").textContent = "Cortando e transcrevendo…";
+  $("prog-sub").textContent = "Achando os cortes no áudio da pessoa e transcrevendo a legenda."; $("barra").style.width = "0";
+  try{
+    const {id} = await api("ipad/analisar", {sessao: IP.ses.sessao, offset: off});
+    IP.an = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    abreRevisaoIpad();
+  }catch(e){ mostra("ipad-sincronia"); erro("ip-sync-erro", e.message); }
+};
+
+// ---------- legenda, headline, zoom ----------
+function abreRevisaoIpad(){
+  const a = IP.an;
+  $("ip-n-antes").textContent = seg(a.antes); $("ip-n-depois").textContent = seg(a.depois); $("ip-n-ped").textContent = a.pedacos;
+  $("ip-nome").value = IP.ses.pessoa.nome.replace(/\.[^.]+$/, "") + " - ipad";
+  const box = $("ip-grupos"); box.innerHTML = "";
+  if(!a.grupos.length) box.innerHTML = '<p class="sub" style="margin:0">Nenhuma fala transcrita.</p>';
+  a.grupos.forEach((g, i) => {
+    const d = document.createElement("div"); d.className = "ip-grupo";
+    d.innerHTML = '<span>' + seg(g.ini) + '</span><input type="text" maxlength="60">';
+    const inp = d.querySelector("input"); inp.value = g.txt; inp.dataset.i = i;
+    box.appendChild(d);
+  });
+  erro("ip-rev-erro"); mostra("ipad-revisao");
+}
+$("ip-head-s").oninput = () => { $("ip-head-s-v").textContent = fmt($("ip-head-s").value, 1) + " s"; };
+$("ip-int").oninput = () => { const v = Number($("ip-int").value); $("ip-int-v").textContent = v < 0.8 ? "leve" : v > 1.2 ? "forte" : "moderado"; };
+$("ip-zoom-on").onchange = () => $("ip-int-box").classList.toggle("desligado", !$("ip-zoom-on").checked);
+$("ip-voltar-3").onclick = () => abreSincronia();
+$("ip-gerar").onclick = async () => {
+  erro("ip-rev-erro"); mostra("progresso");
+  $("prog-titulo").textContent = "Montando o projeto no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
+  const grupos = IP.an.grupos.map((g, i) => ({ini: g.ini, fim: g.fim, txt: document.querySelector('#ip-grupos input[data-i="' + i + '"]').value}));
+  try{
+    const {id} = await api("gerar", {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
+      grupos, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value});
+    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
+  }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
+};
 
 inicio();
 </script>

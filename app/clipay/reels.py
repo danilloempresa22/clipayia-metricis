@@ -105,7 +105,9 @@ def x_do_rosto(s, x_ref, rosto):
     return max(-(s - 1) + 0.02, min((s - 1) - 0.02, x_ref))
 
 
-def plano_zoom(pecas, rosto="centro"):
+def plano_zoom(pecas, rosto="centro", intensidade=1.0):
+    """intensidade: 1.0 = tabelas aprovadas; 0 = sem zoom; escala o quanto cada zoom passa de 1.0"""
+    if intensidade <= 0: return [None] * len(pecas)
     z = [None] * len(pecas); prox = 0; nz = 0; ie = 0; iv = 0; ult = -9
     for i, (dur, forca) in enumerate(pecas):
         if i - ult == 1: continue
@@ -115,6 +117,7 @@ def plano_zoom(pecas, rosto="centro"):
             s, x = EMPURRAO[(nz // 3) % len(EMPURRAO)]; tipo = "empurra"
         else:
             s, x = ESTATICO[ie % len(ESTATICO)]; ie += 1; tipo = "fixo"
+        s, x = 1 + (s - 1) * intensidade, x * intensidade
         z[i] = (tipo, s, x_do_rosto(s, x, rosto))
         nz += 1; ult = i; prox = i + INTERVALO[iv % len(INTERVALO)]; iv += 1
     return z
@@ -170,14 +173,14 @@ def headline(mats, tpl, texto, total):
     return {"id": capcut.uid(), "type": "text", "segments": [sg], "flag": 0, "attribute": 0, "name": "", "is_default_name": True}
 
 
-def montar(draft, pl, texto, tpl, rosto="centro"):
+def montar(draft, pl, texto, tpl, rosto="centro", intensidade=1.0):
     novo = copy.deepcopy(draft); mats = novo["materials"]
     idx = capcut.indice_materiais(mats)
     vt = capcut.trilha_principal(novo)
     segs = sorted(vt["segments"], key=lambda s: s["target_timerange"]["start"])
     assert len(segs) == len(pl)
     lista = [(s, p) for s, pp in zip(segs, pl) for p in pp["keep"]]
-    zooms = plano_zoom([(p[1] - p[0], p[2]) for _, p in lista], rosto)
+    zooms = plano_zoom([(p[1] - p[0], p[2]) for _, p in lista], rosto, intensidade)
     novos, cur = [], 0
     for (s, p), z in zip(lista, zooms):
         ns = capcut.clona_segmento(s, idx, mats)

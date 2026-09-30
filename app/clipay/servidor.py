@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -31,6 +31,7 @@ else fetch("/api/google-tokens", {method: "POST", headers: {"X-Clipay-Token": "_
 }).catch(() => fim("Não deu certo", "O Clipay.ia não respondeu. Ele ainda está aberto?"));
 </script></body></html>"""
 JOBS = {}
+IPAD = {}                                            # sessao do Apresentador + iPad -> {"ipad": {...}, "pessoa": {...}}
 ANALISES = {}                                        # id -> resultado de processa.analisa_video
 TRAVA = threading.Lock()
 EXT_VIDEO = (".mp4", ".mov", ".mkv", ".m4v", ".avi", ".webm")
@@ -184,6 +185,24 @@ def trabalho_gera(c):
         if not an:
             raise capcut.ErroProjeto("Essa análise expirou. Importe o vídeo de novo.")
         raiz = raiz_atual()
+        if "janela" in an:                               # Apresentador + iPad
+            def num(v, lo, hi, pad):
+                return min(hi, max(lo, float(v))) if v not in (None, "") else pad
+            pes = c.get("pessoa") or {}
+            crop = [num(v, 0.0, 1.0, 0.0) for v in (c.get("crop_ipad") or [0, 0, 1, 1])][:4]
+            if len(crop) != 4 or crop[2] - crop[0] < 0.05 or crop[3] - crop[1] < 0.05:
+                raise capcut.ErroProjeto("O recorte do iPad ficou pequeno demais. Ajuste na tela de enquadrar.")
+            grupos = [{"ini": num(g.get("ini"), 0, 1e6, 0), "fim": num(g.get("fim"), 0, 1e6, 0), "txt": str(g.get("txt", ""))[:80]}
+                      for g in (c.get("grupos") or []) if isinstance(g, dict)]
+            op = {"headline": (c.get("headline") or "").strip()[:120],
+                  "headline_s": num(c.get("headline_s"), 1, 60, ipad.HEADLINE_S),
+                  "grupos": grupos, "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),
+                  "pessoa": {"escala": num(pes.get("escala"), 0.5, 4.0, 1.0), "x": num(pes.get("x"), -3, 3, 0.0),
+                             "y": num(pes.get("y"), -3, 3, 0.0)},
+                  "crop_ipad": crop, "nome": (c.get("nome") or "").strip() or None}
+            r = processa.monta_ipad(raiz, an, op, avisa)
+            _conta_uso(r)
+            return r
         if "mantidas" in an:                             # Legenda Complexa
             num = lambda k, lo, hi, pad: min(hi, max(lo, float(c[k]))) if c.get(k) not in (None, "") else pad
             musica = (c.get("musica") or "").strip()
@@ -204,6 +223,59 @@ def trabalho_gera(c):
         r = processa.monta_video(raiz, an, op, avisa)
         _conta_uso(r)
         return r
+    return fn
+
+
+def previa_de(video, com_audio, avisa):
+    """previa leve em cache: o mesmo arquivo (caminho + tamanho + data) nao e' convertido de novo"""
+    import hashlib
+    st = Path(video).stat()
+    chave = hashlib.sha1(f"{Path(video).resolve()}|{st.st_size}|{st.st_mtime_ns}|{com_audio}".encode()).hexdigest()[:16]
+    pasta = pasta_temp() / "previas"
+    pasta.mkdir(parents=True, exist_ok=True)
+    info = audio.probe_video(video)
+    return ipad.gera_previa(video, pasta / f"{chave}.mp4", com_audio=com_audio, avisa=avisa, dur=info["duracao"]), info
+
+
+def trabalho_prepara_ipad(v_ipad, v_pessoa):
+    def fn(avisa):
+        conta.exige_ativa()
+        out = {}
+        passos = (("ipad", v_ipad, False, "do iPad"), ("pessoa", v_pessoa, True, "da pessoa"))
+        for i, (qual, video, com_audio, rot) in enumerate(passos):
+            aviso = lambda f, i=i, rot=rot: avisa(f"Preparando a prévia {rot}", 0.02 + 0.49 * (i + f))
+            try:
+                previa, info = previa_de(video, com_audio, aviso)
+            except RuntimeError as e:
+                raise capcut.ErroProjeto(str(e))
+            out[qual] = {"video": video, "info": info, "previa": str(previa)}
+        if not out["pessoa"]["info"]["tem_audio"]:
+            raise capcut.ErroProjeto("O vídeo da pessoa não tem áudio: sem áudio não dá pra achar os cortes nem a legenda.")
+        sid = uuid.uuid4().hex[:10]
+        IPAD[sid] = out
+
+        def resumo(q):
+            return {"nome": Path(out[q]["video"]).name, "largura": out[q]["info"]["largura"],
+                    "altura": out[q]["info"]["altura"], "duracao": out[q]["info"]["duracao"]}
+        return {"sessao": sid, "ipad": resumo("ipad"), "pessoa": resumo("pessoa"), "quadro": ipad.QUADRO,
+                "proporcao_ipad": ipad.PROPORCAO_IPAD}
+    return fn
+
+
+def trabalho_analisa_ipad(sid, offset):
+    def fn(avisa):
+        conta.exige_ativa()
+        ses = IPAD.get(sid)
+        if not ses:
+            raise capcut.ErroProjeto("Essa sessão expirou. Escolha os vídeos de novo.")
+        raiz = raiz_atual()
+        if not raiz:
+            raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho nas configurações.")
+        an = processa.analisa_ipad(raiz, ses, offset, {}, avisa)
+        aid = uuid.uuid4().hex[:10]
+        ANALISES[aid] = an
+        return {"analise": aid, "modo": "ipad", "offset": an["offset"], "antes": an["janela"][2],
+                "depois": sum(b - a for a, b, *_ in an["keep"]), "pedacos": len(an["keep"]), "grupos": an["grupos"]}
     return fn
 
 
@@ -305,12 +377,21 @@ class H(BaseHTTPRequestHandler):
         self.send_response(404); self.end_headers()
 
     def _video(self, q):
-        """so o video de uma analise existente, so com o token; com Range (o <video> precisa pra pular no tempo)"""
+        """so o video de uma analise (ou a previa leve de uma sessao do iPad), so com o token; com Range
+        (o <video> precisa pra arrastar e pular no tempo)"""
         host = (self.headers.get("Host") or "").split(":")[0]
-        an = ANALISES.get(q.get("analise", [""])[0])
-        if host not in ("127.0.0.1", "localhost") or not secrets.compare_digest(q.get("t", [""])[0], TOKEN) or not an:
+        if host not in ("127.0.0.1", "localhost") or not secrets.compare_digest(q.get("t", [""])[0], TOKEN):
             self.send_response(403); self.end_headers(); return
-        p = Path(an["video"]); tam = p.stat().st_size
+        an = ANALISES.get(q.get("analise", [""])[0])
+        ses = IPAD.get(q.get("sessao", [""])[0])
+        qual = q.get("q", [""])[0]
+        if an and an.get("video"):
+            p = Path(an["video"])
+        elif ses and qual in ("ipad", "pessoa"):
+            p = Path(ses[qual]["previa"])
+        else:
+            self.send_response(403); self.end_headers(); return
+        tam = p.stat().st_size
         a, b = 0, tam - 1
         rg = re.match(r"bytes=(\d*)-(\d*)", self.headers.get("Range", ""))
         if rg:
@@ -320,6 +401,7 @@ class H(BaseHTTPRequestHandler):
             b = min(b, a + (8 << 20) - 1)                # blocos de ate 8 MB
         self.send_response(206 if rg else 200)
         self.send_header("Content-Type", "video/quicktime" if p.suffix.lower() == ".mov" else "video/mp4")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(b - a + 1))
         if rg: self.send_header("Content-Range", f"bytes {a}-{b}/{tam}")
@@ -381,6 +463,20 @@ class H(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if u.path == "/api/escolher-arquivo":
                 return self._json({"caminho": escolhe_arquivo(c.get("tipo", "video")) or ""})
+            if u.path == "/api/ipad/preparar":
+                vs = {}
+                for q, rot in (("ipad", "do iPad"), ("pessoa", "da pessoa")):
+                    p = Path(c.get(q, ""))
+                    if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
+                        return self._json({"erro": f"Escolha o vídeo {rot}."}, 400)
+                    vs[q] = str(p)
+                if Path(vs["ipad"]).resolve() == Path(vs["pessoa"]).resolve():
+                    return self._json({"erro": "Os dois vídeos são o mesmo arquivo."}, 400)
+                conta.exige_ativa()
+                return self._json({"id": novo_job(trabalho_prepara_ipad(vs["ipad"], vs["pessoa"]))})
+            if u.path == "/api/ipad/analisar":
+                conta.exige_ativa()
+                return self._json({"id": novo_job(trabalho_analisa_ipad(c.get("sessao", ""), float(c.get("offset", 0))))})
             if u.path == "/api/analisar":
                 p = Path(c.get("caminho", ""))
                 if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
