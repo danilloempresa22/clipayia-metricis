@@ -107,9 +107,19 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
 
 
 # ---------------- APRESENTADOR + iPAD ----------------
-def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None):
+def transcreve_pessoa(video, avisa=None, modelo="preciso"):
+    """transcricao do video INTEIRO da pessoa (tempos absolutos). O modo iPad roda isso em segundo plano logo que os
+    videos sao escolhidos, enquanto o usuario enquadra e sincroniza: quando ele confirma, a legenda ja esta pronta."""
+    avisa = avisa or (lambda *a: None)
+    x = audio.pcm(video)
+    w = _whisper(modelo, avisa, 0.0, 0.05)
+    return palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a legenda", 0.05 + 0.95 * i / n))
+
+
+def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None, palavras_prontas=None):
     """videos = {"ipad": {"video", "info"}, "pessoa": {...}}; offset = t_ipad - t_pessoa (s), decidido pelo usuario.
-    Corta pelo audio da pessoa (so a parte em que os dois videos se cruzam) e transcreve pra legenda. NAO grava nada."""
+    Corta pelo audio da pessoa (so a parte em que os dois videos se cruzam) e transcreve pra legenda. NAO grava nada.
+    palavras_prontas: transcricao do video inteiro da pessoa ja feita (tempos absolutos) — so recorta a janela."""
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
     ip, pe = videos["ipad"], videos["pessoa"]
@@ -122,8 +132,11 @@ def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None):
     capcut.sonda_capcut(raiz)                                          # falha cedo se o CapCut criptografa os projetos
     avisa("Achando os cortes", 0.1)
     keep = ipad.cortes(x)
-    w = _whisper(op.get("modelo", "preciso"), avisa, 0.12, 0.2)
-    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a legenda", 0.2 + 0.78 * i / n))
+    if palavras_prontas is not None:
+        pal = [dict(p, a=round(p["a"] - sp, 3), b=round(p["b"] - sp, 3)) for p in palavras_prontas if sp <= p["a"] < sp + comum]
+    else:
+        w = _whisper(op.get("modelo", "preciso"), avisa, 0.12, 0.2)
+        pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo a legenda", 0.2 + 0.78 * i / n))
     return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keep": keep, "palavras": pal,
             "grupos": ipad.grupos(pal, keep)}
 

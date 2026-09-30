@@ -196,7 +196,27 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 .ip-crop{position:relative;width:100%;background:#000;border-radius:10px;overflow:hidden;touch-action:none}
 .ip-crop video{display:block;width:100%}
 .ret{position:absolute;border:2px solid var(--acc);box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move}
-.alca{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:var(--acc);border-radius:3px;cursor:nwse-resize}
+.pux{position:absolute;width:14px;height:14px;background:var(--acc);border-radius:3px;border:2px solid var(--bg)}
+.pux[data-b="n"]{top:-8px;left:calc(50% - 7px);cursor:ns-resize}.pux[data-b="s"]{bottom:-8px;left:calc(50% - 7px);cursor:ns-resize}
+.pux[data-b="o"]{left:-8px;top:calc(50% - 7px);cursor:ew-resize}.pux[data-b="l"]{right:-8px;top:calc(50% - 7px);cursor:ew-resize}
+.pux[data-b="no"]{left:-8px;top:-8px;cursor:nwse-resize}.pux[data-b="sl"]{right:-8px;bottom:-8px;cursor:nwse-resize}
+.pux[data-b="nl"]{right:-8px;top:-8px;cursor:nesw-resize}.pux[data-b="so"]{left:-8px;bottom:-8px;cursor:nesw-resize}
+button.fino{padding:6px 10px;min-width:34px;font-size:14px}
+.bordas{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:18px}
+#ip-escala-v{min-width:44px}
+.deslize button.fino{flex:none}
+.bordas div{display:flex;align-items:center;gap:6px}
+.bordas span{min-width:62px;font-size:13px;color:var(--mudo)}
+.bordas b{min-width:52px;text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
+.posicao{display:flex;gap:14px;align-items:center;margin-top:12px}
+.setas{display:grid;grid-template-columns:repeat(3,38px);gap:4px;flex:none}
+.grade-guia{position:absolute;inset:0;pointer-events:none;opacity:.35}
+.grade-guia i{position:absolute;background:rgba(255,255,255,.55)}
+.grade-guia i:nth-child(1),.grade-guia i:nth-child(2){top:0;bottom:0;width:1px}
+.grade-guia i:nth-child(1){left:33.333%}.grade-guia i:nth-child(2){left:66.666%}
+.grade-guia i:nth-child(3),.grade-guia i:nth-child(4){left:0;right:0;height:1px}
+.grade-guia i:nth-child(3){top:33.333%}.grade-guia i:nth-child(4){top:66.666%}
+.grade-guia b{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--acc);opacity:.8}
 .ip-sync{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .sy-grade{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:14px;align-items:start}
 .sy-tela{max-width:340px}
@@ -454,18 +474,36 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
               <div class="tela916" id="ip-tela">
                 <video id="ip-l-pessoa" class="ip-pessoa" muted playsinline preload="auto"></video>
                 <div class="ip-topo" id="ip-topo"><video id="ip-l-ipad" muted playsinline preload="auto"></video></div>
+                <div class="grade-guia" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
               </div>
               <div class="sy-controles"><button id="ip-enq-play" class="sy-play" aria-label="Tocar">▶</button>
                 <span class="sub" style="margin:0;font-size:12px">Toca os dois para você ver o enquadramento em movimento</span></div>
               <label for="ip-escala" style="margin-top:10px">Zoom da pessoa</label>
-              <div class="deslize"><input type="range" id="ip-escala" min="1" max="3" step="0.01" value="1"><output id="ip-escala-v">1,00×</output></div>
-              <p class="sub" style="margin:8px 0 0;font-size:12px">Arraste a pessoa na prévia para posicionar o rosto.</p>
+              <div class="deslize"><button class="sec fino" data-z="-0.01" aria-label="Diminuir zoom">−</button>
+                <input type="range" id="ip-escala" min="1" max="3" step="0.01" value="1"><button class="sec fino" data-z="0.01" aria-label="Aumentar zoom">+</button>
+                <output id="ip-escala-v">1,00×</output></div>
+              <div class="posicao">
+                <div class="setas"><span></span><button class="sec fino" data-m="0,1" aria-label="Subir">↑</button><span></span>
+                  <button class="sec fino" data-m="-1,0" aria-label="Esquerda">←</button><button class="sec fino" id="ip-centro" title="Centralizar na horizontal">◎</button>
+                  <button class="sec fino" data-m="1,0" aria-label="Direita">→</button>
+                  <span></span><button class="sec fino" data-m="0,-1" aria-label="Descer">↓</button><span></span></div>
+                <p class="sub" style="margin:0;font-size:12px">Arraste a pessoa na prévia ou use as setas (cada toque move um pouquinho; segure para mover contínuo). A rodinha do mouse sobre a prévia dá zoom. ◎ centraliza na horizontal.</p>
+              </div>
             </div>
             <div class="card" style="min-width:0">
               <h2>Recorte do iPad</h2>
               <div class="ip-crop" id="ip-crop"><video id="ip-c-ipad" muted playsinline preload="auto"></video>
-                <div class="ret" id="ip-ret"><span class="alca" id="ip-alca" title="Puxe para mudar o tamanho"></span></div></div>
-              <p class="sub" style="margin:10px 0 12px;font-size:12px">Arraste o retângulo para ficar só com a área escura do desenho. Puxe o canto para mudar o tamanho.</p>
+                <div class="ret" id="ip-ret">
+                  <span class="pux" data-b="n"></span><span class="pux" data-b="s"></span><span class="pux" data-b="o"></span><span class="pux" data-b="l"></span>
+                  <span class="pux" data-b="no"></span><span class="pux" data-b="nl"></span><span class="pux" data-b="so"></span><span class="pux" data-b="sl"></span>
+                </div></div>
+              <p class="sub" style="margin:10px 0 12px;font-size:12px">Arraste o retângulo para mover; puxe qualquer canto ou lado para mudar o tamanho. Para o ajuste fino, use os botões de cada borda.</p>
+              <div class="bordas">
+                <div><span>Topo</span><button class="sec fino" data-c="1,-1">−</button><b id="ip-c-1"></b><button class="sec fino" data-c="1,1">+</button></div>
+                <div><span>Base</span><button class="sec fino" data-c="3,-1">−</button><b id="ip-c-3"></b><button class="sec fino" data-c="3,1">+</button></div>
+                <div><span>Esquerda</span><button class="sec fino" data-c="0,-1">−</button><b id="ip-c-0"></b><button class="sec fino" data-c="0,1">+</button></div>
+                <div><span>Direita</span><button class="sec fino" data-c="2,-1">−</button><b id="ip-c-2"></b><button class="sec fino" data-c="2,1">+</button></div>
+              </div>
               <label for="ip-quadro">Momento do vídeo (para ver o desenho)</label>
               <input type="range" id="ip-quadro" min="0" max="1" step="0.1" value="0" style="width:100%;accent-color:var(--acc)">
             </div>
@@ -1020,7 +1058,8 @@ function desenhaEnquadrar(){
   const fw = W / (x1 - x0), fh = fw * i.altura / i.largura;
   $("ip-topo").style.height = topo + "px";
   Object.assign($("ip-l-ipad").style, {width: fw + "px", height: fh + "px", left: (-x0 * fw) + "px", top: (-y0 * fh) + "px"});
-  // retangulo do recorte no editor
+  // retangulo do recorte no editor + valores das bordas (em % do video do iPad)
+  [0, 1, 2, 3].forEach(k => $("ip-c-" + k).textContent = fmt(IP.crop[k] * 100, 1) + "%");
   const cw = $("ip-crop").clientWidth, ch = cw * i.altura / i.largura;
   $("ip-crop").style.height = ch + "px";
   Object.assign($("ip-ret").style, {left: x0 * cw + "px", top: y0 * ch + "px", width: (x1 - x0) * cw + "px", height: (y1 - y0) * ch + "px"});
@@ -1040,24 +1079,51 @@ $("ip-quadro").oninput = () => { const t = Number($("ip-quadro").value); ["ip-l-
 function arrasta(el, fn){
   el.addEventListener("pointerdown", e => {
     e.preventDefault(); el.setPointerCapture(e.pointerId); let ux = e.clientX, uy = e.clientY;
-    const mov = ev => { fn(ev.clientX - ux, ev.clientY - uy, ev); ux = ev.clientX; uy = ev.clientY; desenhaEnquadrar(); };
+    const alvo = e.target;                                   // o que foi agarrado no clique (com a captura, o movimento chega pelo 'el')
+    const mov = ev => { fn(ev.clientX - ux, ev.clientY - uy, alvo); ux = ev.clientX; uy = ev.clientY; desenhaEnquadrar(); };
     const fim = () => { el.removeEventListener("pointermove", mov); el.removeEventListener("pointerup", fim); };
     el.addEventListener("pointermove", mov); el.addEventListener("pointerup", fim);
   });
 }
 arrasta($("ip-l-pessoa"), (dx, dy) => { const tela = $("ip-tela"); IP.pessoa.x += 2 * dx / tela.clientWidth; IP.pessoa.y -= 2 * dy / tela.clientHeight; });
-arrasta($("ip-ret"), (dx, dy, ev) => {
-  if(ev.target === $("ip-alca")) return;
-  const cw = $("ip-crop").clientWidth, ch = $("ip-crop").clientHeight; let [x0, y0, x1, y1] = IP.crop;
-  const w = x1 - x0, h = y1 - y0;
+// recorte: arrastar o retangulo move; cada puxador mexe so as bordas dele (n=topo, s=base, o=esquerda, l=direita)
+const MIN_W = 0.1, MIN_H = 0.06;
+function bordaCrop(k, v){
+  const c = IP.crop.slice();
+  if(k === 0) c[0] = Math.min(c[2] - MIN_W, Math.max(0, v));
+  if(k === 2) c[2] = Math.max(c[0] + MIN_W, Math.min(1, v));
+  if(k === 1) c[1] = Math.min(c[3] - MIN_H, Math.max(0, v));
+  if(k === 3) c[3] = Math.max(c[1] + MIN_H, Math.min(1, v));
+  IP.crop = c.map(n => Math.round(n * 10000) / 10000);
+}
+arrasta($("ip-ret"), (dx, dy, alvo) => {
+  const cw = $("ip-crop").clientWidth, ch = $("ip-crop").clientHeight;
+  const b = alvo && alvo.dataset ? alvo.dataset.b : null;
+  if(b){
+    if(b.includes("n")) bordaCrop(1, IP.crop[1] + dy / ch);
+    if(b.includes("s")) bordaCrop(3, IP.crop[3] + dy / ch);
+    if(b.includes("o")) bordaCrop(0, IP.crop[0] + dx / cw);
+    if(b.includes("l")) bordaCrop(2, IP.crop[2] + dx / cw);
+    return;
+  }
+  let [x0, y0, x1, y1] = IP.crop; const w = x1 - x0, h = y1 - y0;
   x0 = Math.min(1 - w, Math.max(0, x0 + dx / cw)); y0 = Math.min(1 - h, Math.max(0, y0 + dy / ch));
   IP.crop = [x0, y0, x0 + w, y0 + h];
 });
-arrasta($("ip-alca"), (dx, dy) => {
-  const cw = $("ip-crop").clientWidth, ch = $("ip-crop").clientHeight; let [x0, y0, x1, y1] = IP.crop;
-  x1 = Math.min(1, Math.max(x0 + 0.1, x1 + dx / cw)); y1 = Math.min(1, Math.max(y0 + 0.08, y1 + dy / ch));
-  IP.crop = [x0, y0, x1, y1];
-});
+// botao que repete enquanto estiver apertado (ajuste fino sem precisar clicar mil vezes)
+function segura(btn, fn){
+  let ti = null, tr = null;
+  const para = () => { clearTimeout(ti); clearInterval(tr); ti = tr = null; };
+  btn.addEventListener("pointerdown", e => { e.preventDefault(); fn(); desenhaEnquadrar(); ti = setTimeout(() => { tr = setInterval(() => { fn(); desenhaEnquadrar(); }, 60); }, 350); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, para));
+}
+document.querySelectorAll("[data-c]").forEach(b => { const [k, s] = b.dataset.c.split(",").map(Number); segura(b, () => bordaCrop(k, IP.crop[k] + s * 0.005)); });
+function zoomPessoa(z){ IP.pessoa.escala = Math.round(Math.min(3, Math.max(1, z)) * 100) / 100; $("ip-escala").value = IP.pessoa.escala; $("ip-escala-v").textContent = fmt(IP.pessoa.escala, 2) + "×"; }
+document.querySelectorAll("[data-z]").forEach(b => segura(b, () => zoomPessoa(IP.pessoa.escala + Number(b.dataset.z))));
+document.querySelectorAll("[data-m]").forEach(b => { const [mx, my] = b.dataset.m.split(",").map(Number);
+  segura(b, () => { IP.pessoa.x = Math.round((IP.pessoa.x + mx * 0.005) * 10000) / 10000; IP.pessoa.y = Math.round((IP.pessoa.y + my * 0.005) * 10000) / 10000; }); });
+$("ip-centro").onclick = () => { IP.pessoa.x = 0; desenhaEnquadrar(); };
+$("ip-tela").addEventListener("wheel", e => { e.preventDefault(); zoomPessoa(IP.pessoa.escala * (e.deltaY < 0 ? 1.02 : 1 / 1.02)); desenhaEnquadrar(); }, {passive: false});
 $("ip-voltar-1").onclick = () => { ocupado = false; mostra("importar"); };
 $("ip-inverter").onclick = async () => {
   erro("ip-enq-erro");

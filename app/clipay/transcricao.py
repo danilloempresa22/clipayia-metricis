@@ -89,12 +89,34 @@ def logmel(x):
     return ((ls + 4.0) / 4.0).astype(np.float32)
 
 
+_NUCLEOS = None
+
+
+def nucleos_fisicos():
+    """nucleos reais do processador. Com hyperthreading o Windows mostra o dobro, e usar os 'virtuais' no Whisper
+    deixa tudo ~2x mais lento (medido: 25 s de audio em 71 s com 12 threads x 35 s com 6)."""
+    global _NUCLEOS
+    if _NUCLEOS is None:
+        n = None
+        if sys.platform == "win32":
+            try:
+                import subprocess
+                r = subprocess.run(["powershell", "-NoProfile", "-Command",
+                                    "(Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfCores -Sum).Sum"],
+                                   capture_output=True, text=True, timeout=10, creationflags=0x08000000)
+                n = int(r.stdout.strip() or 0) or None
+            except (OSError, ValueError, subprocess.SubprocessError):
+                n = None
+        _NUCLEOS = max(1, n or (os.cpu_count() or 2) // 2)
+    return _NUCLEOS
+
+
 class Whisper:
     def __init__(self, qual="preciso", threads=None):
         import onnxruntime as ort
         nome, _ = MODELOS[qual]
         d = pasta_dados() / "modelos" / nome
-        o = ort.SessionOptions(); o.intra_op_num_threads = threads or max(1, (os.cpu_count() or 2))
+        o = ort.SessionOptions(); o.intra_op_num_threads = threads or nucleos_fisicos()
         o.inter_op_num_threads = 1
         self.enc = ort.InferenceSession(str(d / f"{nome}-encoder.int8.onnx"), o, providers=["CPUExecutionProvider"])
         self.dec = ort.InferenceSession(str(d / f"{nome}-decoder.int8.onnx"), o, providers=["CPUExecutionProvider"])

@@ -269,8 +269,24 @@ def trabalho_prepara_ipad(v_ipad, v_pessoa):
             raise capcut.ErroProjeto("Não encontrei fala em nenhum dos dois vídeos. O vídeo da câmera precisa ter a voz da pessoa.")
         sid = uuid.uuid4().hex[:10]
         IPAD[sid] = out
+        transcreve_em_segundo_plano(sid)
         return resumo_ipad(sid, invertido)
     return fn
+
+
+def transcreve_em_segundo_plano(sid):
+    """comeca a legenda enquanto o usuario enquadra e sincroniza (a parte que mais demora deixa de ser espera)"""
+    ses = IPAD[sid]
+    ses["legenda"] = {"fracao": 0.0, "pronto": False, "erro": None, "palavras": None, "video": ses["pessoa"]["video"]}
+    est = ses["legenda"]
+
+    def roda():
+        try:
+            est["palavras"] = processa.transcreve_pessoa(est["video"], lambda e, f: est.update(fracao=round(f, 3)))
+        except Exception as e:                                   # a analise tenta de novo do jeito normal
+            traceback.print_exc(); est["erro"] = str(e)
+        est["pronto"] = True
+    threading.Thread(target=roda, daemon=True).start()
 
 
 def trabalho_analisa_ipad(sid, offset):
@@ -282,7 +298,14 @@ def trabalho_analisa_ipad(sid, offset):
         raiz = raiz_atual()
         if not raiz:
             raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho nas configurações.")
-        an = processa.analisa_ipad(raiz, ses, offset, {}, avisa)
+        est = ses.get("legenda")
+        if est and est["video"] != ses["pessoa"]["video"]:          # videos invertidos depois: a transcricao era do outro
+            transcreve_em_segundo_plano(sid); est = ses["legenda"]
+        while est and not est["pronto"]:                          # termina a legenda que ja estava sendo feita
+            avisa("Terminando a transcrição da legenda", 0.1 + 0.85 * est["fracao"])
+            time.sleep(0.5)
+        pal = est["palavras"] if est and not est["erro"] else None
+        an = processa.analisa_ipad(raiz, ses, offset, {}, avisa, palavras_prontas=pal)
         aid = uuid.uuid4().hex[:10]
         ANALISES[aid] = an
         return {"analise": aid, "modo": "ipad", "offset": an["offset"], "antes": an["janela"][2],
@@ -381,6 +404,10 @@ class H(BaseHTTPRequestHandler):
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
                                    "modelo": transcricao.modelo_pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
+            if u.path == "/api/ipad/legenda":             # andamento da transcricao em segundo plano
+                ses = IPAD.get(q.get("sessao", [""])[0]) or {}
+                est = ses.get("legenda") or {}
+                return self._json({"fracao": est.get("fracao", 0), "pronto": bool(est.get("pronto")), "erro": est.get("erro")})
             if u.path == "/api/job":
                 return self._json(JOBS.get(q.get("id", [""])[0]) or {"erro": "job não existe", "fim": True})
         except conta.ErroConta as e:
@@ -492,6 +519,7 @@ class H(BaseHTTPRequestHandler):
                 if ses["ipad"].get("voz", 0) < ipad.VOZ_MIN:
                     return self._json({"erro": "O outro vídeo não tem fala, então ele não pode ser o da câmera."}, 400)
                 ses["ipad"], ses["pessoa"] = ses["pessoa"], ses["ipad"]
+                transcreve_em_segundo_plano(c["sessao"])              # a legenda agora e' do outro video
                 return self._json(resumo_ipad(c["sessao"]))
             if u.path == "/api/ipad/analisar":
                 conta.exige_ativa()
@@ -525,6 +553,7 @@ def porta_livre(pref=8765):
 
 def inicia(abrir=True, porta=None):
     porta = porta or porta_livre()
+    threading.Thread(target=transcricao.nucleos_fisicos, daemon=True).start()   # descobre ja na abertura (leva uns segundos)
     srv = ThreadingHTTPServer(("127.0.0.1", porta), H)
     url = f"http://127.0.0.1:{porta}/"
     print(f"Clipay.ia rodando em {url}  (feche esta janela para sair)")

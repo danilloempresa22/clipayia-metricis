@@ -128,3 +128,13 @@ def test_previa_leve_em_h264_com_o_mesmo_tempo(video_horizontal, tmp_path):
     p = ipad.gera_previa(video_horizontal, tmp_path / "previa.mp4", com_audio=False)
     i = audio.probe_video(p)
     assert abs(i["duracao"] - audio.probe_video(video_horizontal)["duracao"]) < 0.1 and max(i["largura"], i["altura"]) == 854
+
+
+def test_transcricao_em_segundo_plano_e_recortada_pela_sincronia(an, video_vertical, video_horizontal, raiz_capcut):
+    # transcricao feita no video INTEIRO da pessoa (tempos absolutos) antes da sincronia
+    prontas = [{"t": "antes", "a": 0.2, "b": 0.5}, {"t": "isso", "a": 1.6, "b": 1.9}, {"t": "aqui", "a": 2.0, "b": 2.3}]
+    vids = {"pessoa": {"video": str(video_vertical), "info": audio.probe_video(video_vertical)},
+            "ipad": {"video": str(video_horizontal), "info": audio.probe_video(video_horizontal)}}
+    a = processa.analisa_ipad(raiz_capcut, vids, -1.5, {}, None, palavras_prontas=prontas)    # pessoa comecou 1,5 s antes
+    assert [p["t"] for p in a["palavras"]] == ["isso", "aqui"]                                   # "antes" ficou fora da janela
+    assert a["palavras"][0]["a"] == pytest.approx(0.1)                                          # 1,6 - 1,5: relativo a janela
