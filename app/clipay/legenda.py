@@ -3,6 +3,8 @@ alinhamento do texto editado com o tempo das palavras e a matematica da legenda 
 Numeros calibrados nas edicoes aprovadas (docs/design/legenda-complexa-especificacao.md). Nao inventar valores aqui."""
 import difflib, json, re, unicodedata
 from pathlib import Path
+import numpy as np
+from . import audio
 
 # ---------------- corte por palavra (segundos) ----------------
 CORTE_MIN = 0.250                     # silencio entre palavras a partir daqui vira corte
@@ -82,19 +84,21 @@ def cortes(palavras, dur):
     for t in trechos:
         a, b = t[0]["a"], t[-1]["b"]
         pre, pos = PAD_CURTO if b - a <= TRECHO_CURTO else PAD_FRASE
-        a, b = max(0.0, a - pre), min(dur, b + pos)
+        a, b = audio.na_grade(max(0.0, a - pre), min(dur, b + pos))
+        b = min(b, float(np.floor(dur * audio.FPS) / audio.FPS))
         if keep and a <= keep[-1][1]:
             keep[-1][1] = max(keep[-1][1], b)
         else:
             keep.append([a, b])
-    return [[round(a, 4), round(b, 4)] for a, b in keep], [p for t in trechos for p in t]
+    return [[a, b] for a, b in keep], [p for t in trechos for p in t]
 
 
 def a_partir_de(keep, palavras, inicio):
     """corta a rampa de abertura: tudo antes do inicio (s, na origem) sai"""
     if inicio is None:
         return keep, palavras
-    out = [[max(a, inicio), b] for a, b in keep if b > inicio]
+    corte = float(np.floor(inicio * audio.FPS + 1e-6) / audio.FPS)     # na grade de quadros, como o resto dos cortes
+    out = [[max(a, corte), b] for a, b in keep if b > corte]
     return [k for k in out if k[1] - k[0] > 0.05], [p for p in palavras if p["a"] >= inicio - 1e-6]
 
 

@@ -18,16 +18,19 @@ def test_corte_por_palavra_folgas_gaguejada_e_muleta():
            P("funciona", 7.0, 7.6), P("muito", 7.65, 7.9), P("bem", 7.95, 8.2)]
     keep, mant = legenda.cortes(pal, 10.0)
     assert [p["t"] for p in mant] == ["eu", "acho", "que", "isso", "funciona", "muito", "bem"]
-    assert keep[0] == [pytest.approx(1.3 - 0.150), pytest.approx(2.0 + 0.200)]                # trecho de 0,7 s: curto, 150/200 ms
-    assert keep[1] == [pytest.approx(5.0 - 0.150), pytest.approx(5.3 + 0.200)]                # palavra isolada: 150/200 ms
-    assert keep[2] == [pytest.approx(7.0 - 0.060), pytest.approx(8.2 + 0.060)]                # frase (1,2 s): 60/60 ms
+    q = 1 / 30                                                                               # cortes caem em quadros inteiros
+    assert keep[0] == [pytest.approx(1.3 - 0.150, abs=q), pytest.approx(2.0 + 0.200, abs=q)]  # trecho de 0,7 s: curto, 150/200 ms
+    assert keep[1] == [pytest.approx(5.0 - 0.150, abs=q), pytest.approx(5.3 + 0.200, abs=q)]  # palavra isolada: 150/200 ms
+    assert keep[2] == [pytest.approx(7.0 - 0.060, abs=q), pytest.approx(8.2 + 0.060, abs=q)]  # frase (1,2 s): 60/60 ms
+    for a, b in keep:                                                                        # e a folga nunca diminui
+        assert abs(a * 30 - round(a * 30)) < 1e-6 and abs(b * 30 - round(b * 30)) < 1e-6
     assert len(keep) == 3 and not any(a < 3.2 < b for a, b in keep)                            # "né" cortado
 
 
 def test_inicio_no_gancho_e_mapa_de_tempo():
     keep, mant = legenda.cortes([P("então", 0.5, 0.9), P("vou", 1.0, 1.2), P("começar", 2.0, 2.6)], 5)
     k2, m2 = legenda.a_partir_de(keep, mant, 1.94)
-    assert k2[0][0] == pytest.approx(1.94) and [p["t"] for p in m2] == ["começar"]
+    assert k2[0][0] == pytest.approx(1.94, abs=1 / 30) and [p["t"] for p in m2] == ["começar"]
     f, total = legenda.mapa_tempo([[1.0, 2.0], [3.0, 4.0]])
     assert total == 2.0 and f(1.5) == 0.5 and f(3.5) == 1.5 and f(2.5) == 1.0               # buraco vai pro proximo pedaco
 

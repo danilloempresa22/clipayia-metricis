@@ -8,7 +8,7 @@ REGRA QUE JA DEU "Midia perdida": a entrada de TODO composto mora em materials.d
 Composto guarda so o placeholder (materials.videos, extra_type_option 2) e o segmento que aponta pro id da raiz."""
 import copy, json, shutil, time
 from pathlib import Path
-from . import capcut, legenda
+from . import audio, capcut, legenda
 
 TOKEN = "##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##"     # macro do CapCut, nao e' id de projeto
 MOLDE = json.loads((Path(__file__).resolve().parent / "assets" / "moldes" / "legenda.json").read_text(encoding="utf-8"))
@@ -138,7 +138,7 @@ def monta(base, meta, keep, segs_leg, op, cache):
     segs_leg = legenda.monta(...). op: zoom (None|escala), velocidade, musica {path,nome,dur,volume}.
     Devolve (raiz, compostos) — compostos = entradas da raiz, pra gravar as pastas subdraft."""
     canvas = (base["canvas_config"]["width"], base["canvas_config"]["height"])
-    total = int(round(sum(b - a for a, b in keep) * 1e6))
+    total = sum(audio.quadro_us(b) - audio.quadro_us(a) for a, b in keep)
     if total <= 0:
         raise ErroMontagem("Não sobrou nenhum trecho de fala depois dos cortes.")
 
@@ -150,7 +150,7 @@ def monta(base, meta, keep, segs_leg, op, cache):
     novos, cur = [], 0
     for a, b in keep:
         ns = capcut.clona_segmento(orig, idx, dc["materials"])
-        A, B = int(round(a * 1e6)), int(round(b * 1e6))
+        A, B = audio.quadro_us(a), audio.quadro_us(b)
         ns["source_timerange"] = {"start": A, "duration": B - A}
         ns["target_timerange"] = {"start": cur, "duration": B - A}
         ns["common_keyframes"] = []

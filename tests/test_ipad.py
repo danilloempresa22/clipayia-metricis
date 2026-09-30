@@ -146,3 +146,17 @@ def test_transcricao_em_segundo_plano_e_recortada_pela_sincronia(video_vertical,
     assert [p["t"] for p in a["palavras"]] == ["isso", "aqui"]
     assert a["palavras"][0]["a"] == pytest.approx(0.1)
     assert set(a["keeps"]) == set(ipad.INTENSIDADES)
+
+
+def test_ipad_na_camada_de_cima_e_cortes_em_quadros_inteiros(raiz_capcut, an):
+    r = gera(raiz_capcut, an(1.2))
+    d, _ = abre(raiz_capcut, r["nome"])
+    c = d["materials"]["drafts"][0]["draft"]
+    pessoa, ip = [t for t in c["tracks"] if t["type"] == "video"]
+    # com render_index 0 o CapCut desenhou o iPad (com fundo preto) POR CIMA da pessoa inteira: a pessoa sumia
+    assert ip["segments"][0]["render_index"] == 1 and all(s.get("render_index", 0) == 0 for s in pessoa["segments"])
+    # o CapCut arredonda cada trecho pra quadros inteiros; fora da grade ele mexe na velocidade (visto: 0,9987)
+    quadro = 1e6 / 30
+    for s in d["tracks"][0]["segments"] + pessoa["segments"]:
+        for v in (s["source_timerange"]["duration"], s["target_timerange"]["duration"], s["target_timerange"]["start"]):
+            assert abs(v / quadro - round(v / quadro)) < 0.01, v

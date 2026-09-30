@@ -48,6 +48,17 @@ def pcm(path, inicio=None, duracao=None):
     return x
 
 
+def quadro_us(t, fps=FPS):
+    """segundos -> microssegundos em cima de um quadro exato. O CapCut arredonda a duracao de cada trecho da timeline
+    pra quadros inteiros; se o source nao estiver na grade, ele compensa mudando a velocidade (visto: 0,9987)."""
+    return int(round(round(t * fps) * 1e6 / fps))
+
+
+def na_grade(a, b, fps=FPS):
+    """intervalo [a, b] em s alargado pra grade de quadros (nunca encolhe a fala)"""
+    return float(np.floor(a * fps + 1e-6) / fps), float(np.ceil(b * fps - 1e-6) / fps)
+
+
 def probe_video(path):
     """largura/altura (ja com a rotacao do celular aplicada), duracao, fps e se tem audio.
     Le a saida de 'ffmpeg -i' — nao depende do ffprobe."""

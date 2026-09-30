@@ -4,6 +4,7 @@ Os dois videos vao juntos num CLIPE COMPOSTO sincronizado, e os cortes sao feito
 iPad e a pessoa nunca desalinham e os cortes podem ser ajustados no CapCut puxando as bordas.
 Especificacao: docs/design/apresentador-ipad-especificacao.md."""
 import copy, json, subprocess, re
+import numpy as np
 from pathlib import Path
 from . import audio, capcut, reels, composto
 
@@ -104,8 +105,9 @@ def cortes(x, palavras=(), intensidade="media"):
             out[-1][1] = b
         else:
             out.append([a, b])
-    out = [[round(a, 3), round(b, 3), False] for a, b in out if b - a > 0.15]
-    return out or [[0.0, round(dur, 3), False]]
+    out = [list(audio.na_grade(a, b)) for a, b in out if b - a > 0.15]
+    out = [[a, min(b, np.floor(dur * audio.FPS) / audio.FPS), False] for a, b in out]
+    return out or [[0.0, float(np.floor(dur * audio.FPS) / audio.FPS), False]]
 
 
 # ---------------- montagem: clipe composto "iPad + pessoa" sincronizado, cortado por fora ----------------
@@ -157,7 +159,9 @@ def monta(raiz, an, op):
     ip, pe = an["ipad"], an["pessoa"]
     sp, si, comum = an["janela"]
     keep = an["keeps"][op.get("cortes") or "media"]
-    total_c = int(round(comum * 1e6))
+    comum = float(np.floor(comum * audio.FPS) / audio.FPS)        # composto com numero inteiro de quadros
+    total_c = audio.quadro_us(comum)
+    us = audio.quadro_us
     sonda = capcut.sonda_capcut(raiz)
     base, meta = capcut.cria_draft(pe["video"], pe["info"], sonda, molde="vertical")
     canvas = (1080, 1920)
@@ -180,8 +184,8 @@ def monta(raiz, an, op):
     segs_p = []
     for a, b, mantido, _ in pedacos:                      # pessoa dividida nos cortes e nas trocas de zoom
         ns = capcut.clona_segmento(orig, idx, dc["materials"])
-        A, B = int(round(a * 1e6)), int(round(b * 1e6))
-        ns["source_timerange"] = {"start": int(round(sp * 1e6)) + A, "duration": B - A}
+        A, B = us(a), us(min(b, comum))
+        ns["source_timerange"] = {"start": us(sp) + A, "duration": B - A}
         ns["target_timerange"] = {"start": A, "duration": B - A}
         _zoom(ns, next(zooms) if mantido else None, clip_p)
         segs_p.append(ns)
@@ -192,11 +196,12 @@ def monta(raiz, an, op):
                "duration": int(round(ip["info"]["duracao"] * 1e6)), "width": ip["info"]["largura"], "height": ip["info"]["altura"],
                "has_audio": False, "crop": crop_material(crop), "crop_ratio": "free", "crop_scale": 1.0,
                "local_material_id": "", "unique_id": ""})
-    ns["source_timerange"] = {"start": int(round(si * 1e6)), "duration": total_c}
+    ns["source_timerange"] = {"start": us(si), "duration": total_c}
     ns["target_timerange"] = {"start": 0, "duration": total_c}
     ns["clip"] = dict(copy.deepcopy(orig["clip"]), scale={"x": 1.0, "y": 1.0},
                       transform={"x": 0.0, "y": round(1 - altura_ipad(ip["info"], crop), 6)})
     ns["common_keyframes"] = []; ns["volume"] = 0.0
+    ns["render_index"] = 1          # camada de cima (igual ao 0930): com 0 o CapCut desenhou o iPad com fundo preto POR CIMA da pessoa
     trilha = capcut.trilha_principal(base)
     dc["tracks"] = [dict(copy.deepcopy(trilha), id=capcut.uid(), flag=0, segments=segs_p),
                     dict(copy.deepcopy(trilha), id=capcut.uid(), flag=2, segments=[ns])]      # iPad POR CIMA
@@ -207,7 +212,7 @@ def monta(raiz, an, op):
     segs, cur = [], 0
     for a, b, *_ in keep:
         s, _, _ = composto.seg_composto(composto.MOLDE["raiz"]["corpo"], ent, raiz_d["materials"], total_c, canvas)
-        A, B = int(round(a * 1e6)), int(round(b * 1e6))
+        A, B = us(a), us(min(b, comum))
         s["source_timerange"] = {"start": A, "duration": B - A}
         s["target_timerange"] = {"start": cur, "duration": B - A}
         s["clip"] = dict(s["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
