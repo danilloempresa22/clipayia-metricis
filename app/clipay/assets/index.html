@@ -489,6 +489,15 @@ async function api(caminho, corpo, opcoes = {}){
     throw new Error("Perdi a conexão com o Clipay.ia. Se você fechou a janela preta ou o app, abra-o de novo e recarregue esta página (F5).");
   }
   const d = await r.json().catch(() => ({erro: "Resposta inválida do app."}));
+  if(r.status === 403 && d.erro === "não autorizado"){
+    // o app foi reiniciado e esta aba ficou com o codigo de seguranca antigo: recarrega (uma vez) pra pegar o novo
+    let ultimo = 0; try{ ultimo = Number(sessionStorage.getItem("clipay-recarga") || 0); }catch(e){}
+    if(Date.now() - ultimo > 15000){
+      try{ sessionStorage.setItem("clipay-recarga", String(Date.now())); }catch(e){}
+      location.reload(); return new Promise(() => {});
+    }
+    throw new Error("O Clipay.ia foi reiniciado. Recarregue esta página (F5).");
+  }
   if(!r.ok || d.erro && !d.fim) throw new Error(d.erro || "Erro inesperado.");
   return d;
 }
