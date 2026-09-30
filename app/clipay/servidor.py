@@ -195,7 +195,8 @@ def trabalho_gera(c):
             musica = (c.get("musica") or "").strip()
             if musica and (not Path(musica).is_file() or Path(musica).suffix.lower() not in EXT_AUDIO):
                 raise capcut.ErroProjeto("Não achei o arquivo da música. Escolha de novo.")
-            op = {"legenda": False, "velocidade":                 # legenda desligada a pedido do usuario bool(c.get("velocidade")), "musica": musica or None,"headline": (c.get("headline") or "").strip()[:120],
+            op = {"legenda": False,                               # legenda desligada a pedido do usuario
+                  "velocidade": bool(c.get("velocidade")), "musica": musica or None, "headline": (c.get("headline") or "").strip()[:120],
                   "headline_s": num(c.get("headline_s"), 1, 60, ipad.HEADLINE_S),
                   "cortes": c.get("cortes") if c.get("cortes") in ipad.CORTES else "seco",
                   "zoom": bool(c.get("zoom", True)), "intensidade": num(c.get("intensidade"), 0.2, 2.0, 1.0),
