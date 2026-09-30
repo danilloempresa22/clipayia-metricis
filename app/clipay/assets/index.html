@@ -575,8 +575,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           </div>
           <div class="card">
             <h2>Acabamento</h2>
-            <p class="sub" style="font-size:13px">Tudo vai dentro de um clipe composto final (cortes, headline e legenda). A velocidade é aplicada nele, e a música fica por baixo.</p>
-            <label class="chave"><input type="checkbox" id="ip-leg-on" checked> Legenda automática (no formato da legenda automática do CapCut, com o seu modelo)</label>
+            <p class="sub" style="font-size:13px">Tudo vai dentro de um clipe composto final (cortes e headline). A velocidade é aplicada nele, e a música fica por baixo.</p>
             <label class="chave"><input type="checkbox" id="ip-vel-on" checked> Acelerar o vídeo para 1,13x</label>
             <label class="chave"><input type="checkbox" id="ip-mus-on"> Música de fundo (fica a −25 dB)</label>
             <div class="linha oculto" id="ip-mus-box"><button class="sec" id="ip-musica">Escolher música</button><span id="ip-musica-nome" class="sub" style="margin:0">Nenhuma</span></div>
@@ -1245,7 +1244,7 @@ $("ip-gerar").onclick = async () => {
   try{
     const {id} = await api("gerar", {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
       cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value,
-      legenda: $("ip-leg-on").checked, velocidade: $("ip-vel-on").checked, musica});
+      velocidade: $("ip-vel-on").checked, musica});
     pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
   }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
 };
