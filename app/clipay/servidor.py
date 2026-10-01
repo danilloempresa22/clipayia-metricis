@@ -136,8 +136,11 @@ def escolhe_arquivo(tipo="video"):
     from tkinter import filedialog
     r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
     titulo, rot, ext = (("Escolha a música de fundo", "Áudio", EXT_AUDIO) if tipo == "musica"
+                        else ("Escolha os takes (pode selecionar vários)", "Vídeos", EXT_VIDEO) if tipo == "videos"
                         else ("Escolha o vídeo bruto", "Vídeos", EXT_VIDEO))
     try:
+        if tipo == "videos":                     # rotina: varios takes de uma vez
+            return list(filedialog.askopenfilenames(title=titulo, parent=r, filetypes=[(rot, " ".join("*" + e for e in ext)), ("Todos", "*.*")]))
         return filedialog.askopenfilename(title=titulo, parent=r, filetypes=[(rot, " ".join("*" + e for e in ext)), ("Todos", "*.*")])
     finally:
         r.destroy()
@@ -163,8 +166,10 @@ def trabalho_analisa(caminho, modelo, modo="cortes"):
             aid = uuid.uuid4().hex[:10]
             ANALISES[aid] = an
             cache = capcut.cache_efeitos(raiz)
-            return {"analise": aid, "modo": "rotina", "nome": an["video"].name, "duracao": an["info"]["duracao"],
-                    "trechos": [[round(a, 3), round(b, 3)] for a, b in an["keep"]],
+            return {"analise": aid, "modo": "rotina", "nome": an["video"].name,
+                    "duracao": sum(t["info"]["duracao"] for t in an["takes"]),
+                    "takes": [{"nome": t["video"].name, "duracao": t["info"]["duracao"], "fala": bool(t["palavras"])} for t in an["takes"]],
+                    "trechos": [[t, round(a, 3), round(b, 3)] for t, a, b in an["keep"]],
                     "fontes": [{"chave": k, "nome": f["nome"], "baixada": bool(composto.caminho_no_cache(f["id"], cache))}
                                for k, f in rotina.FONTES_RELOGIO.items()],
                     "padrao": {"fonte": rotina.FONTE_PADRAO, "escala": rotina.ESC_RELOGIO, "salto": rotina.SALTO_PADRAO,
@@ -199,9 +204,15 @@ def trabalho_gera(c):
         if an.get("modo") == "rotina":
             def num(v, lo, hi, pad):
                 return min(hi, max(lo, float(v))) if v not in (None, "") else pad
-            dur = an["info"]["duracao"]
-            trechos = sorted([[num(a, 0, dur, 0), num(b, 0, dur, 0)] for a, b in (c.get("trechos") or [])])
-            if any(b - a < 0.1 for a, b in trechos) or any(q[0] < p[1] - 1e-3 for p, q in zip(trechos, trechos[1:])):
+            durs = [t["info"]["duracao"] for t in an["takes"]]
+            trechos = []
+            for tk, a, b in (c.get("trechos") or []):
+                tk = int(tk)
+                if not 0 <= tk < len(durs):
+                    raise capcut.ErroProjeto("Um trecho aponta para um vídeo que não está na lista.")
+                trechos.append([tk, num(a, 0, durs[tk], 0), num(b, 0, durs[tk], 0)])
+            trechos.sort()
+            if any(b - a < 0.1 for _, a, b in trechos) or any(p[0] == q[0] and q[1] < p[2] - 1e-3 for p, q in zip(trechos, trechos[1:])):
                 raise capcut.ErroProjeto("Há trechos com fim antes do início ou um em cima do outro. Ajuste na tela de cortes.")
             musica = (c.get("musica") or "").strip()
             if musica and (not Path(musica).is_file() or Path(musica).suffix.lower() not in EXT_AUDIO):
@@ -561,6 +572,12 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/ipad/analisar":
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_analisa_ipad(c.get("sessao", ""), float(c.get("offset", 0))))})
+            if u.path == "/api/analisar" and c.get("modo") == "rotina":     # varios takes, em ordem
+                ps = [Path(x) for x in (c.get("caminhos") or [])]
+                if not ps or any(not p.is_file() or p.suffix.lower() not in EXT_VIDEO for p in ps):
+                    return self._json({"erro": "Algum vídeo da lista não foi encontrado. Escolha de novo."}, 400)
+                conta.exige_ativa()
+                return self._json({"id": novo_job(trabalho_analisa([str(p) for p in ps], c.get("modelo", "preciso"), "rotina"))})
             if u.path == "/api/analisar":
                 p = Path(c.get("caminho", ""))
                 if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
@@ -574,8 +591,8 @@ class H(BaseHTTPRequestHandler):
                     return self._json({"erro": "Essa análise expirou. Importe o vídeo de novo."}, 400)
                 sil = min(2000, max(50, float(c.get("silencio_ms", 250))))
                 mn = min(10.0, max(0.0, float(c.get("minimo_s", 0))))
-                keep = rotina.cortes(an["palavras"], an["info"]["duracao"], sil, mn)
-                return self._json({"trechos": [[round(a, 3), round(b, 3)] for a, b in keep]})
+                keep = rotina.cortes_takes(an["takes"], sil, mn)
+                return self._json({"trechos": [[t, round(a, 3), round(b, 3)] for t, a, b in keep]})
             if u.path == "/api/gerar":
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_gera(c))})

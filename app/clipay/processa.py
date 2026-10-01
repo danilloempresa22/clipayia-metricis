@@ -107,25 +107,43 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
 
 
 # ---------------- ROTINA ----------------
-def analisa_rotina(raiz, video_path, opcoes=None, avisa=None):
-    """1a metade: le o video, transcreve palavra a palavra e acha os trechos com a regua do corte por palavra.
-    NAO grava nada. Guarda energia/voz do audio pra o abaixamento da musica na fala."""
+def analisa_rotina(raiz, videos, opcoes=None, avisa=None):
+    """1a metade: os takes EM ORDEM; cada um e' transcrito palavra a palavra e cortado com a regua do corte por
+    palavra (take sem fala entra inteiro). NAO grava nada. Guarda energia/voz do audio de cada take pra o
+    abaixamento da musica na fala. O projeto (canvas) segue o 1o take."""
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
-    video, info, draft, meta = _prepara_video(raiz, video_path, avisa)
-    avisa("Lendo o áudio", 0.06)
-    x = audio.pcm(video)
-    if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
-        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo (sem áudio ou totalmente mudo).")
-    e, v = audio.analisa(x)
-    w = _whisper(op.get("modelo", "preciso"), avisa)
-    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo palavra por palavra", 0.2 + 0.72 * i / n))
-    avisa("Achando os cortes", 0.95)
-    keep = rotina.cortes(pal, info["duracao"])
-    if not keep:
-        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo.")
-    return {"modo": "rotina", "video": video, "info": info, "draft": draft, "meta": meta, "palavras": pal,
-            "keep": keep, "e": e, "v": v}
+    videos = [videos] if isinstance(videos, (str, Path)) else list(videos)
+    if not videos:
+        raise capcut.ErroProjeto("Escolha pelo menos um vídeo.")
+    capcut.sonda_capcut(raiz)                                          # falha cedo se o CapCut criptografa os projetos
+    takes, n = [], len(videos)
+    w = None
+    for i, vp in enumerate(videos):
+        rot = f"Take {i + 1} de {n}" if n > 1 else "Vídeo"
+        fr0, fr1 = 0.02 + 0.93 * i / n, 0.02 + 0.93 * (i + 1) / n
+        v = Path(vp)
+        if not v.is_file():
+            raise capcut.ErroProjeto(f"Vídeo não encontrado: {v.name}")
+        avisa(f"{rot}: lendo o vídeo", fr0)
+        try:
+            info = audio.probe_video(v)
+        except RuntimeError as e:
+            raise capcut.ErroProjeto(f"{v.name}: {e}")
+        x = audio.pcm(v) if info["tem_audio"] else np.zeros(0, np.float32)
+        if len(x) and float(np.abs(x).max()) >= 1e-3:
+            e, vv = audio.analisa(x)
+            w = w or _whisper(op.get("modelo", "preciso"), avisa, fr0, fr0)
+            pal = palavras.transcreve(w, x, lambda k, m: avisa(f"{rot}: transcrevendo", fr0 + (fr1 - fr0) * k / m))
+        else:                                                          # take mudo (so imagem): entra inteiro
+            nq = int(info["duracao"] / audio.H) + 1
+            e, vv, pal = np.zeros(nq), np.zeros(nq), []
+        takes.append({"video": v, "info": info, "palavras": pal, "e": e, "v": vv})
+    draft, meta = capcut.cria_draft(takes[0]["video"], takes[0]["info"], capcut.sonda_capcut(raiz))
+    avisa("Achando os cortes", 0.97)
+    keep = rotina.cortes_takes(takes)
+    return {"modo": "rotina", "takes": takes, "video": takes[0]["video"], "info": takes[0]["info"],
+            "draft": draft, "meta": meta, "keep": keep}
 
 
 def monta_rotina(raiz, an, opcoes=None, avisa=None):
@@ -145,11 +163,12 @@ def monta_rotina(raiz, an, opcoes=None, avisa=None):
     avisa("Gravando no CapCut", 0.8)
     with tempfile.TemporaryDirectory() as tmp:
         capa = Path(tmp) / "draft_cover.jpg"
-        audio.capa(an["video"], capa, float(op["trechos"][0][0]) + 0.3)
+        t0, a0, _ = op["trechos"][0]
+        audio.capa(an["takes"][int(t0)]["video"], capa, float(a0) + 0.3)
         nome = capcut.grava_projeto(raiz, op.get("nome") or an["video"].stem + " - rotina", d, meta,
                                     capa if capa.exists() else None)
     avisa("Pronto", 1.0)
-    return {"nome": nome, "modo": "rotina", "antes": an["info"]["duracao"], "depois": d["duration"] / 1e6,
+    return {"nome": nome, "modo": "rotina", "antes": sum(t["info"]["duracao"] for t in an["takes"]), "depois": d["duration"] / 1e6,
             "pedacos": len(op["trechos"]), "musica": bool(op.get("musica")), "avisos": avisos}
 
 

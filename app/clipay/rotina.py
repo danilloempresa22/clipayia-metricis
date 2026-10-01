@@ -42,6 +42,21 @@ def cortes(palavras, dur, silencio_ms=250, minimo_s=0.0):
     return junta_curtos(keep, minimo_s)
 
 
+def cortes_takes(takes, silencio_ms=250, minimo_s=0.0):
+    """varios takes em ordem -> [[take, a, b]]. Take sem fala (so imagem) entra inteiro."""
+    out = []
+    for i, tk in enumerate(takes):
+        dur = tk["info"]["duracao"]
+        k = cortes(tk["palavras"], dur, silencio_ms, minimo_s) if tk["palavras"] else []
+        out += [[i, a, b] for a, b in (k or [[0.0, float(np.floor(dur * audio.FPS) / audio.FPS)]])]
+    return out
+
+
+def mascara_fala(e, v):
+    porta = audio.porta_de(e, v)
+    return audio.tom_sustentado(e, v, porta) | (e > porta + 8.0)
+
+
 def junta_curtos(keep, minimo, pausa_max=1.0):
     k = [list(x) for x in keep]
     if minimo <= 0:
@@ -101,12 +116,12 @@ def linha_do_tempo(keep, vel=VELOCIDADE):
     return out
 
 
-def falas_na_timeline(e, v, keep, tl, vel=VELOCIDADE):
-    """intervalos de fala (s) na timeline final, pela mesma deteccao de audio dos cortes"""
-    porta = audio.porta_de(e, v)
-    fala = audio.tom_sustentado(e, v, porta) | (e > porta + 8.0)
+def falas_na_timeline(mascaras, trechos, tl, vel=VELOCIDADE):
+    """intervalos de fala (s) na timeline final, pela mesma deteccao de audio dos cortes.
+    mascaras[take] = fala quadro a quadro do audio daquele take; trechos = [[take, a, b]]"""
     out = []
-    for (a, b), (S0, Sd, T0, _) in zip(keep, tl):
+    for (tk, a, b), (S0, Sd, T0, _) in zip(trechos, tl):
+        fala = mascaras[tk]
         for i, j in audio.runs(fala[int(a / audio.H):int(b / audio.H) + 1]):
             x0 = a + i * audio.H; x1 = min(b, a + j * audio.H)
             t0 = T0 / 1e6 + (x0 - a) / vel; t1 = T0 / 1e6 + (x1 - a) / vel
@@ -199,10 +214,14 @@ def texto_relogio(mats, txt, T0, Td, x, y, esc, fid, caminho):
 
 
 def monta(raiz, an, op):
-    """an: analise (video, info, draft, meta, e, v). op: trechos [[a,b]] (s na origem), inicio 'HH:MM',
-    saltos [min por trecho], headline, headline_s, headline_ini, fonte, escala, musica {path,nome,dur} ou None,
-    volume {silencio, fala, rampa}, filtro (bool). Devolve (draft, meta, avisos)."""
-    keep = [[float(a), float(b)] for a, b in op["trechos"]]
+    """an: analise (takes [{video, info, palavras, e, v}], draft e meta do 1o take). op: trechos [[take, a, b]]
+    (s na origem do take), inicio 'HH:MM', saltos [min por trecho], headline, headline_s, headline_ini, fonte,
+    escala, musica {path,nome,dur} ou None, volume {silencio, fala, rampa}, filtro (bool). Devolve (draft, meta, avisos)."""
+    takes = an["takes"]
+    trechos = [[int(t), float(a), float(b)] for t, a, b in op["trechos"]]
+    if any(not 0 <= t < len(takes) for t, _, _ in trechos):
+        raise capcut.ErroProjeto("Um trecho aponta para um vídeo que não está na lista. Escolha os vídeos de novo.")
+    keep = [[a, b] for _, a, b in trechos]
     if not keep:
         raise capcut.ErroProjeto("Não sobrou nenhum trecho. Volte e mantenha pelo menos um.")
     saltos = list(op.get("saltos") or [SALTO_PADRAO] * len(keep))
@@ -217,10 +236,16 @@ def monta(raiz, an, op):
     vt = capcut.trilha_principal(d); orig = vt["segments"][0]
     tl = linha_do_tempo(keep)
 
-    # --- video: um segmento por trecho, todos a 1,13x
+    # --- video: um segmento por trecho, todos a 1,13x; cada segmento com o material do seu take
     segs = []
-    for S0, Sd, T0, Td in tl:
+    for (tk, _, _), (S0, Sd, T0, Td) in zip(trechos, tl):
         ns = capcut.clona_segmento(orig, idx, mats)
+        if tk:
+            v, info = Path(takes[tk]["video"]), takes[tk]["info"]
+            m = next(x for x in mats["videos"] if x["id"] == ns["material_id"])
+            m.update({"path": str(v.resolve()).replace("\\", "/"), "material_name": v.name, "duration": int(round(info["duracao"] * 1e6)),
+                      "width": info["largura"], "height": info["altura"], "has_audio": info["tem_audio"],
+                      "local_material_id": "", "unique_id": ""})
         ns["source_timerange"] = {"start": S0, "duration": Sd}
         ns["target_timerange"] = {"start": T0, "duration": Td}
         ns["speed"] = VELOCIDADE; ns["common_keyframes"] = []
@@ -279,12 +304,21 @@ def monta(raiz, an, op):
         s_m["source_timerange"] = {"start": 0, "duration": usa}
         s_m["target_timerange"] = {"start": 0, "duration": usa}
         s_m["volume"] = s_m["last_nonzero_volume"] = vol["silencio"]
-        falas = falas_na_timeline(an["e"], an["v"], keep, tl)
+        falas = falas_na_timeline([mascara_fala(tk["e"], tk["v"]) for tk in takes], trechos, tl)
         pts = [(t, v) for t, v in volume_keyframes(falas, usa / 1e6, vol["silencio"], vol["fala"], vol["rampa"]) if t <= usa]
         s_m["common_keyframes"] = [ipad._kf("KFTypeVolume", pts)] if len(pts) > 1 else []
         d["tracks"].append(composto.trilha("trilha_audio_modelo", [s_m]))
         if usa < total - 1000:
             avisos.append("A música é mais curta que o vídeo: ela acaba antes do fim.")
+    for tk in takes[1:]:                                   # os outros takes tambem na midia do projeto
+        try:
+            item = copy.deepcopy(meta["draft_materials"][0]["value"][0]); v = Path(tk["video"])
+            item.update({"id": capcut.uid().lower(), "extra_info": v.name, "file_Path": str(v.resolve()).replace("\\", "/"),
+                         "duration": int(round(tk["info"]["duracao"] * 1e6)), "width": tk["info"]["largura"],
+                         "height": tk["info"]["altura"], "roughcut_time_range": {"duration": int(round(tk["info"]["duracao"] * 1e6)), "start": 0}})
+            meta["draft_materials"][0]["value"].append(item)
+        except (KeyError, IndexError):
+            pass
     capcut.poda(d)
     return d, meta, avisos
 

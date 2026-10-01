@@ -430,6 +430,13 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <button id="ip-preparar" disabled style="margin-top:6px">Continuar</button>
             <p class="sub" style="margin:12px 0 0;font-size:13px">Antes de enquadrar, o app prepara uma cópia leve de cada vídeo (só para a prévia). O projeto final usa os vídeos originais.</p>
           </div>
+          <div class="card oculto" id="rotina-escolher">
+            <h2>Os takes da rotina</h2>
+            <p class="sub" style="font-size:13px">Escolha todos os vídeos de uma vez (Ctrl ou Shift para selecionar vários). Eles entram no projeto nesta ordem: use ↑ ↓ para mudar.</p>
+            <div class="rt-lista" id="rt-takes"></div>
+            <div class="linha" style="margin-top:12px"><button class="sec" id="rt-add">Adicionar vídeos</button><button id="rt-analisar" disabled>Continuar</button></div>
+            <p class="sub" style="margin:12px 0 0;font-size:13px">O app transcreve cada take para achar os cortes. Take sem fala (só imagem) entra inteiro.</p>
+          </div>
           <div class="drop" id="drop">
             <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
             <p style="margin:0 0 16px;font-size:15px"><b>Arraste o vídeo bruto aqui</b> ou escolha no computador</p>
@@ -944,10 +951,12 @@ function grafico(semanas){
 // ---------------- edicao: importar ----------------
 document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
   modo = b.dataset.modo;
-  $("drop").classList.toggle("oculto", modo === "ipad"); $("ipad-escolher").classList.toggle("oculto", modo !== "ipad");
+  $("drop").classList.toggle("oculto", modo === "ipad" || modo === "rotina"); $("ipad-escolher").classList.toggle("oculto", modo !== "ipad");
+  $("rotina-escolher").classList.toggle("oculto", modo !== "rotina");
   document.querySelectorAll(".modo").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
 });
 async function analisar(caminho){
+  if(modo === "rotina") return;                 // a rotina tem a lista de takes (rotina-escolher)
   erro("imp-erro"); ocupado = true; mostra("progresso");
   $("prog-titulo").textContent = "Analisando o vídeo…";
   $("prog-sub").textContent = modo === "legenda" || modo === "rotina"
@@ -1344,31 +1353,70 @@ $("ip-gerar").onclick = async () => {
 };
 
 // ---------------- edicao: ROTINA ----------------
-// RT.trechos: [[a,b]] na origem (s); RT.mudou[i] / RT.saltos[i]: o salto ANTES do trecho i (o 1o mostra o horario inicial)
-const RT = {trechos: [], mudou: [], saltos: [], musica: ""};
+// RT.takes: caminhos dos videos em ordem; RT.trechos: [[take,a,b]] na origem do take (s);
+// RT.mudou[i] / RT.saltos[i]: o salto ANTES do trecho i (o 1o mostra o horario inicial)
+const RT = {takes: [], trechos: [], mudou: [], saltos: [], musica: ""};
+function desenhaTakes(){
+  $("rt-takes").innerHTML = RT.takes.map((c, i) =>
+    '<div class="rt-linha"><b>'+(i+1)+'</b><span style="flex:1;min-width:0;overflow-wrap:anywhere">'+c.split(/[\\/]/).pop()+'</span>'+
+    '<button class="icone" data-sobe="'+i+'" aria-label="Subir take '+(i+1)+'"'+(i ? "" : " disabled")+'>↑</button>'+
+    '<button class="icone" data-desce="'+i+'" aria-label="Descer take '+(i+1)+'"'+(i < RT.takes.length-1 ? "" : " disabled")+'>↓</button>'+
+    '<button class="icone" data-tira="'+i+'" aria-label="Tirar take '+(i+1)+'">✕</button></div>').join("") ||
+    '<p class="sub" style="margin:0">Nenhum vídeo escolhido.</p>';
+  $("rt-analisar").disabled = !RT.takes.length;
+}
+$("rt-takes").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  const t = RT.takes;
+  if(b.dataset.sobe !== undefined){ const i = +b.dataset.sobe; [t[i-1], t[i]] = [t[i], t[i-1]]; }
+  if(b.dataset.desce !== undefined){ const i = +b.dataset.desce; [t[i+1], t[i]] = [t[i], t[i+1]]; }
+  if(b.dataset.tira !== undefined) t.splice(+b.dataset.tira, 1);
+  desenhaTakes();
+});
+$("rt-add").onclick = async () => {
+  erro("imp-erro");
+  try{ const {caminho} = await api("escolher-arquivo", {tipo: "videos"});
+    (Array.isArray(caminho) ? caminho : caminho ? [caminho] : []).forEach(c => { if(!RT.takes.includes(c)) RT.takes.push(c); });
+    desenhaTakes(); }
+  catch(e){ erro("imp-erro", e.message); }
+};
+$("rt-analisar").onclick = async () => {
+  erro("imp-erro"); ocupado = true; mostra("progresso");
+  $("prog-titulo").textContent = "Analisando os takes…";
+  $("prog-sub").textContent = "Transcrevendo cada take e achando os cortes. Pode levar alguns minutos.";
+  try{
+    const {id} = await api("analisar", {modo: "rotina", caminhos: RT.takes});
+    analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    abreRotina();
+  }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
+  ocupado = false;
+};
+desenhaTakes();
 const VEL_RT = 1.13;
 const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); };
 const segN = s => Number(s).toFixed(2).replace(".", ",");
 function abreRotina(){
   const a = analise;
-  RT.trechos = a.trechos.map(t => [t[0], t[1]]); RT.mudou = []; RT.saltos = []; RT.musica = "";
-  $("rt-arq").textContent = a.nome; $("rt-antes").textContent = seg(a.duracao);
+  RT.trechos = a.trechos.map(t => [t[0], t[1], t[2]]); RT.mudou = []; RT.saltos = []; RT.musica = "";
+  $("rt-arq").textContent = a.takes.length > 1 ? a.takes.length + " takes" + (a.takes.some(t => !t.fala) ? " (os sem fala entram inteiros)" : "") : a.nome;
+  $("rt-antes").textContent = seg(a.duracao);
   $("rt-fonte").innerHTML = a.fontes.map(f => '<option value="'+f.chave+'">'+f.nome+(f.baixada ? "" : " (ainda não baixada)")+'</option>').join("");
   $("rt-fonte").value = a.padrao.fonte; $("rt-esc").value = a.padrao.escala; $("rt-salto").value = a.padrao.salto;
   $("rt-head-s").value = a.padrao.headline_s; $("rt-headline").value = ""; $("rt-head-ini").value = 0;
   $("rt-vol-sil").value = a.padrao.volume.silencio; $("rt-vol-fala").value = a.padrao.volume.fala; $("rt-rampa").value = a.padrao.volume.rampa;
-  $("rt-nome").value = a.nome.replace(/\.[^.]+$/, "") + " - rotina";
+  $("rt-nome").value = a.takes[0].nome.replace(/\.[^.]+$/, "") + " - rotina";
   atualizaMusicaRt(); volumesRt(); avisoFonte(); $("rt-esc-v").textContent = fmt($("rt-esc").value, 2);
   desenhaTrechos(); erro("rt-cortes-erro"); mostra("rotina-cortes");
 }
 function desenhaTrechos(){
   $("rt-n").textContent = RT.trechos.length;
-  $("rt-depois").textContent = seg(RT.trechos.reduce((s, t) => s + (t[1] - t[0]), 0) / VEL_RT);
+  $("rt-depois").textContent = seg(RT.trechos.reduce((s, t) => s + (t[2] - t[1]), 0) / VEL_RT);
+  const varios = analise.takes.length > 1;
   $("rt-trechos").innerHTML = RT.trechos.map((t, i) =>
-    '<div class="rt-linha"><b>'+(i+1)+'</b>'+
-    '<label>início <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="0" value="'+t[0].toFixed(2)+'" aria-label="Início do trecho '+(i+1)+'"></label>'+
-    '<label>fim <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="1" value="'+t[1].toFixed(2)+'" aria-label="Fim do trecho '+(i+1)+'"></label>'+
-    '<span class="sub" style="margin:0">'+segN(t[1]-t[0])+' s</span>'+
+    '<div class="rt-linha"><b>'+(i+1)+'</b>'+(varios ? '<span class="badge">take '+(t[0]+1)+'</span>' : '')+
+    '<label>início <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="1" value="'+t[1].toFixed(2)+'" aria-label="Início do trecho '+(i+1)+'"></label>'+
+    '<label>fim <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="2" value="'+t[2].toFixed(2)+'" aria-label="Fim do trecho '+(i+1)+'"></label>'+
+    '<span class="sub" style="margin:0">'+segN(t[2]-t[1])+' s</span>'+
     '<button class="icone" data-apaga="'+i+'" aria-label="Apagar trecho '+(i+1)+'">✕</button></div>').join("") ||
     '<p class="sub" style="margin:0">Nenhum trecho. Recalcule ou troque de vídeo.</p>';
 }
@@ -1376,7 +1424,7 @@ $("rt-trechos").addEventListener("change", e => {
   const el = e.target; if(el.dataset.i === undefined) return;
   const i = +el.dataset.i, k = +el.dataset.k, v = Number(el.value);
   if(!isFinite(v)) return;
-  RT.trechos[i][k] = Math.max(0, Math.min(analise.duracao, v));
+  RT.trechos[i][k] = Math.max(0, Math.min(analise.takes[RT.trechos[i][0]].duracao, v));
   desenhaTrechos();
 });
 $("rt-trechos").addEventListener("click", e => {
@@ -1391,11 +1439,11 @@ $("rt-recalc").onclick = async () => {
   }catch(e){ erro("rt-cortes-erro", e.message); }
 };
 function trechosValidos(){
-  const t = [...RT.trechos].sort((a, b) => a[0] - b[0]);
+  const t = [...RT.trechos].sort((a, b) => a[0] - b[0] || a[1] - b[1]);       // ordem dos takes, depois o tempo
   if(!t.length) return "Mantenha pelo menos um trecho.";
   for(let i = 0; i < t.length; i++){
-    if(t[i][1] - t[i][0] < 0.1) return "O trecho " + (i+1) + " tem o fim antes do início (ou é curto demais).";
-    if(i && t[i][0] < t[i-1][1] - 0.001) return "Os trechos " + i + " e " + (i+1) + " estão um em cima do outro.";
+    if(t[i][2] - t[i][1] < 0.1) return "O trecho " + (i+1) + " tem o fim antes do início (ou é curto demais).";
+    if(i && t[i][0] === t[i-1][0] && t[i][1] < t[i-1][2] - 0.001) return "Os trechos " + i + " e " + (i+1) + " estão um em cima do outro.";
   }
   RT.trechos = t; return "";
 }
@@ -1406,7 +1454,7 @@ $("rt-ir-relogio").onclick = () => {
   RT.saltos = Array.from({length: n}, (_, i) => RT.saltos[i] || 0);
   desenhaHoras(); erro("rt-rel-erro"); mostra("rotina-relogio");
 };
-$("rt-voltar-1").onclick = () => mostra("importar");
+$("rt-voltar-1").onclick = () => { mostra("importar"); desenhaTakes(); };
 function saltoDe(i){ const p = Number($("rt-salto").value) || 2; return RT.mudou[i] ? (RT.saltos[i] || 0) : (RT.saltos[i] || p); }
 function horasRt(){
   const [h, m] = ($("rt-inicio").value || "07:30").split(":").map(Number);
@@ -1421,7 +1469,8 @@ function desenhaHoras(){
       : '<select data-i="'+i+'" aria-label="Tipo do corte antes do trecho '+(i+1)+'">'+
           '<option value="0"'+(RT.mudou[i] ? "" : " selected")+'>Mesma cena</option><option value="1"'+(RT.mudou[i] ? " selected" : "")+'>Mudou a atividade</option></select>'+
         '<label>+ <input type="number" min="1" max="'+(RT.mudou[i] ? 720 : 3)+'" step="1" data-salto="'+i+'" value="'+(RT.saltos[i] || (RT.mudou[i] ? "" : p))+'" placeholder="min" aria-label="Minutos que o relógio pula antes do trecho '+(i+1)+'"> min</label>';
-    return '<div class="rt-linha"><b>'+(i+1)+'</b><span class="sub" style="margin:0">'+seg(t[0])+'–'+seg(t[1])+'</span>'+ctrl+
+    const onde = (analise.takes.length > 1 ? "take " + (t[0]+1) + " · " : "") + seg(t[1]) + "–" + seg(t[2]);
+    return '<div class="rt-linha"><b>'+(i+1)+'</b><span class="sub" style="margin:0">'+onde+'</span>'+ctrl+
       '<span class="hora">'+hhmm(hs[i])+'</span></div>';
   }).join("");
 }

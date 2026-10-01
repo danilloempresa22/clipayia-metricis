@@ -92,7 +92,7 @@ def test_projeto_da_rotina_completo(raiz_capcut, an, musica):
     assert all(s["speed"] == rotina.VELOCIDADE for s in vids[0]["segments"])
     sp = {x["id"]: x["speed"] for x in d["materials"]["speeds"]}
     assert all(sp[r_] == rotina.VELOCIDADE for s in vids[0]["segments"] for r_ in s["extra_material_refs"] if r_ in sp)
-    assert r["depois"] < sum(b - a for a, b in an["keep"])                            # acelerado
+    assert r["depois"] < sum(b - a for _, a, b in an["keep"])                         # acelerado
     # relogio: um por trecho, mesma posicao, horario pulando 5 min
     rel = sorted([(s, t) for s, t in textos(d) if ":" in t and len(t) == 5], key=lambda x: x[0]["target_timerange"]["start"])
     assert [t for _, t in rel] == ["07:58", "08:03", "08:08"]
@@ -158,5 +158,29 @@ def test_verificacao_trava_horario_que_volta_e_texto_fora_da_tela(raiz_capcut, a
 
 
 def test_controles_de_corte(an):
-    poucos = rotina.cortes(an["palavras"], an["info"]["duracao"], silencio_ms=2000)
+    poucos = rotina.cortes_takes(an["takes"], silencio_ms=2000)
     assert len(poucos) < len(an["keep"])                                              # silencio maior: menos cortes
+
+
+def test_varios_takes_em_ordem_e_take_mudo_inteiro(video_vertical, raiz_capcut, monkeypatch, tmp_path):
+    mudo = tmp_path / "broll.mp4"                                                      # take so de imagem, sem audio
+    subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=gray:s=540x960:d=3:r=30",
+                    "-c:v", "libopenh264", str(mudo)], check=True, **audio._sem_janela())
+    monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
+    monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
+        *palavras.espalha("bom dia acordei agora", [[0.0, 3.0]]), *palavras.espalha("bora pra academia", [[4.5, 7.5]])])
+    a = processa.analisa_rotina(raiz_capcut, [video_vertical, mudo, video_vertical])
+    assert [t for t, _, _ in a["keep"]] == [0, 0, 1, 2, 2]                            # ordem dos takes
+    assert [x for x in a["keep"] if x[0] == 1] == [[1, 0.0, 3.0]]                      # mudo: inteiro
+    r = gera(raiz_capcut, a, saltos=[0, 2, 30, 2, 2])
+    d = abre(raiz_capcut, r["nome"])
+    vs = [t for t in d["tracks"] if t["type"] == "video"][0]["segments"]
+    mats = {m["id"]: m for m in d["materials"]["videos"]}
+    nomes = [mats[s["material_id"]]["material_name"] for s in vs]
+    assert nomes == [Path(video_vertical).name] * 2 + ["broll.mp4"] + [Path(video_vertical).name] * 2
+    assert mats[vs[2]["material_id"]]["duration"] == pytest.approx(3e6, abs=50_000)
+    assert [t for _, t in sorted(((s["target_timerange"]["start"], t) for s, t in textos(d) if ":" in t and len(t) == 5))] == \
+        ["07:58", "08:00", "08:30", "08:32", "08:34"]
+    assert r["antes"] == pytest.approx(2 * a["takes"][0]["info"]["duracao"] + a["takes"][1]["info"]["duracao"])
+    assert rotina.verifica(d) == []
