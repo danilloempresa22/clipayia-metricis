@@ -2,7 +2,7 @@
 import re, tempfile
 from pathlib import Path
 import numpy as np
-from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto, ipad
+from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto, ipad, rotina
 
 
 def agrupa(pl):
@@ -104,6 +104,53 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
     return {"nome": nome, "modo": "legenda", "antes": an["info"]["duracao"], "depois": raiz_d["duration"] / 1e6,
             "pedacos": len(keep), "legendas": len(segs), "enfases": sum(1 for s in segs if s["tipo"] != "normal"),
             "zooms": 1 if zoom else 0}
+
+
+# ---------------- ROTINA ----------------
+def analisa_rotina(raiz, video_path, opcoes=None, avisa=None):
+    """1a metade: le o video, transcreve palavra a palavra e acha os trechos com a regua do corte por palavra.
+    NAO grava nada. Guarda energia/voz do audio pra o abaixamento da musica na fala."""
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    video, info, draft, meta = _prepara_video(raiz, video_path, avisa)
+    avisa("Lendo o áudio", 0.06)
+    x = audio.pcm(video)
+    if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
+        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo (sem áudio ou totalmente mudo).")
+    e, v = audio.analisa(x)
+    w = _whisper(op.get("modelo", "preciso"), avisa)
+    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo palavra por palavra", 0.2 + 0.72 * i / n))
+    avisa("Achando os cortes", 0.95)
+    keep = rotina.cortes(pal, info["duracao"])
+    if not keep:
+        raise capcut.ErroProjeto("Não encontrei fala nesse vídeo.")
+    return {"modo": "rotina", "video": video, "info": info, "draft": draft, "meta": meta, "palavras": pal,
+            "keep": keep, "e": e, "v": v}
+
+
+def monta_rotina(raiz, an, opcoes=None, avisa=None):
+    op = dict(opcoes or {})
+    avisa = avisa or (lambda *a: None)
+    if op.get("musica") and not isinstance(op["musica"], dict):
+        p = Path(op["musica"])
+        try:
+            op["musica"] = {"path": p, "nome": p.stem, "dur": audio.duracao(p)}
+        except (RuntimeError, OSError) as e:
+            raise capcut.ErroProjeto(f"Não consegui usar a música: {e}")
+    avisa("Montando os trechos, o relógio e a música", 0.2)
+    d, meta, avisos = rotina.monta(raiz, an, op)
+    erros = rotina.verifica(d)
+    if erros:
+        raise capcut.ErroProjeto("O projeto não passou na verificação e NÃO foi gravado: " + "; ".join(erros[:4]))
+    avisa("Gravando no CapCut", 0.8)
+    with tempfile.TemporaryDirectory() as tmp:
+        capa = Path(tmp) / "draft_cover.jpg"
+        audio.capa(an["video"], capa, float(op["trechos"][0][0]) + 0.3)
+        nome = capcut.grava_projeto(raiz, op.get("nome") or an["video"].stem + " - rotina", d, meta,
+                                    capa if capa.exists() else None)
+    avisa("Pronto", 1.0)
+    return {"nome": nome, "modo": "rotina", "antes": an["info"]["duracao"], "depois": d["duration"] / 1e6,
+            "pedacos": len(op["trechos"]), "musica": bool(op.get("musica")), "avisos": avisos}
 
 
 # ---------------- APRESENTADOR + iPAD ----------------

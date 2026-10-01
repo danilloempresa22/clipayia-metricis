@@ -63,8 +63,8 @@ def norm(p):
 
 
 # ---------------- 1. corte ----------------
-def cortes(palavras, dur):
-    """palavras: [{"t","a","b"}] em s. Devolve (keep [[a,b]], palavras mantidas).
+def cortes(palavras, dur, corte_min=CORTE_MIN):
+    """palavras: [{"t","a","b"}] em s. Devolve (keep [[a,b]], palavras mantidas). corte_min: silencio que vira corte.
     Por palavra, nunca por bloco: cortar por bloco desloca o tempo da legenda e ela entra por cima da anterior."""
     ps = sorted((dict(p) for p in palavras if p["t"].strip()), key=lambda p: p["a"])
     limpas = []
@@ -75,7 +75,7 @@ def cortes(palavras, dur):
         limpas.append(p)
     trechos = []
     for p in limpas:
-        if trechos and p["a"] - trechos[-1][-1]["b"] <= CORTE_MIN:
+        if trechos and p["a"] - trechos[-1][-1]["b"] <= corte_min:
             trechos[-1].append(p)
         else:
             trechos.append([p])

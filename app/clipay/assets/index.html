@@ -185,6 +185,16 @@ textarea:focus{outline:2px solid var(--acc);border-color:transparent}
 
 /* ---------- Apresentador + iPad ---------- */
 .modos{grid-template-columns:repeat(3,1fr)}
+#modos-edicao{grid-template-columns:repeat(2,1fr)}
+/* ---------- Rotina ---------- */
+.rt-campos{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+.rt-campos .campo{flex:1 1 200px;margin:0}
+.rt-lista{display:flex;flex-direction:column;gap:6px;max-height:460px;overflow:auto}
+.rt-linha{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 10px;border:1px solid var(--linha);border-radius:10px}
+.rt-linha b{min-width:28px}
+.rt-linha input[type=number]{width:90px}
+.rt-linha .hora{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:16px}
+.rt-linha select{width:auto}
 #ip-cortes{grid-template-columns:repeat(4,1fr)}
 .ip-escolhe{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--linha)}
 .ip-escolhe b{display:block}
@@ -237,7 +247,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 .ip-botoes{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
 .ip-botoes button{padding:6px 10px;font-size:13px}
 .ip-rel{min-width:86px;text-align:center;font-variant-numeric:tabular-nums}
-@media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos,#ip-cortes{grid-template-columns:1fr}}
+@media (max-width:900px){.ip-grade,.ip-sync{grid-template-columns:1fr}.modos,#ip-cortes,#modos-edicao{grid-template-columns:1fr}}
 
 /* ---------- login (tela cheia, sem sidebar) ---------- */
 .login{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden;background:var(--bg)}
@@ -397,13 +407,15 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           <div id="imp-erro" class="msg erro oculto"></div>
           <div id="sem-capcut" class="msg aviso oculto">Não achei a pasta de projetos do CapCut. Informe o caminho abaixo.
             <div class="linha" style="margin-top:10px"><input type="text" id="raiz" placeholder="C:\Users\...\CapCut\User Data\Projects\com.lveditor.draft" style="flex:1"><button id="salvar-raiz" class="sec">Salvar</button></div></div>
-          <div class="modos" role="radiogroup" aria-label="Modo de edição">
+          <div class="modos" id="modos-edicao" role="radiogroup" aria-label="Modo de edição">
             <button class="modo on" data-modo="cortes" role="radio" aria-checked="true">
               <b>Cortes + Headline</b><span>Corte seco sem respiração, zoom punch-in e frase fixa no topo.</span></button>
             <button class="modo" data-modo="legenda" role="radio" aria-checked="false">
               <b>Legenda Complexa</b><span>Legenda acumulada em escada, palavras em ênfase, música de fundo.</span></button>
             <button class="modo" data-modo="ipad" role="radio" aria-checked="false">
-              <b>Apresentador + iPad</b><span>Junta a câmera e a tela do iPad: iPad em cima, pessoa embaixo, legenda e headline.</span></button>
+              <b>Apresentador + iPad</b><span>Junta a câmera e a tela do iPad: iPad em cima, pessoa embaixo, headline e música.</span></button>
+            <button class="modo" data-modo="rotina" role="radio" aria-checked="false">
+              <b>Rotina</b><span>Vlog de rotina: cortes, relógio no canto que pula a cada corte, headline, 1,13x, filtro e música.</span></button>
           </div>
           <div class="card oculto" id="ipad-escolher">
             <h2>Os dois vídeos</h2>
@@ -640,6 +652,84 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           </div>
         </div>
 
+        <div id="tela-rotina-cortes" class="oculto pilha">
+          <p class="sub" id="rt-arq" style="margin:0"></p>
+          <div id="rt-cortes-erro" class="msg erro oculto"></div>
+          <div class="card"><div class="nums">
+            <div><b id="rt-antes">–</b>original</div><div><b class="ok" id="rt-depois">–</b>depois dos cortes e 1,13x</div><div><b id="rt-n">–</b>trechos</div></div></div>
+          <div class="card">
+            <h2>Régua dos cortes</h2>
+            <p class="sub" style="font-size:13px">Padrão: a régua do corte por palavra (silêncio a partir de 250 ms vira corte, sem gaguejada nem “é/tá/né” sozinhos). Trecho mais curto que o mínimo é juntado ao vizinho, nunca apagado.</p>
+            <div class="rt-campos">
+              <div class="campo"><label for="rt-sil">Silêncio mínimo pra cortar (ms)</label><input type="number" id="rt-sil" min="50" max="2000" step="10" value="250"></div>
+              <div class="campo"><label for="rt-min">Duração mínima do trecho (s, 0 = desligado)</label><input type="number" id="rt-min" min="0" max="10" step="0.1" value="0"></div>
+              <button class="sec" id="rt-recalc">Recalcular</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Trechos</h2>
+            <p class="sub" style="font-size:13px">Tempos no vídeo original (em segundos). Ajuste o início/fim ou apague o trecho.</p>
+            <div class="rt-lista" id="rt-trechos"></div>
+          </div>
+          <div class="linha"><button id="rt-ir-relogio">Continuar para o relógio</button><button class="sec" id="rt-voltar-1">Trocar de vídeo</button></div>
+        </div>
+
+        <div id="tela-rotina-relogio" class="oculto pilha">
+          <div id="rt-rel-erro" class="msg erro oculto"></div>
+          <div class="card">
+            <h2>Relógio</h2>
+            <p class="sub" style="font-size:13px">Cada trecho começa como <b>mesma cena</b> (salto padrão). Marque <b>mudou a atividade</b> onde a cena muda e digite quantos minutos o relógio pula. O app nunca decide o salto sozinho.</p>
+            <div class="rt-campos">
+              <div class="campo"><label for="rt-inicio">Horário do primeiro trecho</label><input type="time" id="rt-inicio" value="07:30"></div>
+              <div class="campo"><label for="rt-salto">Salto padrão da mesma cena (min)</label><input type="number" id="rt-salto" min="1" max="3" step="1" value="2"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Aparência do relógio</h2>
+            <div class="rt-campos">
+              <div class="campo"><label for="rt-fonte">Fonte (catálogo do CapCut)</label><select id="rt-fonte"></select></div>
+              <div class="campo"><label for="rt-esc">Tamanho</label><div class="deslize"><input type="range" id="rt-esc" min="0.3" max="1" step="0.05" value="0.5"><output id="rt-esc-v">0,50</output></div></div>
+            </div>
+            <div id="rt-fonte-aviso" class="msg aviso oculto"></div>
+          </div>
+          <div class="card">
+            <h2>Horário de cada trecho</h2>
+            <div class="rt-lista" id="rt-horas"></div>
+          </div>
+          <div class="linha"><button id="rt-ir-final">Continuar</button><button class="sec" id="rt-voltar-2">Voltar aos cortes</button></div>
+        </div>
+
+        <div id="tela-rotina-final" class="oculto pilha">
+          <div id="rt-final-erro" class="msg erro oculto"></div>
+          <div class="card">
+            <h2>Headline</h2>
+            <div class="campo"><label for="rt-headline">Promessa ou ordem, 3 a 8 palavras, sem dois-pontos (fonte Classic, no topo, abaixo do relógio)</label>
+              <input type="text" id="rt-headline" maxlength="90" placeholder="Ex.: Copie a rotina de um CEO às 5h"></div>
+            <div class="rt-campos">
+              <div class="campo"><label for="rt-head-ini">Começa em (s do vídeo final)</label><input type="number" id="rt-head-ini" min="0" step="0.5" value="0"></div>
+              <div class="campo"><label for="rt-head-s">Fica na tela (s)</label><input type="number" id="rt-head-s" min="1" max="60" step="0.5" value="5"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Música de fundo <span style="color:var(--mudo);font-weight:400;font-size:13px">(opcional)</span></h2>
+            <div class="linha"><button class="sec" id="rt-musica">Escolher música</button><span id="rt-musica-nome" class="sub" style="margin:0">Nenhuma</span>
+              <button class="icone oculto" id="rt-musica-tira" aria-label="Tirar música">✕</button></div>
+            <div class="oculto" id="rt-vol-box" style="margin-top:12px">
+              <p class="sub" style="font-size:13px">A música abaixa sozinha quando tem fala e volta nas pausas.</p>
+              <div class="rt-campos">
+                <div class="campo"><label for="rt-vol-sil">Volume no silêncio</label><div class="deslize"><input type="range" id="rt-vol-sil" min="0.1" max="1" step="0.01" value="1"><output id="rt-vol-sil-v"></output></div></div>
+                <div class="campo"><label for="rt-vol-fala">Volume na fala</label><div class="deslize"><input type="range" id="rt-vol-fala" min="0" max="0.6" step="0.01" value="0.21"><output id="rt-vol-fala-v"></output></div></div>
+                <div class="campo"><label for="rt-rampa">Rampa (s)</label><div class="deslize"><input type="range" id="rt-rampa" min="0.4" max="0.8" step="0.05" value="0.5"><output id="rt-rampa-v"></output></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <p class="sub" style="font-size:13px">Também entram: velocidade 1,13x em todos os trechos e o filtro Aprimorar (60) no vídeo todo.</p>
+            <div class="campo"><label for="rt-nome">Nome do projeto no CapCut</label><input type="text" id="rt-nome"></div>
+            <div class="linha"><button id="rt-gerar">Gerar projeto no CapCut</button><button class="sec" id="rt-voltar-3">Voltar ao relógio</button></div>
+          </div>
+        </div>
+
         <div id="tela-pronto" class="oculto">
           <div class="card">
             <div class="linha" style="gap:10px;margin-bottom:6px"><span class="badge pos"><svg class="ic" style="width:14px;height:14px"><use href="#i-check"/></svg>Pronto</span></div>
@@ -665,7 +755,8 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 <script>
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
-const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao","pronto"];
+const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao",
+  "rotina-cortes","rotina-relogio","rotina-final","pronto"];
 let modo = "cortes", gancho = null, musica = "";
 let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
 
@@ -719,6 +810,7 @@ function mostra(tela){
   telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
   $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", "revisao-legenda":"Revise a legenda", progresso:"Processando",
     "ipad-enquadrar":"Enquadrar", "ipad-sincronia":"Sincronizar", "ipad-revisao":"Cortes e headline",
+    "rotina-cortes":"Rotina: cortes", "rotina-relogio":"Rotina: relógio", "rotina-final":"Rotina: headline e música",
     pronto:"Edição concluída"}[tela] || "Edição";
   if(tela !== "revisao-legenda"){ const v = $("lg-video"); if(!v.paused) v.pause(); }
 }
@@ -858,13 +950,14 @@ document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
 async function analisar(caminho){
   erro("imp-erro"); ocupado = true; mostra("progresso");
   $("prog-titulo").textContent = "Analisando o vídeo…";
-  $("prog-sub").textContent = modo === "legenda"
+  $("prog-sub").textContent = modo === "legenda" || modo === "rotina"
     ? "Transcrevendo palavra por palavra e achando os cortes. Pode levar alguns minutos."
     : "Lendo o áudio, transcrevendo e achando os cortes. Na primeira vez baixa o modelo de transcrição.";
   try{
     const {id} = await api("analisar", {caminho, modo});
     analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    analise.modo === "legenda" ? abreRevisaoLegenda() : abreRevisao();
+    if(analise.modo === "rotina") abreRotina();
+    else analise.modo === "legenda" ? abreRevisaoLegenda() : abreRevisao();
   }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
   ocupado = false;
 }
@@ -926,6 +1019,7 @@ function pronto(r){
   $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut." + (r.avisos && r.avisos.length ? " Atenção: " + r.avisos.join(" ") : "");
   const extra = r.modo === "legenda"
     ? '<div><b>'+r.legendas+'</b>legendas</div><div><b>'+r.enfases+'</b>ênfases</div>'
+    : r.modo === "rotina" ? '<div><b>1,13×</b>velocidade</div>'
     : '<div><b>'+(r.zooms||0)+'</b>zooms</div>' + (r.legendas ? '<div><b>'+r.legendas+'</b>legendas</div>' : '');
   $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>trechos</div>' + extra;
   ocupado = false; mostra("pronto");
@@ -1247,6 +1341,145 @@ $("ip-gerar").onclick = async () => {
       velocidade: $("ip-vel-on").checked, musica});
     pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
   }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
+};
+
+// ---------------- edicao: ROTINA ----------------
+// RT.trechos: [[a,b]] na origem (s); RT.mudou[i] / RT.saltos[i]: o salto ANTES do trecho i (o 1o mostra o horario inicial)
+const RT = {trechos: [], mudou: [], saltos: [], musica: ""};
+const VEL_RT = 1.13;
+const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); };
+const segN = s => Number(s).toFixed(2).replace(".", ",");
+function abreRotina(){
+  const a = analise;
+  RT.trechos = a.trechos.map(t => [t[0], t[1]]); RT.mudou = []; RT.saltos = []; RT.musica = "";
+  $("rt-arq").textContent = a.nome; $("rt-antes").textContent = seg(a.duracao);
+  $("rt-fonte").innerHTML = a.fontes.map(f => '<option value="'+f.chave+'">'+f.nome+(f.baixada ? "" : " (ainda não baixada)")+'</option>').join("");
+  $("rt-fonte").value = a.padrao.fonte; $("rt-esc").value = a.padrao.escala; $("rt-salto").value = a.padrao.salto;
+  $("rt-head-s").value = a.padrao.headline_s; $("rt-headline").value = ""; $("rt-head-ini").value = 0;
+  $("rt-vol-sil").value = a.padrao.volume.silencio; $("rt-vol-fala").value = a.padrao.volume.fala; $("rt-rampa").value = a.padrao.volume.rampa;
+  $("rt-nome").value = a.nome.replace(/\.[^.]+$/, "") + " - rotina";
+  atualizaMusicaRt(); volumesRt(); avisoFonte(); $("rt-esc-v").textContent = fmt($("rt-esc").value, 2);
+  desenhaTrechos(); erro("rt-cortes-erro"); mostra("rotina-cortes");
+}
+function desenhaTrechos(){
+  $("rt-n").textContent = RT.trechos.length;
+  $("rt-depois").textContent = seg(RT.trechos.reduce((s, t) => s + (t[1] - t[0]), 0) / VEL_RT);
+  $("rt-trechos").innerHTML = RT.trechos.map((t, i) =>
+    '<div class="rt-linha"><b>'+(i+1)+'</b>'+
+    '<label>início <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="0" value="'+t[0].toFixed(2)+'" aria-label="Início do trecho '+(i+1)+'"></label>'+
+    '<label>fim <input type="number" step="0.05" min="0" data-i="'+i+'" data-k="1" value="'+t[1].toFixed(2)+'" aria-label="Fim do trecho '+(i+1)+'"></label>'+
+    '<span class="sub" style="margin:0">'+segN(t[1]-t[0])+' s</span>'+
+    '<button class="icone" data-apaga="'+i+'" aria-label="Apagar trecho '+(i+1)+'">✕</button></div>').join("") ||
+    '<p class="sub" style="margin:0">Nenhum trecho. Recalcule ou troque de vídeo.</p>';
+}
+$("rt-trechos").addEventListener("change", e => {
+  const el = e.target; if(el.dataset.i === undefined) return;
+  const i = +el.dataset.i, k = +el.dataset.k, v = Number(el.value);
+  if(!isFinite(v)) return;
+  RT.trechos[i][k] = Math.max(0, Math.min(analise.duracao, v));
+  desenhaTrechos();
+});
+$("rt-trechos").addEventListener("click", e => {
+  const b = e.target.closest("[data-apaga]"); if(!b) return;
+  RT.trechos.splice(+b.dataset.apaga, 1); desenhaTrechos();
+});
+$("rt-recalc").onclick = async () => {
+  erro("rt-cortes-erro");
+  try{
+    const r = await api("rotina/cortes", {analise: analise.analise, silencio_ms: Number($("rt-sil").value), minimo_s: Number($("rt-min").value)});
+    RT.trechos = r.trechos; desenhaTrechos();
+  }catch(e){ erro("rt-cortes-erro", e.message); }
+};
+function trechosValidos(){
+  const t = [...RT.trechos].sort((a, b) => a[0] - b[0]);
+  if(!t.length) return "Mantenha pelo menos um trecho.";
+  for(let i = 0; i < t.length; i++){
+    if(t[i][1] - t[i][0] < 0.1) return "O trecho " + (i+1) + " tem o fim antes do início (ou é curto demais).";
+    if(i && t[i][0] < t[i-1][1] - 0.001) return "Os trechos " + i + " e " + (i+1) + " estão um em cima do outro.";
+  }
+  RT.trechos = t; return "";
+}
+$("rt-ir-relogio").onclick = () => {
+  const m = trechosValidos(); if(m){ erro("rt-cortes-erro", m); return; }
+  const n = RT.trechos.length;
+  RT.mudou = Array.from({length: n}, (_, i) => RT.mudou[i] || false);
+  RT.saltos = Array.from({length: n}, (_, i) => RT.saltos[i] || 0);
+  desenhaHoras(); erro("rt-rel-erro"); mostra("rotina-relogio");
+};
+$("rt-voltar-1").onclick = () => mostra("importar");
+function saltoDe(i){ const p = Number($("rt-salto").value) || 2; return RT.mudou[i] ? (RT.saltos[i] || 0) : (RT.saltos[i] || p); }
+function horasRt(){
+  const [h, m] = ($("rt-inicio").value || "07:30").split(":").map(Number);
+  let t = h * 60 + m; const out = [];
+  RT.trechos.forEach((_, i) => { if(i) t += saltoDe(i); out.push(t); });
+  return out;
+}
+function desenhaHoras(){
+  const hs = horasRt(), p = Number($("rt-salto").value) || 2;
+  $("rt-horas").innerHTML = RT.trechos.map((t, i) => {
+    const ctrl = i === 0 ? '<span class="sub" style="margin:0">horário inicial</span>'
+      : '<select data-i="'+i+'" aria-label="Tipo do corte antes do trecho '+(i+1)+'">'+
+          '<option value="0"'+(RT.mudou[i] ? "" : " selected")+'>Mesma cena</option><option value="1"'+(RT.mudou[i] ? " selected" : "")+'>Mudou a atividade</option></select>'+
+        '<label>+ <input type="number" min="1" max="'+(RT.mudou[i] ? 720 : 3)+'" step="1" data-salto="'+i+'" value="'+(RT.saltos[i] || (RT.mudou[i] ? "" : p))+'" placeholder="min" aria-label="Minutos que o relógio pula antes do trecho '+(i+1)+'"> min</label>';
+    return '<div class="rt-linha"><b>'+(i+1)+'</b><span class="sub" style="margin:0">'+seg(t[0])+'–'+seg(t[1])+'</span>'+ctrl+
+      '<span class="hora">'+hhmm(hs[i])+'</span></div>';
+  }).join("");
+}
+$("rt-horas").addEventListener("change", e => {
+  const el = e.target;
+  if(el.tagName === "SELECT"){ const i = +el.dataset.i; RT.mudou[i] = el.value === "1"; RT.saltos[i] = 0; }
+  else if(el.dataset.salto !== undefined){ RT.saltos[+el.dataset.salto] = Math.round(Number(el.value)) || 0; }
+  desenhaHoras();
+});
+["rt-inicio","rt-salto"].forEach(id => $(id).addEventListener("input", desenhaHoras));
+function avisoFonte(){
+  const f = analise.fontes.find(x => x.chave === $("rt-fonte").value);
+  const msg = f && !f.baixada ? "A fonte " + f.nome + " ainda não foi baixada pelo CapCut neste computador. Ele baixa ao abrir o projeto; se não conseguir, o relógio aparece com a fonte padrão. Confira no CapCut." : "";
+  $("rt-fonte-aviso").textContent = msg; $("rt-fonte-aviso").classList.toggle("oculto", !msg);
+}
+$("rt-fonte").onchange = avisoFonte;
+$("rt-esc").oninput = () => { $("rt-esc-v").textContent = fmt($("rt-esc").value, 2); };
+$("rt-ir-final").onclick = () => {
+  for(let i = 1; i < RT.trechos.length; i++){
+    const s = saltoDe(i);
+    if(!(s >= 1 && s <= (RT.mudou[i] ? 720 : 3))){
+      erro("rt-rel-erro", "Trecho " + (i+1) + ": " + (RT.mudou[i] ? "digite quantos minutos o relógio pula (1 a 720)." : "a mesma cena pula de 1 a 3 minutos."));
+      return;
+    }
+  }
+  if(!/^\d\d:\d\d$/.test($("rt-inicio").value)){ erro("rt-rel-erro", "Preencha o horário do primeiro trecho."); return; }
+  erro("rt-final-erro"); mostra("rotina-final");
+};
+$("rt-voltar-2").onclick = () => { desenhaTrechos(); mostra("rotina-cortes"); };
+$("rt-voltar-3").onclick = () => { desenhaHoras(); mostra("rotina-relogio"); };
+function atualizaMusicaRt(){
+  const tem = !!RT.musica;
+  $("rt-musica-nome").textContent = tem ? RT.musica.split(/[\\/]/).pop() : "Nenhuma";
+  $("rt-musica-tira").classList.toggle("oculto", !tem); $("rt-vol-box").classList.toggle("oculto", !tem);
+}
+function volumesRt(){
+  $("rt-vol-sil-v").textContent = Math.round($("rt-vol-sil").value * 100) + "%";
+  $("rt-vol-fala-v").textContent = Math.round($("rt-vol-fala").value * 100) + "%";
+  $("rt-rampa-v").textContent = fmt($("rt-rampa").value, 2) + " s";
+}
+["rt-vol-sil","rt-vol-fala","rt-rampa"].forEach(id => $(id).oninput = volumesRt);
+$("rt-musica").onclick = async () => {
+  try{ const {caminho} = await api("escolher-arquivo", {tipo: "musica"}); if(caminho){ RT.musica = caminho; atualizaMusicaRt(); } }
+  catch(e){ erro("rt-final-erro", e.message); }
+};
+$("rt-musica-tira").onclick = () => { RT.musica = ""; atualizaMusicaRt(); };
+$("rt-gerar").onclick = async () => {
+  erro("rt-final-erro"); mostra("progresso");
+  $("prog-titulo").textContent = "Montando a rotina no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
+  try{
+    const saltos = RT.trechos.map((_, i) => i ? saltoDe(i) : 0);
+    const {id} = await api("gerar", {analise: analise.analise, trechos: RT.trechos, inicio: $("rt-inicio").value, saltos,
+      headline: $("rt-headline").value, headline_s: Number($("rt-head-s").value), headline_ini: Number($("rt-head-ini").value),
+      fonte: $("rt-fonte").value, escala: Number($("rt-esc").value), musica: RT.musica,
+      volume: {silencio: Number($("rt-vol-sil").value), fala: Number($("rt-vol-fala").value), rampa: Number($("rt-rampa").value)},
+      nome: $("rt-nome").value});
+    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
+  }catch(e){ mostra("rotina-final"); erro("rt-final-erro", e.message); }
 };
 
 inicio();

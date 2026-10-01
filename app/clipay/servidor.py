@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -158,6 +158,17 @@ def trabalho_analisa(caminho, modelo, modo="cortes"):
         raiz = raiz_atual()
         if not raiz:
             raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho nas configurações.")
+        if modo == "rotina":
+            an = processa.analisa_rotina(raiz, caminho, {"modelo": modelo}, avisa)
+            aid = uuid.uuid4().hex[:10]
+            ANALISES[aid] = an
+            cache = capcut.cache_efeitos(raiz)
+            return {"analise": aid, "modo": "rotina", "nome": an["video"].name, "duracao": an["info"]["duracao"],
+                    "trechos": [[round(a, 3), round(b, 3)] for a, b in an["keep"]],
+                    "fontes": [{"chave": k, "nome": f["nome"], "baixada": bool(composto.caminho_no_cache(f["id"], cache))}
+                               for k, f in rotina.FONTES_RELOGIO.items()],
+                    "padrao": {"fonte": rotina.FONTE_PADRAO, "escala": rotina.ESC_RELOGIO, "salto": rotina.SALTO_PADRAO,
+                               "headline_s": rotina.HEADLINE_S, "volume": rotina.VOLUME}}
         if modo == "legenda":
             an = processa.analisa_legenda(raiz, caminho, {"modelo": modelo}, avisa)
             aid = uuid.uuid4().hex[:10]
@@ -185,6 +196,29 @@ def trabalho_gera(c):
         if not an:
             raise capcut.ErroProjeto("Essa análise expirou. Importe o vídeo de novo.")
         raiz = raiz_atual()
+        if an.get("modo") == "rotina":
+            def num(v, lo, hi, pad):
+                return min(hi, max(lo, float(v))) if v not in (None, "") else pad
+            dur = an["info"]["duracao"]
+            trechos = sorted([[num(a, 0, dur, 0), num(b, 0, dur, 0)] for a, b in (c.get("trechos") or [])])
+            if any(b - a < 0.1 for a, b in trechos) or any(q[0] < p[1] - 1e-3 for p, q in zip(trechos, trechos[1:])):
+                raise capcut.ErroProjeto("Há trechos com fim antes do início ou um em cima do outro. Ajuste na tela de cortes.")
+            musica = (c.get("musica") or "").strip()
+            if musica and (not Path(musica).is_file() or Path(musica).suffix.lower() not in EXT_AUDIO):
+                raise capcut.ErroProjeto("Não achei o arquivo da música. Escolha de novo.")
+            vol = c.get("volume") or {}
+            op = {"trechos": trechos, "inicio": str(c.get("inicio") or "07:30"),
+                  "saltos": [int(num(s, 1, rotina.SALTO_MAX, rotina.SALTO_PADRAO)) for s in (c.get("saltos") or [])],
+                  "headline": (c.get("headline") or "").strip()[:120], "headline_s": num(c.get("headline_s"), 1, 60, rotina.HEADLINE_S),
+                  "headline_ini": num(c.get("headline_ini"), 0, 1e5, 0.0),
+                  "fonte": c.get("fonte") if c.get("fonte") in rotina.FONTES_RELOGIO else rotina.FONTE_PADRAO,
+                  "escala": num(c.get("escala"), 0.2, 1.5, rotina.ESC_RELOGIO), "musica": musica or None,
+                  "volume": {"silencio": num(vol.get("silencio"), 0, 2, 1.0), "fala": num(vol.get("fala"), 0, 2, 0.21),
+                             "rampa": num(vol.get("rampa"), 0.4, 0.8, 0.5)},
+                  "nome": (c.get("nome") or "").strip() or None}
+            r = processa.monta_rotina(raiz, an, op, avisa)
+            _conta_uso(r)
+            return r
         if "janela" in an:                               # Apresentador + iPad
             def num(v, lo, hi, pad):
                 return min(hi, max(lo, float(v))) if v not in (None, "") else pad
@@ -531,9 +565,17 @@ class H(BaseHTTPRequestHandler):
                 p = Path(c.get("caminho", ""))
                 if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
                     return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
-                modo = c.get("modo", "cortes") if c.get("modo") in ("cortes", "legenda") else "cortes"
+                modo = c.get("modo", "cortes") if c.get("modo") in ("cortes", "legenda", "rotina") else "cortes"
                 conta.exige_ativa()                       # falha logo, antes de gastar CPU
                 return self._json({"id": novo_job(trabalho_analisa(str(p), c.get("modelo", "preciso"), modo))})
+            if u.path == "/api/rotina/cortes":            # controles "silencio minimo" e "duracao minima": refaz a lista
+                an = ANALISES.get(c.get("analise"))
+                if not an or an.get("modo") != "rotina":
+                    return self._json({"erro": "Essa análise expirou. Importe o vídeo de novo."}, 400)
+                sil = min(2000, max(50, float(c.get("silencio_ms", 250))))
+                mn = min(10.0, max(0.0, float(c.get("minimo_s", 0))))
+                keep = rotina.cortes(an["palavras"], an["info"]["duracao"], sil, mn)
+                return self._json({"trechos": [[round(a, 3), round(b, 3)] for a, b in keep]})
             if u.path == "/api/gerar":
                 conta.exige_ativa()
                 return self._json({"id": novo_job(trabalho_gera(c))})
