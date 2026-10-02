@@ -1,8 +1,8 @@
-"""Uma edicao do comeco ao fim: le o projeto, analisa, monta e grava um projeto NOVO no CapCut."""
+﻿"""Uma edicao do comeco ao fim: le o projeto, analisa, monta e grava um projeto NOVO no CapCut."""
 import re, tempfile
 from pathlib import Path
 import numpy as np
-from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto, ipad, rotina
+from . import capcut, vlog, reels, transcricao, audio, rosto, legenda, palavras, composto, ipad, rotina, pacote
 
 
 def agrupa(pl):
@@ -107,38 +107,42 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
 
 
 # ---------------- ROTINA ----------------
-def analisa_rotina(raiz, videos, opcoes=None, avisa=None):
-    """1a metade: os takes EM ORDEM; cada um e' transcrito palavra a palavra e cortado com a regua do corte por
-    palavra (take sem fala entra inteiro). NAO grava nada. Guarda energia/voz do audio de cada take pra o
-    abaixamento da musica na fala. O projeto (canvas) segue o 1o take."""
+def analisa_rotina(raiz, videos, opcoes=None, avisa=None, cancelado=None, pronto=None):
+    """1a metade: os takes EM ORDEM, transcritos (pacote.py: cache por arquivo, b-roll e duplicado pulados) e
+    cortados com a regua do corte por palavra (take sem fala entra inteiro). NAO grava
+    nada. Guarda energia/voz do audio de cada take pra o abaixamento da musica na fala. O canvas segue o 1o take.
+    pronto: resultado de pacote.transcreve_takes ja feito em segundo plano (os audios nao sao lidos de novo)."""
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
     videos = [videos] if isinstance(videos, (str, Path)) else list(videos)
     if not videos:
         raise capcut.ErroProjeto("Escolha pelo menos um vídeo.")
     capcut.sonda_capcut(raiz)                                          # falha cedo se o CapCut criptografa os projetos
-    takes, n = [], len(videos)
-    w = None
-    for i, vp in enumerate(videos):
-        rot = f"Take {i + 1} de {n}" if n > 1 else "Vídeo"
-        fr0, fr1 = 0.02 + 0.93 * i / n, 0.02 + 0.93 * (i + 1) / n
+    infos = {}
+    for vp in videos:
         v = Path(vp)
         if not v.is_file():
             raise capcut.ErroProjeto(f"Vídeo não encontrado: {v.name}")
-        avisa(f"{rot}: lendo o vídeo", fr0)
         try:
-            info = audio.probe_video(v)
+            infos[str(v)] = audio.probe_video(v)
         except RuntimeError as e:
             raise capcut.ErroProjeto(f"{v.name}: {e}")
-        x = audio.pcm(v) if info["tem_audio"] else np.zeros(0, np.float32)
-        if len(x) and float(np.abs(x).max()) >= 1e-3:
+    modelo = op.get("modelo", "preciso")
+    r = pronto
+    if r is None or set(r["palavras"]) != set(infos):
+        audios = {c: np.zeros(0, np.float32) for c, i in infos.items() if not i["tem_audio"]}
+        r = pacote.transcreve_takes(lambda: _whisper(modelo, avisa, 0.3, 0.3), list(infos), modelo, audios=audios,
+                                    ao_ler=lambda k, n: avisa(f"Lendo o áudio dos takes ({k} de {n})", 0.02 + 0.28 * k / n),
+                                    progresso=lambda k, n: avisa(f"Transcrevendo (trecho {k} de {n})", 0.3 + 0.65 * k / n),
+                                    cancelado=cancelado)
+    takes = []
+    for c, info in infos.items():
+        x = r["audios"][c]
+        if len(x):
             e, vv = audio.analisa(x)
-            w = w or _whisper(op.get("modelo", "preciso"), avisa, fr0, fr0)
-            pal = palavras.transcreve(w, x, lambda k, m: avisa(f"{rot}: transcrevendo", fr0 + (fr1 - fr0) * k / m))
         else:                                                          # take mudo (so imagem): entra inteiro
-            nq = int(info["duracao"] / audio.H) + 1
-            e, vv, pal = np.zeros(nq), np.zeros(nq), []
-        takes.append({"video": v, "info": info, "palavras": pal, "e": e, "v": vv})
+            nq = int(info["duracao"] / audio.H) + 1; e, vv = np.zeros(nq), np.zeros(nq)
+        takes.append({"video": Path(c), "info": info, "palavras": r["palavras"][c], "e": e, "v": vv})
     draft, meta = capcut.cria_draft(takes[0]["video"], takes[0]["info"], capcut.sonda_capcut(raiz))
     avisa("Achando os cortes", 0.97)
     keep = rotina.cortes_takes(takes)

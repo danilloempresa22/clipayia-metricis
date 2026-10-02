@@ -68,13 +68,16 @@ def espalha(texto, trechos):
 
 def transcreve(w, x, progresso=None):
     """[{"t","a","b"}] em s, em ordem"""
-    bs = blocos(trechos_de_fala(x))
+    from .transcricao import CRONO
+    with CRONO("achar fala"):
+        bs = blocos(trechos_de_fala(x))
     out = []
     for i, bl in enumerate(bs):
         a, b = max(0.0, bl[0][0] - 0.05), bl[-1][1] + 0.05
         for s0, s1, txt in (w.segmentos(x[int(a * audio.SR):int(b * audio.SR)]) if b > a else []):
-            s0, s1 = a + s0, a + min(s1, b - a)
-            if s1 > s0:
-                out += espalha(txt, recorta(bl, s0, s1))
+            with CRONO("mapear"):
+                s0, s1 = a + s0, a + min(s1, b - a)
+                if s1 > s0:
+                    out += espalha(txt, recorta(bl, s0, s1))
         if progresso: progresso(i + 1, len(bs))
     return sorted(out, key=lambda p: p["a"])

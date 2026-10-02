@@ -1,6 +1,8 @@
 """Transcricao offline (Whisper via onnxruntime). Roda no computador do editor, sem internet
 depois de baixar o modelo uma vez, sem custo por uso."""
-import base64, os, sys, tarfile, urllib.request, shutil
+import base64, os, sys, tarfile, urllib.request, shutil, time
+from collections import defaultdict
+from contextlib import contextmanager
 from pathlib import Path
 import numpy as np
 from .audio import SR
@@ -89,6 +91,23 @@ def logmel(x):
     return ((ls + 4.0) / 4.0).astype(np.float32)
 
 
+class Cronometro:
+    """soma o tempo de cada etapa (s) e quantas vezes ela rodou: crono.t["encoder"], crono.n["encoder"]"""
+    def __init__(self):
+        self.t, self.n = defaultdict(float), defaultdict(int)
+
+    @contextmanager
+    def __call__(self, etapa):
+        t0 = time.perf_counter()
+        try:
+            yield
+        finally:
+            self.t[etapa] += time.perf_counter() - t0; self.n[etapa] += 1
+
+
+CRONO = Cronometro()                 # global do processo: o app e a medicao leem daqui
+
+
 _NUCLEOS = None
 
 
@@ -159,9 +178,15 @@ class Whisper:
         """transcricao COM marcas de tempo do proprio Whisper (resolucao 20 ms): [(ini, fim, texto)] em s do audio x.
         Regras de tempo do Whisper original: comeca com tempo; tempos em pares; tempo nunca volta; se a soma
         das probabilidades de tempo ganha do melhor texto, sai tempo."""
-        mel = logmel(x)
-        mel = np.pad(mel, ((0, max(0, 3000 - mel.shape[0])), (0, 0)))[:3000]
-        ck, cv = self.enc.run(None, {self.enc.get_inputs()[0].name: mel.T[None]})
+        with CRONO("mel"):
+            mel = logmel(x)
+            mel = np.pad(mel, ((0, max(0, 3000 - mel.shape[0])), (0, 0)))[:3000]
+        with CRONO("encoder"):
+            ck, cv = self.enc.run(None, {self.enc.get_inputs()[0].name: mel.T[None]})
+        with CRONO("decoder"):
+            return self._segmentos_dec(x, ck, cv)
+
+    def _segmentos_dec(self, x, ck, cv):
         kc = np.zeros((self.L, 1, self.C, self.S), np.float32); vc = kc.copy()
 
         def passo(tk, kc, vc, off):

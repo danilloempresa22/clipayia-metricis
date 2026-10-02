@@ -435,7 +435,9 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <p class="sub" style="font-size:13px">Escolha todos os vídeos de uma vez (Ctrl ou Shift para selecionar vários). Eles entram no projeto nesta ordem: use ↑ ↓ para mudar.</p>
             <div class="rt-lista" id="rt-takes"></div>
             <div class="linha" style="margin-top:12px"><button class="sec" id="rt-add">Adicionar vídeos</button><button id="rt-analisar" disabled>Continuar</button></div>
-            <p class="sub" style="margin:12px 0 0;font-size:13px">O app transcreve cada take para achar os cortes. Take sem fala (só imagem) entra inteiro.</p>
+            <div class="linha oculto" id="rt-bg-box" style="margin-top:12px;gap:10px">
+              <span class="sub" id="rt-bg" style="margin:0;flex:1"></span><button class="sec" id="rt-bg-cancelar">Cancelar</button></div>
+            <p class="sub" style="margin:12px 0 0;font-size:13px">A transcrição começa assim que você escolhe os takes, enquanto você organiza a ordem. Take sem fala (só imagem) entra inteiro.</p>
           </div>
           <div class="drop" id="drop">
             <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
@@ -451,6 +453,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <p class="sub" id="prog-sub" style="margin:0">Isso pode levar alguns minutos. Pode deixar esta janela aberta.</p>
             <div class="barra-prog"><i id="barra"></i></div>
             <div id="etapa" style="color:var(--mudo);font-size:13px">Começando</div>
+            <button class="sec oculto" id="prog-cancelar" style="margin-top:14px">Cancelar</button>
           </div>
         </div>
 
@@ -1371,24 +1374,52 @@ $("rt-takes").addEventListener("click", e => {
   if(b.dataset.sobe !== undefined){ const i = +b.dataset.sobe; [t[i-1], t[i]] = [t[i], t[i-1]]; }
   if(b.dataset.desce !== undefined){ const i = +b.dataset.desce; [t[i+1], t[i]] = [t[i], t[i+1]]; }
   if(b.dataset.tira !== undefined) t.splice(+b.dataset.tira, 1);
-  desenhaTakes();
+  desenhaTakes(); transcreveJa();
 });
+// transcricao em segundo plano: comeca assim que os takes sao escolhidos (mudar so a ordem nao refaz nada)
+let rtBgTimer = null;
+async function transcreveJa(){
+  if(!RT.takes.length){ $("rt-bg-box").classList.add("oculto"); return; }
+  try{ mostraBg(await api("rotina/transcrever", {caminhos: RT.takes})); acompanhaBg(); }
+  catch(e){ $("rt-bg").textContent = e.message; $("rt-bg-box").classList.remove("oculto"); }
+}
+function mostraBg(s){
+  $("rt-bg-box").classList.toggle("oculto", !s.ativo);
+  if(!s.ativo) return;
+  $("rt-bg").textContent = s.erro === "cancelado" ? "Transcrição cancelada. Ela recomeça quando você clicar em Continuar."
+    : s.erro ? "A transcrição em segundo plano falhou (" + s.erro + "). Ela será refeita ao continuar."
+    : s.fim ? "Transcrição pronta (" + s.takes + " takes)." : s.etapa + "…";
+  $("rt-bg-cancelar").classList.toggle("oculto", !!s.fim);
+}
+function acompanhaBg(){
+  clearTimeout(rtBgTimer);
+  rtBgTimer = setTimeout(async () => {
+    try{ const s = await api("rotina/estado"); mostraBg(s); if(s.ativo && !s.fim) acompanhaBg(); }catch(e){}
+  }, 800);
+}
+$("rt-bg-cancelar").onclick = async () => { try{ mostraBg(await api("rotina/cancelar", {})); }catch(e){} };
+$("prog-cancelar").onclick = async () => {
+  $("prog-cancelar").disabled = true; $("etapa").textContent = "Cancelando…";
+  try{ await api("rotina/cancelar", {}); }catch(e){}
+};
 $("rt-add").onclick = async () => {
   erro("imp-erro");
   try{ const {caminho} = await api("escolher-arquivo", {tipo: "videos"});
     (Array.isArray(caminho) ? caminho : caminho ? [caminho] : []).forEach(c => { if(!RT.takes.includes(c)) RT.takes.push(c); });
-    desenhaTakes(); }
+    desenhaTakes(); transcreveJa(); }
   catch(e){ erro("imp-erro", e.message); }
 };
 $("rt-analisar").onclick = async () => {
   erro("imp-erro"); ocupado = true; mostra("progresso");
   $("prog-titulo").textContent = "Analisando os takes…";
-  $("prog-sub").textContent = "Transcrevendo cada take e achando os cortes. Pode levar alguns minutos.";
+  $("prog-sub").textContent = "Transcrevendo os takes e achando os cortes. O que já foi transcrito antes não é refeito.";
+  $("prog-cancelar").classList.remove("oculto"); $("prog-cancelar").disabled = false;
   try{
     const {id} = await api("analisar", {modo: "rotina", caminhos: RT.takes});
-    analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; if(!$("prog-cancelar").disabled) $("etapa").textContent = j.etapa; });
     abreRotina();
-  }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
+  }catch(e){ mostra("importar"); erro("imp-erro", e.message); acompanhaBg(); }
+  $("prog-cancelar").classList.add("oculto");
   ocupado = false;
 };
 desenhaTakes();

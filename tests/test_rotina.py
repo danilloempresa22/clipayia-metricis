@@ -50,13 +50,24 @@ def test_trecho_curto_junta_com_o_vizinho_sem_perder_fala():
 
 
 # ---------------- montagem ----------------
-@pytest.fixture
-def an(video_vertical, raiz_capcut, monkeypatch):
+class WhisperFalso:
+    """um segmento por trecho de voz da janela, com frases fixas em ordem"""
+    FRASES = ["bom dia acordei agora", "bora pra academia", "treino pago"]
+
+    def segmentos(self, x):
+        return [(a, b, self.FRASES[i % 3]) for i, (a, b) in enumerate(palavras.trechos_de_fala(x))]
+
+
+@pytest.fixture(autouse=True)
+def whisper_falso(tmp_path, monkeypatch):
+    d = tmp_path / "dados"; d.mkdir()
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: d)                    # cache isolado
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
-    monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
-    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
-        *palavras.espalha("bom dia acordei agora", [[0.0, 3.0]]), *palavras.espalha("bora pra academia", [[4.5, 7.5]]),
-        *palavras.espalha("treino pago", [[9.0, 10.0]])])
+    monkeypatch.setattr(transcricao, "Whisper", lambda q: WhisperFalso())
+
+
+@pytest.fixture
+def an(video_vertical, raiz_capcut):
     return processa.analisa_rotina(raiz_capcut, video_vertical)
 
 
@@ -166,21 +177,19 @@ def test_varios_takes_em_ordem_e_take_mudo_inteiro(video_vertical, raiz_capcut, 
     mudo = tmp_path / "broll.mp4"                                                      # take so de imagem, sem audio
     subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=gray:s=540x960:d=3:r=30",
                     "-c:v", "libopenh264", str(mudo)], check=True, **audio._sem_janela())
-    monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
-    monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
-    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
-        *palavras.espalha("bom dia acordei agora", [[0.0, 3.0]]), *palavras.espalha("bora pra academia", [[4.5, 7.5]])])
-    a = processa.analisa_rotina(raiz_capcut, [video_vertical, mudo, video_vertical])
-    assert [t for t, _, _ in a["keep"]] == [0, 0, 1, 2, 2]                            # ordem dos takes
+    copia = tmp_path / "copia.mp4"; copia.write_bytes(Path(video_vertical).read_bytes())   # mesmo take, 2o arquivo
+    a = processa.analisa_rotina(raiz_capcut, [video_vertical, mudo, copia])
+    assert a["takes"][2]["palavras"] == a["takes"][0]["palavras"]                   # duplicado: mesmo texto
+    assert [t for t, _, _ in a["keep"]] == [0, 0, 0, 1, 2, 2, 2]                      # ordem dos takes
     assert [x for x in a["keep"] if x[0] == 1] == [[1, 0.0, 3.0]]                      # mudo: inteiro
-    r = gera(raiz_capcut, a, saltos=[0, 2, 30, 2, 2])
+    r = gera(raiz_capcut, a, saltos=[0, 2, 2, 30, 2, 2, 2])
     d = abre(raiz_capcut, r["nome"])
     vs = [t for t in d["tracks"] if t["type"] == "video"][0]["segments"]
     mats = {m["id"]: m for m in d["materials"]["videos"]}
     nomes = [mats[s["material_id"]]["material_name"] for s in vs]
-    assert nomes == [Path(video_vertical).name] * 2 + ["broll.mp4"] + [Path(video_vertical).name] * 2
-    assert mats[vs[2]["material_id"]]["duration"] == pytest.approx(3e6, abs=50_000)
+    assert nomes == [Path(video_vertical).name] * 3 + ["broll.mp4"] + ["copia.mp4"] * 3
+    assert mats[vs[3]["material_id"]]["duration"] == pytest.approx(3e6, abs=50_000)
     assert [t for _, t in sorted(((s["target_timerange"]["start"], t) for s, t in textos(d) if ":" in t and len(t) == 5))] == \
-        ["07:58", "08:00", "08:30", "08:32", "08:34"]
-    assert r["antes"] == pytest.approx(2 * a["takes"][0]["info"]["duracao"] + a["takes"][1]["info"]["duracao"])
+        ["07:58", "08:00", "08:02", "08:32", "08:34", "08:36", "08:38"]
+    assert r["antes"] == pytest.approx(a["takes"][0]["info"]["duracao"] + a["takes"][1]["info"]["duracao"] + a["takes"][2]["info"]["duracao"])
     assert rotina.verifica(d) == []

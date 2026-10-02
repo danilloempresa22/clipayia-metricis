@@ -1,4 +1,4 @@
-"""Servidor local (so 127.0.0.1) que serve a tela do app e roda as edicoes em segundo plano.
+﻿"""Servidor local (so 127.0.0.1) que serve a tela do app e roda as edicoes em segundo plano.
 Toda chamada /api exige o token da sessao (so quem abriu a tela do app o conhece) e o Host local:
 assim nenhuma pagina qualquer da internet consegue mandar o app processar coisas."""
 import json, os, re, secrets, subprocess, threading, uuid, traceback, webbrowser, socket, sys, shutil, time
@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -155,6 +155,50 @@ def abre_capcut():
     return False
 
 
+RT_BG = {"job": None}                # Rotina: transcricao em segundo plano dos takes escolhidos
+
+
+def rotina_em_segundo_plano(caminhos, modelo="preciso"):
+    """comeca a transcrever os takes assim que o usuario escolhe, enquanto ele organiza. Mudar so a ordem nao refaz
+    nada; takes novos entram numa fila depois do trabalho atual (o que ja foi feito vem do cache, pacote.py)."""
+    ant = RT_BG["job"]
+    if ant and set(ant["caminhos"]) == set(caminhos) and not ant["erro"]:
+        return ant
+    job = {"caminhos": list(caminhos), "cancelar": threading.Event(), "feitas": 0, "total": 0, "etapa": "Na fila",
+           "res": None, "erro": None, "fim": False}
+
+    def roda():
+        try:
+            if ant and ant.get("thread"):
+                ant["thread"].join()
+            if job["cancelar"].is_set():
+                raise pacote.Cancelado()
+            job["res"] = pacote.transcreve_takes(
+                lambda: processa._whisper(modelo, lambda e, f=None: job.update(etapa=e), 0, 0), job["caminhos"], modelo,
+                ao_ler=lambda k, n: job.update(etapa=f"Lendo o áudio dos takes ({k} de {n})"),
+                progresso=lambda k, n: job.update(feitas=k, total=n, etapa=f"Transcrevendo (trecho {k} de {n})"),
+                cancelado=job["cancelar"].is_set)
+            job["etapa"] = "Transcrição pronta"
+        except pacote.Cancelado:
+            job["erro"] = "cancelado"; job["etapa"] = "Cancelado"
+        except Exception as e:                       # noqa: BLE001 — aparece na tela; a analise refaz sem o segundo plano
+            job["erro"] = str(e); job["etapa"] = "Erro na transcrição"
+        finally:
+            job["fim"] = True
+    job["thread"] = threading.Thread(target=roda, daemon=True)
+    RT_BG["job"] = job
+    job["thread"].start()
+    return job
+
+
+def estado_rotina():
+    j = RT_BG["job"]
+    if not j:
+        return {"ativo": False}
+    return {"ativo": True, "etapa": j["etapa"], "feitas": j["feitas"], "total": j["total"], "fim": j["fim"],
+            "erro": j["erro"], "takes": len(j["caminhos"])}
+
+
 def trabalho_analisa(caminho, modelo, modo="cortes"):
     def fn(avisa):
         conta.exige_ativa()
@@ -162,7 +206,19 @@ def trabalho_analisa(caminho, modelo, modo="cortes"):
         if not raiz:
             raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho nas configurações.")
         if modo == "rotina":
-            an = processa.analisa_rotina(raiz, caminho, {"modelo": modelo}, avisa)
+            job = RT_BG["job"]; pronto = None
+            if job and set(job["caminhos"]) == {str(Path(c)) for c in caminho}:
+                while not job["fim"]:                    # aproveita a transcricao que ja comecou em segundo plano
+                    fr = job["feitas"] / job["total"] if job["total"] else 0.0
+                    avisa(job["etapa"], 0.02 + 0.9 * fr); time.sleep(0.3)
+                if job["erro"] == "cancelado":
+                    raise capcut.ErroProjeto("Transcrição cancelada.")
+                pronto = job["res"]
+            cancela = job["cancelar"] if job else threading.Event()
+            try:
+                an = processa.analisa_rotina(raiz, caminho, {"modelo": modelo}, avisa, cancelado=cancela.is_set, pronto=pronto)
+            except pacote.Cancelado:
+                raise capcut.ErroProjeto("Transcrição cancelada.")
             aid = uuid.uuid4().hex[:10]
             ANALISES[aid] = an
             cache = capcut.cache_efeitos(raiz)
@@ -452,6 +508,8 @@ class H(BaseHTTPRequestHandler):
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
                                    "modelo": transcricao.modelo_pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
+            if u.path == "/api/rotina/estado":
+                return self._json(estado_rotina())
             if u.path == "/api/ipad/legenda":             # andamento da transcricao em segundo plano
                 ses = IPAD.get(q.get("sessao", [""])[0]) or {}
                 est = ses.get("legenda") or {}
@@ -577,6 +635,7 @@ class H(BaseHTTPRequestHandler):
                 if not ps or any(not p.is_file() or p.suffix.lower() not in EXT_VIDEO for p in ps):
                     return self._json({"erro": "Algum vídeo da lista não foi encontrado. Escolha de novo."}, 400)
                 conta.exige_ativa()
+                rotina_em_segundo_plano([str(p) for p in ps], c.get("modelo", "preciso"))   # ja rodando: reaproveita
                 return self._json({"id": novo_job(trabalho_analisa([str(p) for p in ps], c.get("modelo", "preciso"), "rotina"))})
             if u.path == "/api/analisar":
                 p = Path(c.get("caminho", ""))
@@ -585,6 +644,17 @@ class H(BaseHTTPRequestHandler):
                 modo = c.get("modo", "cortes") if c.get("modo") in ("cortes", "legenda", "rotina") else "cortes"
                 conta.exige_ativa()                       # falha logo, antes de gastar CPU
                 return self._json({"id": novo_job(trabalho_analisa(str(p), c.get("modelo", "preciso"), modo))})
+            if u.path == "/api/rotina/transcrever":      # takes escolhidos: comeca a transcrever ja, em segundo plano
+                ps = [Path(x) for x in (c.get("caminhos") or [])]
+                if not ps or any(not p.is_file() or p.suffix.lower() not in EXT_VIDEO for p in ps):
+                    return self._json({"erro": "Algum vídeo da lista não foi encontrado."}, 400)
+                conta.exige_ativa()
+                rotina_em_segundo_plano([str(p) for p in ps], c.get("modelo", "preciso"))
+                return self._json(estado_rotina())
+            if u.path == "/api/rotina/cancelar":
+                j = RT_BG["job"]
+                if j: j["cancelar"].set()
+                return self._json(estado_rotina())
             if u.path == "/api/rotina/cortes":            # controles "silencio minimo" e "duracao minima": refaz a lista
                 an = ANALISES.get(c.get("analise"))
                 if not an or an.get("modo") != "rotina":
