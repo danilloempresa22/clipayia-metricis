@@ -174,7 +174,8 @@ def rotina_em_segundo_plano(caminhos, modelo="preciso"):
             if job["cancelar"].is_set():
                 raise pacote.Cancelado()
             job["res"] = pacote.transcreve_takes(
-                lambda: processa._whisper(modelo, lambda e, f=None: job.update(etapa=e), 0, 0), job["caminhos"], modelo,
+                lambda threads=None: processa._whisper(modelo, lambda e, f=None: job.update(etapa=e), 0, 0, threads),
+                job["caminhos"], modelo,
                 ao_ler=lambda k, n: job.update(etapa=f"Lendo o áudio dos takes ({k} de {n})"),
                 progresso=lambda k, n: job.update(feitas=k, total=n, etapa=f"Transcrevendo (trecho {k} de {n})"),
                 cancelado=job["cancelar"].is_set)

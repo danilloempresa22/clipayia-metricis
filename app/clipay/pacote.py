@@ -7,12 +7,14 @@ nao muda com mais threads). Juntar a voz de todos os takes num audio unico com j
 encoder pela metade, mas deixou o total MAIS LENTO (o decoder gera mais tokens por janela cheia: 30 takes 239 s ->
 253 s; video de 10,7 min 524 s -> 561 s) e jogou palavras pro take vizinho nas emendas. Por isso nao e' usado.
 Cache por (caminho, tamanho, data, modelo): refazer ou reordenar os takes nao transcreve de novo."""
-import hashlib, json
+import hashlib, json, threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import numpy as np
 from . import audio, palavras, transcricao, vlog
 
 VERSAO = 1                           # muda quando o metodo mudar (invalida o cache)
+PARALELO = 3                         # takes transcritos ao mesmo tempo (threads do onnxruntime divididas entre eles)
 
 
 class Cancelado(Exception):
@@ -61,12 +63,12 @@ def originais(caminhos, audios):
 
 # ---------------- tudo junto ----------------
 def transcreve_takes(w, arquivos, modelo="preciso", usar_cache=True, progresso=None, cancelado=None, audios=None,
-                     ao_ler=None):
+                     ao_ler=None, paralelo=PARALELO):
     """arquivos na ordem -> {"palavras": {caminho: [{t,a,b}]}, "duracao": s de audio, "tipos": {caminho: fala|broll|
     duplicado|cache}, "audios": {caminho: x}, "blocos": n}. progresso(feitos, total) por bloco do Whisper;
     cancelado() -> True interrompe (Cancelado). audios: {caminho: x} ja extraidos (nao roda o ffmpeg de novo).
-    ao_ler(i, n): andamento da leitura dos arquivos. w pode ser uma funcao que devolve o Whisper (so carrega o modelo
-    se houver o que transcrever)."""
+    ao_ler(i, n): andamento da leitura dos arquivos. w pode ser uma funcao w(threads=) que devolve o Whisper (so
+    carrega o modelo se houver o que transcrever, ja com as threads divididas pelos takes em paralelo)."""
     crono = transcricao.CRONO
     cancelado = cancelado or (lambda: False)
     caminhos = [str(Path(a)) for a in arquivos]
@@ -101,20 +103,35 @@ def transcreve_takes(w, arquivos, modelo="preciso", usar_cache=True, progresso=N
         if not n:
             res[c] = []; tipos[c] = "broll"; continue
         tipos[c] = "fala"; fila.append((c, n))
-    total = sum(n for _, n in fila); feitos = 0
+    total = sum(n for _, n in fila)
+    par = max(1, min(paralelo, len(fila)))
     if fila and callable(w) and not hasattr(w, "segmentos"):
-        w = w()
-    for c, n in fila:
-        if cancelado(): raise Cancelado()
-        base = feitos
+        w = w(threads=max(1, transcricao.nucleos_fisicos() // par))
+    feitos = {"n": 0}; trava = threading.Lock()
 
-        def passo(i, _n, base=base):
-            if progresso: progresso(base + i, total)
+    def um(c):
+        def passo(i, _n):
+            with trava:
+                feitos["n"] += 1; k = feitos["n"]
+            if progresso: progresso(k, total)
             if cancelado(): raise Cancelado()          # para entre um bloco e outro
-        res[c] = palavras.transcreve(w, audios[c], passo)
-        feitos += n
+        if cancelado(): raise Cancelado()
+        pal = palavras.transcreve(w, audios[c], passo)
         if usar_cache:
-            grava_cache(c, modelo, res[c])
+            grava_cache(c, modelo, pal)                # so take inteiro vai pro cache
+        return c, pal
+    # varios takes ao mesmo tempo: o decoder passa ~90% do tempo copiando memoria num nucleo so, entao 3 takes
+    # em paralelo (2 threads cada) aproveitam o processador. Medido: 30 takes 239 s -> 189 s, texto identico.
+    with ThreadPoolExecutor(par) as ex:
+        futs = [ex.submit(um, c) for c, _ in fila]
+        erro = None
+        for f in futs:
+            try:
+                c, pal = f.result(); res[c] = pal
+            except BaseException as e:                 # noqa: BLE001 — espera os outros pararem e repassa
+                erro = erro or e
+        if erro:
+            raise erro
     for c, orig in dup.items():
         res[c] = [dict(p) for p in res.get(orig, [])]
         if usar_cache:

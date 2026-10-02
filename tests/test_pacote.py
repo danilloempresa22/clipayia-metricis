@@ -97,9 +97,33 @@ def test_cancelar_entre_dois_blocos(takes):
     def cancelado():
         return w.chamadas >= 1                                    # o 1o bloco roda, o resto para
     with pytest.raises(pacote.Cancelado):
-        pacote.transcreve_takes(w, [takes["longo"], takes["fim"]], cancelado=cancelado)
+        pacote.transcreve_takes(w, [takes["longo"], takes["fim"]], cancelado=cancelado, paralelo=1)
     assert w.chamadas == 1
     assert not list((transcricao.pasta_dados() / "cache_transcricao").glob("*.json"))   # nada pela metade no cache
+
+
+class WhisperPorConteudo:
+    """texto depende so do audio do bloco (como o Whisper de verdade), nao da ordem das chamadas"""
+    def segmentos(self, x):
+        return [(0.0, len(x) / audio.SR, f"tom{int(np.argmax(np.abs(np.fft.rfft(x))) * audio.SR / len(x) / 10)} ok")]
+
+
+def test_tres_ao_mesmo_tempo_da_o_mesmo_resultado(takes):
+    ordem = [takes["curto"], takes["fim"], takes["longo"], takes["mudo"]]
+    um = pacote.transcreve_takes(WhisperPorConteudo(), ordem, usar_cache=False, paralelo=1)
+    andamento = []
+    tres = pacote.transcreve_takes(WhisperPorConteudo(), ordem, usar_cache=False, paralelo=3,
+                                   progresso=lambda k, n: andamento.append((k, n)))
+    assert tres["palavras"] == um["palavras"]
+    assert sorted(k for k, _ in andamento) == list(range(1, tres["blocos"] + 1))      # andamento conta cada bloco 1 vez
+
+
+def test_cancelar_com_tres_ao_mesmo_tempo_para_todos(takes):
+    w = WhisperFalso()
+    with pytest.raises(pacote.Cancelado):
+        pacote.transcreve_takes(w, [takes["longo"], takes["fim"], takes["curto"]], paralelo=3,
+                                cancelado=lambda: w.chamadas >= 1)
+    assert w.chamadas <= 3                                        # cada take para no 1o bloco, no maximo
 
 
 def test_arquivo_sem_trilha_de_audio(tmp_path):

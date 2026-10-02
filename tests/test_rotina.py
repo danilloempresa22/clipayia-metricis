@@ -63,7 +63,7 @@ def whisper_falso(tmp_path, monkeypatch):
     d = tmp_path / "dados"; d.mkdir()
     monkeypatch.setattr(transcricao, "pasta_dados", lambda: d)                    # cache isolado
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
-    monkeypatch.setattr(transcricao, "Whisper", lambda q: WhisperFalso())
+    monkeypatch.setattr(transcricao, "Whisper", lambda q, **k: WhisperFalso())
 
 
 @pytest.fixture
