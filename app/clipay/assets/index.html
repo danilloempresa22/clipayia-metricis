@@ -1,14 +1,15 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clipay.ia</title>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/tokens.css">
 <style>
-/* Paleta medida pixel a pixel na referencia (Referencia imagem/referencia app.jpg, mediana de cada regiao) */
+/* Tokens novos (cores, fonte, tipo, raios) em /assets/tokens.css. As variaveis abaixo sao as das telas de Edicao,
+   Tutorial e login, que herdam os tokens numa rodada separada. --bg vem dos tokens. */
 :root{
-  color-scheme:dark;
-  --bg:#0e0e0e;          /* moldura do app (entre os cards) */
   --lateral:#191919;     /* painel da sidebar */
   --card:#191919;        /* cards */
   --card2:#232323;       /* card elevado / hover */
@@ -32,11 +33,12 @@
   --ativo-bg:#ffffff;    /* item ativo da sidebar */
   --ativo-txt:#0e0e0e;
   --raio:16px;
-  --fonte:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --fonte:var(--font);   /* Inter embutida (tokens.css) */
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 var(--fonte)}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 var(--fonte);
+  font-optical-sizing:auto;font-feature-settings:var(--font-features);-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 18px;font-weight:600;background:var(--acc);color:var(--acc-tinta)}
 button:hover:not(:disabled){background:var(--acc2)}
 button:disabled{opacity:.45;cursor:default}
@@ -57,36 +59,45 @@ input:focus{outline:2px solid var(--acc);border-color:transparent}
 .msg.erro{background:var(--erro-fundo);border:1px solid #5a2622;color:var(--erro)}
 .msg.aviso{background:rgba(245,184,75,.1);border:1px solid rgba(245,184,75,.35);color:#f7d68c}
 
-/* ---------- layout: sidebar + conteudo ---------- */
-.app{display:grid;grid-template-columns:248px 1fr;gap:14px;min-height:100vh;padding:14px}
-aside{background:var(--lateral);border:1px solid var(--linha);border-radius:var(--raio);padding:18px 14px;display:flex;flex-direction:column;
-  position:sticky;top:14px;height:calc(100vh - 28px)}
-.marca{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;background:none;color:var(--txt);font-size:17px;font-weight:700;letter-spacing:-.01em;width:100%;justify-content:flex-start}
+/* ---------- layout: barra lateral flutuante + conteudo (tokens.css; referencia docs/design/dashboard-novo-visual.html) ---------- */
+.app{display:grid;grid-template-columns:244px minmax(0,1fr);gap:16px;max-width:1560px;margin-inline:auto;padding:16px;min-height:100vh}
+body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% -8%,rgba(179,247,6,.06),transparent 70%) no-repeat}
+.side{position:sticky;top:16px;height:calc(100vh - 32px);display:flex;flex-direction:column;gap:6px;padding:14px 12px 12px;
+  background:var(--side-grad);border:1px solid var(--hair);border-radius:var(--r-side);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.side button{font:inherit;background:none;color:inherit;border:0;padding:0;border-radius:0;font-weight:inherit}
+.side .i,.dash .i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.marca{padding:6px 10px 20px!important;display:flex;align-items:center;border-radius:var(--r-item)!important}
 .marca:hover:not(:disabled){background:none}
-.marca .selo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--acc-claro),var(--acc) 55%,var(--acc-escuro));flex:none}
-.marca b{color:var(--acc)}
-.secao{font-size:12px;color:var(--mudo);padding:0 8px 8px}
-nav{display:flex;flex-direction:column;gap:4px}
-.nav{display:flex;align-items:center;gap:12px;width:100%;background:transparent;color:var(--txt);font-weight:500;padding:8px;border-radius:12px;text-align:left}
-.nav:hover:not(:disabled){background:var(--card2)}
-.nav .tile{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--mudo)}
-.nav.ativo{background:var(--ativo-bg);color:var(--ativo-txt)}
-.nav.ativo:hover{background:var(--ativo-bg)}
-.nav.ativo .tile{background:var(--acc-claro);color:var(--acc-tinta)}
-.usuario{margin-top:auto;border-top:1px solid var(--linha);padding-top:14px;position:relative}
-.usuario .secao{padding-bottom:10px}
-.usuario .quem{display:flex;align-items:center;gap:10px;padding:0 4px 0 8px}
-.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:var(--acc-tinta);
-  background:linear-gradient(135deg,var(--acc-claro),var(--acc));flex:none}
-.usuario .nome{font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.usuario .sub{font-size:12px;color:var(--mudo);display:flex;align-items:center;gap:6px}
-.ponto{width:7px;height:7px;border-radius:50%;background:var(--mudo)}
-.ponto.on{background:var(--acc)}
-.menu-conta{position:absolute;bottom:52px;right:4px;background:var(--card2);border:1px solid var(--linha);border-radius:12px;padding:6px;min-width:150px;z-index:5}
-.menu-conta button{width:100%;background:none;color:var(--txt);text-align:left;font-weight:500}
-.menu-conta button:hover{background:var(--linha)}
+.marca img{display:block;width:50px;height:auto}
+.side nav{display:flex;flex-direction:column;gap:2px}
+.side .item{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px!important;border-radius:var(--r-item)!important;width:100%;
+  color:var(--text-2);font-weight:500!important;font-size:14px;letter-spacing:-.006em;text-align:left;transition:background var(--dur),color var(--dur)}
+.side .item:hover:not(:disabled){background:var(--raise);color:var(--text)}
+.side .item[aria-current="page"]{background:var(--raise-on);color:var(--text)}
+.side .item[aria-current="page"] .i{color:var(--accent)}
+.side :focus-visible,.dash :focus-visible{outline:var(--focus);outline-offset:2px}
+
+.conta{position:relative;margin-top:auto}
+.acc-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px 8px 8px!important;text-align:left;
+  background:var(--raise)!important;border:1px solid var(--hair)!important;border-radius:16px!important;transition:background var(--dur),border-color var(--dur)}
+.acc-btn:hover:not(:disabled),.acc-btn[aria-expanded="true"]{background:rgba(255,255,255,.08)!important;border-color:var(--hair-2)!important}
+.avatar{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:14px;
+  color:var(--accent-ink);background:linear-gradient(135deg,var(--accent-hi),var(--accent))}
+.acc-id{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
+.acc-nome{font-weight:600;font-size:13.5px;letter-spacing:-.006em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.acc-sub{display:flex;align-items:center;gap:6px;color:var(--text-3);font-size:12px}
+.ponto{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex:none}
+.ponto.on{background:var(--status);box-shadow:0 0 0 3px var(--status-halo)}
+.acc-btn>.i{width:16px;height:16px;color:var(--text-3)}
+.menu-conta{position:absolute;left:0;right:0;bottom:calc(100% + 8px);padding:6px;z-index:5;background:rgba(28,28,31,.96);
+  border:1px solid var(--hair-2);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px)}
+.menu-conta .item{height:36px;font-size:13.5px}
+.menu-conta hr{border:0;border-top:1px solid var(--hair);margin:6px 4px}
+.menu-head{padding:8px 12px 6px;color:var(--text-3);font-size:12px;line-height:1.4}
+.menu-head b{display:block;color:var(--text);font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .conteudo{min-width:0;padding:6px 10px 40px}
+.conteudo:has(> #pag-inicio:not(.oculto)){padding-bottom:0}
 .topo{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:4px 0 18px;min-height:44px}
 .topo h1{font-size:24px;letter-spacing:-.02em;margin:0}
 .card{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio);padding:20px}
@@ -94,42 +105,81 @@ nav{display:flex;flex-direction:column;gap:4px}
 .pilha>.card{margin-bottom:14px}
 .estreito{max-width:880px}
 
-/* ---------- dashboard ---------- */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-.stat{position:relative;min-height:176px;display:flex;flex-direction:column}
-.stat.destaque{background:radial-gradient(90% 85% at 42% 0%,var(--destaque-topo),var(--destaque-a) 45%,var(--destaque-b) 100%);border-color:var(--destaque-borda)}
-.stat .cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto}
-.stat .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--txt)}
-.stat .rot{color:var(--txt);font-size:14px;margin:18px 0 2px}
-.stat .valor{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.stat .valor b{font-size:32px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
-.stat .nota{font-size:12px;color:var(--mudo);margin-top:4px}
+/* selos (telas de Edicao) */
 .badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .badge.pos{background:var(--ok-fundo);color:var(--ok)}
 .badge.neg{background:var(--erro-fundo);color:var(--erro)}
 .badge.neutro{background:rgba(255,255,255,.07);color:var(--mudo)}
-.grade{display:grid;grid-template-columns:2fr 1fr;gap:14px}
-.grafico{position:relative}
-.grafico svg{display:block;width:100%;height:auto;overflow:visible}
-.grafico .grade-y{stroke:var(--linha);stroke-width:1}
-.grafico .eixo{fill:var(--mudo);font-size:11px;font-family:var(--fonte)}
-.grafico .barra{fill:var(--acc)}
-.grafico .barra.zero{fill:var(--linha)}
-.grafico .col:hover .barra{fill:var(--acc-claro)}
-.grafico .rotulo{fill:var(--txt);font-size:11px;font-weight:600;font-family:var(--fonte)}
-.dica{position:absolute;pointer-events:none;background:var(--card2);border:1px solid var(--linha);border-radius:10px;padding:8px 10px;font-size:12px;
-  white-space:nowrap;transform:translate(-50%,-100%);box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.dica b{display:block;font-size:14px}
 .so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.recentes{list-style:none;margin:0;padding:0}
-.recentes li{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linha)}
-.recentes li:last-child{border:0}
-.recentes .mini{width:34px;height:34px;border-radius:9px;background:var(--ok-fundo);color:var(--acc);display:grid;place-items:center;flex:none}
+
+/* ---------- dashboard (menos borda, mais tipografia e espaco) ---------- */
+.dash{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:20px;padding:14px 2px 4px;
+  min-height:calc(100vh - 32px - 6px);              /* tela - margem do .app - topo do .conteudo: os cartoes de baixo enchem o resto */
+  color:var(--text);font-variant-numeric:tabular-nums}
+.dash button{font:inherit;cursor:pointer;border:0}
+.dash-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.dash h1{margin:0;font:var(--t-page);letter-spacing:var(--t-page-track);text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--text-2);font-size:15px}
+.lede strong{color:var(--text);font-weight:600}
+.btn-nova{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 20px 0 16px!important;border-radius:var(--r-pill)!important;
+  background:var(--accent)!important;color:var(--accent-ink)!important;font-weight:600!important;font-size:14px;letter-spacing:-.006em;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,var(--accent-glow);transition:filter var(--dur),transform .12s}
+.btn-nova:hover:not(:disabled){filter:brightness(1.08)}
+.btn-nova:active{transform:scale(.98)}
+.btn-nova .i{width:18px;height:18px;stroke-width:2.2}
+.d-card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-card);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);min-width:0}
+.d-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.d-stat{padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px}
+.d-stat--hero{background:radial-gradient(120% 150% at 0% 0%,rgba(179,247,6,.30),rgba(179,247,6,.08) 46%,transparent 78%),var(--surface);border-color:var(--accent-line)}
+.d-ico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.07);border:1px solid var(--hair);color:var(--text)}
+.d-stat--hero .d-ico{color:var(--accent);background:rgba(0,0,0,.28);border-color:var(--accent-line)}
+.d-label{margin:0;font:var(--t-label);color:var(--text-2);letter-spacing:-.004em}
+.d-value{margin:4px 0 0;display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;font:var(--t-value);letter-spacing:var(--t-value-track)}
+.unit{font-size:.5em;font-weight:500;letter-spacing:-.01em;color:var(--text-2);margin-left:4px;margin-right:8px}
+.unit:last-child{margin-right:0}
+.d-note{margin:10px 0 0;font-size:var(--fs-note);color:var(--text-3)}
+.d-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:var(--r-pill);font-size:12px;font-weight:600;letter-spacing:0;white-space:nowrap}
+.d-chip .i{width:12px;height:12px;stroke-width:2.4}
+.d-chip--pos{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
+.d-chip--neg{background:var(--erro-fundo);color:var(--erro);border:1px solid #5a2622}
+.d-chip--neutro{background:var(--raise);color:var(--text-2);border:1px solid var(--hair-2);font-weight:500}
+.d-content{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,1fr);gap:16px;min-height:0}
+.d-panel{padding:22px 22px 18px;display:flex;flex-direction:column;gap:18px;min-height:340px}
+.d-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dash h2.d-title{margin:0;font:var(--t-card);letter-spacing:var(--t-card-track)}
+.d-pill{padding:4px 11px;border-radius:var(--r-pill);background:var(--raise);border:1px solid var(--hair);color:var(--text-2);font-size:12px;font-weight:500}
+.d-link{background:none!important;color:var(--accent)!important;font-size:13px;font-weight:500!important;border-radius:8px!important;padding:2px 4px!important;margin-right:-4px}
+.d-link:hover:not(:disabled){color:var(--accent-hi)!important}
+/* grafico: barras em HTML, 3 linhas de grade (0, metade, maximo); semana sem dado = traco discreto */
+.grafico{flex:1;min-height:230px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:14px;row-gap:10px}
+.g-y{position:relative;font-size:12px;color:var(--text-3);text-align:right;min-width:16px}
+.g-y span{position:absolute;right:0;transform:translateY(50%)}
+.g-plot{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
+.g-linha{position:absolute;left:0;right:0;border-top:1px dashed rgba(255,255,255,.08)}
+.g-linha--base{border-top:1px solid var(--hair-2)}
+.g-slot{position:relative}
+.g-bar{position:absolute;bottom:0;left:50%;width:min(34px,62%);height:var(--h);border-radius:10px 10px 4px 4px;transform:translateX(-50%);transform-origin:50% 100%;
+  animation:cresce var(--grow) both}
+.g-bar--atual{background:linear-gradient(180deg,var(--accent-hi),var(--accent) 55%,rgba(179,247,6,.55));box-shadow:0 10px 30px -8px rgba(179,247,6,.5)}
+.g-bar--antes{background:rgba(179,247,6,.32)}
+.g-bar--vazia{height:6px;border-radius:99px;background:var(--hair-2);animation:none}
+.g-val{position:absolute;left:50%;bottom:calc(var(--h) + 10px);transform:translateX(-50%);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.g-x{grid-column:2;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));font-size:12px;color:var(--text-3);text-align:center}
+.g-x .agora{color:var(--text);font-weight:600}
+@keyframes cresce{from{transform:translateX(-50%) scaleY(0)}to{transform:translateX(-50%) scaleY(1)}}
+/* ultimos projetos */
+.recentes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.recentes li{display:flex;align-items:center;gap:12px;padding:10px;margin-inline:-10px;border-radius:14px;transition:background var(--dur)}
+.recentes li:hover{background:var(--raise)}
+.recentes .mini{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line)}
+.recentes .mini .i{width:18px;height:18px}
 .recentes .t{min-width:0;flex:1}
-.recentes .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recentes .t span{font-size:12px;color:var(--mudo)}
-.vazio{color:var(--mudo);text-align:center;padding:28px 10px}
+.recentes .t b{display:block;margin:0;font-weight:600;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recentes .t span{display:block;margin-top:1px;font-size:var(--fs-note);color:var(--text-3)}
+.recentes .ganho{font-size:var(--fs-note);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap}
+.vazio{color:var(--text-2);text-align:center;padding:28px 10px}
 .vazio p{margin:0 0 14px}
+@media (prefers-reduced-motion:reduce){.g-bar{animation:none}.side *,.dash *{transition:none!important}}
 
 /* ---------- fluxo de edicao ---------- */
 .drop{border:1.5px dashed #333333;border-radius:var(--raio);padding:56px 24px;text-align:center;transition:.15s;background:var(--card)}
@@ -276,8 +326,35 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 .rodape a{color:var(--txt);font-weight:600;margin-left:4px}.rodape a:hover{text-decoration:underline}
 .msg.ok{background:var(--ok-fundo);border:1px solid #2f4a1c;color:var(--acc)}
 
-@media (max-width:1100px){.stats{grid-template-columns:1fr 1fr}.grade{grid-template-columns:1fr}}
-@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr)}aside{position:static;height:auto}.usuario{margin-top:16px}.stats{grid-template-columns:1fr}}
+/* ate 1100 px: barra lateral so com icones (76 px), conta vira so o avatar */
+@media (max-width:1100px){
+  .app{grid-template-columns:76px minmax(0,1fr)}
+  .marca{justify-content:center;padding-inline:0!important}
+  .marca img{width:42px}
+  .side .item{justify-content:center;padding:0!important}
+  .side nav .item span,.acc-id,.acc-btn>.i{display:none}
+  .acc-btn{justify-content:center;padding:8px!important}
+  .menu-conta{right:auto;width:230px}
+  .d-stats{grid-template-columns:1fr 1fr}
+  .d-stats .d-stat:last-child{grid-column:1 / -1}
+  .d-content{grid-template-columns:1fr}
+  .dash{min-height:0}
+}
+/* ate 720 px: a barra vira uma faixa no topo e tudo empilha numa coluna */
+@media (max-width:720px){
+  .app{grid-template-columns:minmax(0,1fr);min-height:0;padding:12px}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px}
+  .marca{padding:0 6px 0 4px!important}
+  .side nav{flex-direction:row;flex:1;justify-content:center}
+  .side nav .item{width:44px;height:40px}
+  .conta{margin-top:0}
+  .menu-conta{bottom:auto;top:calc(100% + 8px);right:0;left:auto}
+  .conteudo{padding-inline:0}
+  .dash h1{font-size:28px}
+  .d-stats{grid-template-columns:1fr}
+  .d-value{font-size:40px}
+  .d-chip--pos{white-space:normal}
+}
 </style>
 </head>
 <body>
@@ -291,6 +368,13 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
   <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></symbol>
+  <symbol id="i-tutorial" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 6 3.5-6 3.5z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></symbol>
+  <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
   <symbol id="i-cima" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
@@ -322,26 +406,29 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 
 <!-- ================= APP ================= -->
 <div class="app oculto" id="app">
-  <aside>
-    <button class="marca" id="ir-inicio" title="Início"><span class="selo"></span><span>Clipay<b>.ia</b></span></button>
-    <div class="secao">Menu</div>
-    <nav>
-      <button class="nav" data-pag="edicao"><span class="tile"><svg class="ic"><use href="#i-tesoura"/></svg></span>Edição</button>
-      <button class="nav" data-pag="tutorial"><span class="tile"><svg class="ic"><use href="#i-play"/></svg></span>Tutorial</button>
+  <aside class="side">
+    <button class="marca" id="ir-inicio" type="button" title="Início"><img src="/assets/img/logo-clipay-mark.png" alt="Clipay.ia" width="50" height="30"></button>
+    <nav aria-label="Principal">
+      <button class="nav item" type="button" data-pag="inicio" title="Início"><svg class="i"><use href="#i-casa"/></svg><span>Início</span></button>
+      <button class="nav item" type="button" data-pag="edicao" title="Edição"><svg class="i"><use href="#i-tesoura"/></svg><span>Edição</span></button>
+      <button class="nav item" type="button" data-pag="tutorial" title="Tutorial"><svg class="i"><use href="#i-tutorial"/></svg><span>Tutorial</span></button>
     </nav>
-    <div class="usuario">
-      <div class="secao">Conta</div>
-      <div class="quem">
-        <div class="avatar" id="avatar">?</div>
-        <div style="min-width:0;flex:1">
-          <div class="nome" id="u-nome">—</div>
-          <div class="sub"><span class="ponto" id="u-ponto"></span><span id="u-status">—</span></div>
-        </div>
-        <button class="icone" id="abre-menu" aria-label="Opções da conta" aria-expanded="false"><svg class="ic"><use href="#i-pontos"/></svg></button>
-      </div>
-      <div class="menu-conta oculto" id="menu-conta">
-        <button id="abrir-site-menu">Minha conta no site</button>
-        <button id="sair">Sair</button>
+    <div class="conta" id="conta">
+      <button class="acc-btn" id="abre-menu" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-conta" aria-label="Conta">
+        <span class="avatar" id="avatar" aria-hidden="true">?</span>
+        <span class="acc-id">
+          <span class="acc-nome" id="u-nome">—</span>
+          <span class="acc-sub"><span class="ponto" id="u-ponto"></span><span id="u-status">—</span></span>
+        </span>
+        <svg class="i"><use href="#i-chev"/></svg>
+      </button>
+      <div class="menu-conta" id="menu-conta" role="menu" aria-label="Conta" hidden>
+        <div class="menu-head"><b id="m-nome">—</b><span id="m-status">—</span></div>
+        <hr>
+        <button class="item" type="button" role="menuitem" id="abrir-site-menu" tabindex="-1"><svg class="i"><use href="#i-user"/></svg><span>Minha conta</span></button>
+        <button class="item" type="button" role="menuitem" id="plano-menu" tabindex="-1"><svg class="i"><use href="#i-cartao"/></svg><span>Plano e cobrança</span></button>
+        <hr>
+        <button class="item" type="button" role="menuitem" id="sair" tabindex="-1"><svg class="i"><use href="#i-sair"/></svg><span>Sair</span></button>
       </div>
     </div>
   </aside>
@@ -349,44 +436,60 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
   <div class="conteudo">
 
     <!-- ===== INICIO (dashboard) ===== -->
-    <section id="pag-inicio" class="pagina">
-      <div class="topo"><h1>Dashboard</h1>
-        <button id="nova-edicao" class="linha" style="gap:8px"><svg class="ic"><use href="#i-mais"/></svg>Nova edição</button></div>
+    <section id="pag-inicio" class="pagina dash">
+      <header class="dash-head">
+        <div>
+          <h1 id="saudacao">Olá</h1>
+          <p class="lede oculto" id="lede">Você já tirou <strong id="lede-silencio"></strong> de silêncio dos seus vídeos.</p>
+        </div>
+        <button id="nova-edicao" class="btn-nova" type="button"><svg class="i"><use href="#i-mais"/></svg>Nova edição</button>
+      </header>
 
-      <div class="stats">
-        <article class="card stat destaque">
-          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-video"/></svg></span></div>
-          <div class="rot">Vídeos feitos</div>
-          <div class="valor"><b id="st-videos">–</b><span class="badge" id="st-videos-var"></span></div>
-          <div class="nota" id="st-videos-nota">&nbsp;</div>
+      <section class="d-stats" aria-label="Resumo">
+        <article class="d-card d-stat d-stat--hero">
+          <span class="d-ico"><svg class="i"><use href="#i-camera"/></svg></span>
+          <div>
+            <h2 class="d-label">Vídeos feitos</h2>
+            <p class="d-value"><span id="st-videos">–</span><span class="d-chip" id="st-videos-var"></span></p>
+            <p class="d-note" id="st-videos-nota">&nbsp;</p>
+          </div>
         </article>
-        <article class="card stat">
+        <article class="d-card d-stat">
           <!-- TODO(dados): visualizacoes ainda nao tem fonte. Falta integrar com as redes (Instagram/TikTok/YouTube)
                ou pedir o numero ao usuario. Os valores abaixo sao ILUSTRATIVOS, marcados como "Exemplo" na tela. -->
-          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-olho"/></svg></span></div>
-          <div class="rot">Visualizações geradas</div>
-          <div class="valor"><b id="st-views">48,2 mil</b><span class="badge neutro">Exemplo</span></div>
-          <div class="nota">Conexão com Instagram e TikTok em breve.</div>
+          <span class="d-ico"><svg class="i"><use href="#i-olho"/></svg></span>
+          <div>
+            <h2 class="d-label">Visualizações geradas</h2>
+            <p class="d-value"><span id="st-views">48,2 mil</span><span class="d-chip d-chip--neutro">Exemplo</span></p>
+            <p class="d-note">Conexão com Instagram e TikTok em breve.</p>
+          </div>
         </article>
-        <article class="card stat">
-          <div class="cab"><span class="ico"><svg class="ic"><use href="#i-relogio"/></svg></span></div>
-          <div class="rot">Silêncio removido</div>
-          <div class="valor"><b id="st-silencio">–</b></div>
-          <div class="nota">Somado dos projetos gerados neste computador.</div>
+        <article class="d-card d-stat">
+          <span class="d-ico"><svg class="i"><use href="#i-relogio"/></svg></span>
+          <div>
+            <h2 class="d-label">Silêncio removido</h2>
+            <p class="d-value"><span id="st-silencio">–</span></p>
+            <p class="d-note">Somado dos projetos gerados neste computador.</p>
+          </div>
         </article>
-      </div>
+      </section>
 
-      <div class="grade">
-        <article class="card">
-          <div class="linha" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Vídeos por semana</h2>
-            <span class="badge neutro">Últimas 8 semanas</span></div>
+      <section class="d-content">
+        <article class="d-card d-panel">
+          <div class="d-panel-head">
+            <h2 class="d-title">Vídeos por semana</h2>
+            <span class="d-pill">Últimas 8 semanas</span>
+          </div>
           <div class="grafico" id="grafico"></div>
         </article>
-        <article class="card">
-          <h2>Últimos projetos</h2>
+        <article class="d-card d-panel">
+          <div class="d-panel-head">
+            <h2 class="d-title">Últimos projetos</h2>
+            <button class="d-link" type="button" id="ver-todos" title="Abre o CapCut, onde ficam todos os projetos">Ver todos</button>
+          </div>
           <ul class="recentes" id="recentes"></ul>
         </article>
-      </div>
+      </section>
     </section>
 
     <!-- ===== EDICAO (o fluxo de sempre) ===== -->
@@ -810,7 +913,8 @@ async function acompanha(id, aoMudar){
 // ---------------- navegacao ----------------
 function pagina(nome){
   document.querySelectorAll(".pagina").forEach(p => p.classList.toggle("oculto", p.id !== "pag-"+nome));
-  document.querySelectorAll(".nav").forEach(b => { const on = b.dataset.pag === nome; b.classList.toggle("ativo", on); b.toggleAttribute("aria-current", on); });
+  document.querySelectorAll(".nav").forEach(b => { const on = b.dataset.pag === nome; b.classList.toggle("ativo", on);
+    if(on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   history.replaceState(null, "", nome === "inicio" ? location.pathname : "#"+nome);
   if(nome === "inicio") carregaPainel();
   if(nome === "edicao" && !ocupado) mostra(sessao && sessao.status === "ativo" ? "importar" : "inativa");
@@ -848,10 +952,13 @@ function aplicaSessao(){
     return;
   }
   erro("login-erro"); $("login-ok").classList.add("oculto");
-  $("u-nome").textContent = sessao.username;
+  $("u-nome").textContent = $("m-nome").textContent = sessao.username;
+  $("abre-menu").title = sessao.username;
   $("avatar").textContent = (sessao.username || "?").trim().charAt(0).toUpperCase();
-  $("u-status").textContent = ativo ? "Conta ativa" : "Aguardando ativação";
+  // o app nao tem o nome do plano (a sessao so traz status): nao inventa plano
+  $("u-status").textContent = $("m-status").textContent = ativo ? "Conta ativa" : "Aguardando ativação";
   $("u-ponto").classList.toggle("on", ativo);
+  saudacao();
   const h = location.hash.slice(1);
   pagina(["edicao","tutorial"].includes(h) ? h : "inicio");
 }
@@ -881,10 +988,29 @@ $("google").onclick = async () => {
   }catch(e){ erro("login-erro", e.message); }
 };
 $("cadastro").onclick = ev => { ev.preventDefault(); api("abrir-site", {caminho: "/cadastro"}).catch(e => erro("login-erro", e.message)); };
-$("abre-menu").onclick = e => { e.stopPropagation(); const m = $("menu-conta"); m.classList.toggle("oculto"); $("abre-menu").setAttribute("aria-expanded", !m.classList.contains("oculto")); };
-document.addEventListener("click", () => { $("menu-conta").classList.add("oculto"); $("abre-menu").setAttribute("aria-expanded", "false"); });
-$("sair").onclick = async () => { await api("logout", {}); sessao = {logado:false}; aplicaSessao(); };
-$("abrir-site-menu").onclick = $("abrir-site").onclick = () => api("abrir-site", {caminho: "/conta"});
+// menu da conta: abre acima do cartao; fecha com clique fora, Esc ou quando o foco sai; setas/Tab percorrem
+const menuConta = $("menu-conta"), botaoConta = $("abre-menu");
+const itensConta = () => [...menuConta.querySelectorAll('[role="menuitem"]')];
+function menuAberto(abrir, focarPrimeiro){
+  menuConta.hidden = !abrir; botaoConta.setAttribute("aria-expanded", String(abrir));
+  itensConta().forEach(b => b.tabIndex = abrir ? 0 : -1);
+  if(abrir && focarPrimeiro) itensConta()[0].focus();
+}
+botaoConta.onclick = e => { e.stopPropagation(); menuAberto(menuConta.hidden, e.detail === 0); };   // detail 0 = teclado
+botaoConta.onkeydown = e => { if(e.key === "ArrowUp" || e.key === "ArrowDown"){ e.preventDefault(); menuAberto(true, true); } };
+menuConta.onkeydown = e => {
+  const its = itensConta(), i = its.indexOf(document.activeElement);
+  if(e.key === "ArrowDown"){ e.preventDefault(); its[(i + 1) % its.length].focus(); }
+  if(e.key === "ArrowUp"){ e.preventDefault(); its[(i - 1 + its.length) % its.length].focus(); }
+  if(e.key === "Home"){ e.preventDefault(); its[0].focus(); }
+  if(e.key === "End"){ e.preventDefault(); its[its.length - 1].focus(); }
+};
+document.addEventListener("click", e => { if(!menuConta.hidden && !$("conta").contains(e.target)) menuAberto(false); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !menuConta.hidden){ menuAberto(false); botaoConta.focus(); } });
+$("conta").addEventListener("focusout", e => { if(!menuConta.hidden && !$("conta").contains(e.relatedTarget)) menuAberto(false); });
+$("sair").onclick = async () => { menuAberto(false); await api("logout", {}); sessao = {logado:false}; aplicaSessao(); };
+$("abrir-site-menu").onclick = $("plano-menu").onclick = $("abrir-site").onclick = () => { menuAberto(false); api("abrir-site", {caminho: "/conta"}); };
+$("ver-todos").onclick = () => api("abrir-capcut", {});
 $("reverificar").onclick = async () => { try{ sessao = await api("sessao"); aplicaSessao(); pagina("edicao"); }catch(e){ alert(e.message); } };
 $("salvar-raiz").onclick = async () => {
   try{ await api("raiz", {raiz: $("raiz").value}); $("sem-capcut").classList.add("oculto"); erro("imp-erro"); }
@@ -898,11 +1024,13 @@ async function carregaPainel(){
   $("st-videos").textContent = p.videos.toLocaleString("pt-BR");
   const s = p.semanas, esta = s[s.length-1].videos, antes = s[s.length-2].videos, dif = esta - antes;
   const badge = $("st-videos-var");
-  badge.className = "badge " + (dif > 0 ? "pos" : dif < 0 ? "neg" : "neutro");
-  badge.innerHTML = (dif ? '<svg class="ic" style="width:12px;height:12px"><use href="#i-'+(dif>0?"cima":"baixo")+'"/></svg>' : "") +
+  badge.className = "d-chip " + (dif > 0 ? "d-chip--pos" : dif < 0 ? "d-chip--neg" : "d-chip--neutro");
+  badge.innerHTML = (dif ? '<svg class="i"><use href="#i-'+(dif>0?"cima":"baixo")+'"/></svg>' : "") +
     (dif > 0 ? "+" : "") + dif + " vs semana passada";
   $("st-videos-nota").textContent = p.fonte === "conta" ? "Em todos os computadores da sua conta." : "Sem internet: contando só este computador.";
-  $("st-silencio").textContent = p.silencio_removido ? duracao(p.silencio_removido) : "0 s";
+  $("st-silencio").innerHTML = comUnidades(p.silencio_removido ? duracao(p.silencio_removido) : "0 s");
+  $("lede-silencio").textContent = p.silencio_removido ? duracao(p.silencio_removido) : "";
+  $("lede").classList.toggle("oculto", !p.silencio_removido);
   grafico(s);
   const ul = $("recentes"); ul.innerHTML = "";
   if(!p.recentes.length){
@@ -911,44 +1039,50 @@ async function carregaPainel(){
     ul.firstChild.appendChild(b); return;
   }
   p.recentes.forEach(r => {
-    const li = document.createElement("li");
-    li.innerHTML = '<span class="mini"><svg class="ic"><use href="#i-video"/></svg></span><div class="t"><b></b><span></span></div>';
+    const li = document.createElement("li"), poupou = Math.max(0, r.antes - r.depois);
+    li.innerHTML = '<span class="mini"><svg class="i"><use href="#i-camera"/></svg></span><div class="t"><b></b><span></span></div>' +
+      '<span class="ganho"></span>';
     li.querySelector("b").textContent = r.nome;
-    li.querySelector("span:last-child").textContent = dataCurta(r.data) + " · " + seg(r.antes) + " → " + seg(r.depois);
+    li.querySelector(".t span").textContent = dataCurta(r.data) + " · " + seg(r.antes) + " → " + seg(r.depois);
+    const g = li.querySelector(".ganho");                 // tempo economizado = duracao antes - depois
+    g.textContent = "−" + seg(poupou); g.title = "Economizou " + duracao(poupou);
     ul.appendChild(li);
   });
 }
 
-// barras: uma serie so (sem legenda; o titulo nomeia), topo arredondado ancorado na base, grade discreta,
-// dica ao passar o mouse e tabela escondida para leitor de tela
+// "8 min 50 s" -> numeros grandes e unidades menores e mais claras
+function comUnidades(txt){
+  return txt.replace(/(\d+)\s*(h|min|s)\b/g, (_, n, u) => n + '<span class="unit">' + u + '</span>');
+}
+function saudacao(){
+  const h = new Date().getHours(), g = h < 5 ? "Boa noite" : h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  const nome = sessao && sessao.username && !sessao.username.includes("@") ? sessao.username : "";   // e-mail nao e' nome
+  $("saudacao").textContent = nome ? g + ", " + nome : g;
+}
+
+// barras em HTML (crescem ao abrir), 3 linhas de grade (0, metade, maximo); semana sem dado = traco discreto;
+// semana atual em degrade lime com o valor em cima; tabela escondida para leitor de tela
 function grafico(semanas){
-  const W = 640, H = 230, m = {t:22, r:8, b:26, l:28}, iw = W-m.l-m.r, ih = H-m.t-m.b;
-  const max = Math.max(4, ...semanas.map(s => s.videos)), passo = Math.ceil(max/4), topo = passo*4;
-  const y = v => m.t + ih - v/topo*ih, bw = iw/semanas.length, larg = Math.min(34, bw*0.46);
-  let g = "";
-  for(let k = 0; k <= 4; k++){ const v = k*passo; g += '<line class="grade-y" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y(v)+'" y2="'+y(v)+'"/>' +
-    '<text class="eixo" x="'+(m.l-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'</text>'; }
+  const max = Math.max(...semanas.map(s => s.videos)), topo = Math.max(2, Math.ceil(max / 2) * 2), n = semanas.length;
+  const ult = n - 1;
+  const fala = semanas.map(s => s.videos).join(", ");
+  let barras = "", eixo = "";
   semanas.forEach((s, i) => {
-    const cx = m.l + bw*i + bw/2, x = cx - larg/2, alt = Math.max(s.videos ? 3 : 2, ih - (y(s.videos) - m.t)), r = Math.min(4, alt/2), y0 = m.t+ih;
-    const d = "M"+x+","+y0+" V"+(y0-alt+r)+" Q"+x+","+(y0-alt)+" "+(x+r)+","+(y0-alt)+" H"+(x+larg-r)+" Q"+(x+larg)+","+(y0-alt)+" "+(x+larg)+","+(y0-alt+r)+" V"+y0+" Z";
-    const ult = i === semanas.length-1;
-    g += '<g class="col" data-i="'+i+'"><rect x="'+(m.l+bw*i)+'" y="'+m.t+'" width="'+bw+'" height="'+ih+'" fill="transparent"/>' +
-      '<path class="barra'+(s.videos?"":" zero")+'" d="'+d+'"/>' +
-      (ult && s.videos ? '<text class="rotulo" x="'+cx+'" y="'+(y0-alt-6)+'" text-anchor="middle">'+s.videos+'</text>' : "") +
-      '<text class="eixo" x="'+cx+'" y="'+(H-6)+'" text-anchor="middle">'+(ult ? "Esta" : dataCurta(s.inicio+"T12:00"))+'</text></g>';
+    const h = (s.videos / topo * 100).toFixed(1) + "%", rot = "Semana de " + dataCurta(s.inicio + "T12:00") + ": " + s.videos + (s.videos === 1 ? " vídeo" : " vídeos");
+    barras += s.videos
+      ? '<div class="g-slot" style="--h:'+h+'" title="'+rot+'">'+(i === ult ? '<span class="g-val">'+s.videos+'</span>' : "")+
+        '<i class="g-bar '+(i === ult ? "g-bar--atual" : "g-bar--antes")+'"></i></div>'
+      : '<div class="g-slot" title="'+rot+'"><i class="g-bar g-bar--vazia"></i></div>';
+    eixo += i === ult ? '<span class="agora">Esta</span>' : '<span>'+dataCurta(s.inicio + "T12:00")+'</span>';
   });
   const tabela = '<table class="so-leitor"><caption>Vídeos por semana</caption><tr><th>Semana</th><th>Vídeos</th></tr>' +
     semanas.map(s => '<tr><td>'+dataCurta(s.inicio+"T12:00")+'</td><td>'+s.videos+'</td></tr>').join("") + '</table>';
-  $("grafico").innerHTML = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Vídeos feitos por semana nas últimas 8 semanas">'+g+'</svg>'+tabela+'<div class="dica oculto" id="dica"></div>';
-  const svg = $("grafico").querySelector("svg"), dica = $("dica");
-  svg.querySelectorAll(".col").forEach(c => {
-    c.onmouseenter = () => {
-      const s = semanas[+c.dataset.i], b = c.querySelector(".barra").getBBox(), esc = svg.clientWidth / W;
-      dica.innerHTML = "Semana de " + dataCurta(s.inicio+"T12:00") + "<b>" + s.videos + (s.videos === 1 ? " vídeo" : " vídeos") + "</b>";
-      dica.style.left = (b.x + b.width/2) * esc + "px"; dica.style.top = (b.y * esc - 8) + "px"; dica.classList.remove("oculto");
-    };
-    c.onmouseleave = () => dica.classList.add("oculto");
-  });
+  const g = $("grafico");
+  g.setAttribute("role", "img"); g.setAttribute("aria-label", "Vídeos feitos por semana nas últimas 8 semanas: " + fala + ".");
+  g.style.setProperty("--n", n);
+  g.innerHTML = '<div class="g-y" aria-hidden="true"><span style="bottom:100%">'+topo+'</span><span style="bottom:50%">'+(topo/2)+'</span><span style="bottom:0">0</span></div>' +
+    '<div class="g-plot" aria-hidden="true"><i class="g-linha" style="bottom:100%"></i><i class="g-linha" style="bottom:50%"></i><i class="g-linha g-linha--base" style="bottom:0"></i>' +
+    barras + '</div><div class="g-x" aria-hidden="true">'+eixo+'</div>' + tabela;
 }
 
 // ---------------- edicao: importar ----------------

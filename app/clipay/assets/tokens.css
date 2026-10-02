@@ -1,0 +1,72 @@
+/* Clipay.ia — tokens de design (fonte unica). Barra lateral e Dashboard ja usam; as outras telas herdam depois.
+   Referencia: docs/design/dashboard-novo-visual.html. Fonte embutida (sem CDN): o app funciona sem internet. */
+
+/* Inter variavel (rsms/inter v4.1, licenca SIL OFL 1.1 — assets/fonts/LICENSE.txt). Eixos: peso e tamanho optico. */
+@font-face{
+  font-family:"Inter";
+  src:url("/assets/fonts/InterVariable.woff2") format("woff2");
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+
+:root{
+  color-scheme:dark;
+
+  /* superficies */
+  --bg:#0a0a0b;
+  --surface:#131315;
+  --surface-2:#1b1b1e;
+  --raise:rgba(255,255,255,.05);          /* hover */
+  --raise-on:rgba(255,255,255,.09);       /* item ativo */
+  --hair:rgba(255,255,255,.08);           /* borda de 1 px */
+  --hair-2:rgba(255,255,255,.14);
+  --side-grad:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+
+  /* texto (terciario nunca mais escuro que #8e8e93: contraste >= 4,5:1 em texto pequeno) */
+  --text:#f5f5f7;
+  --text-2:#a1a1a6;
+  --text-3:#8e8e93;
+
+  /* destaque unico: o lime do logo */
+  --accent:#b3f706;
+  --accent-hi:#d7fd22;
+  --accent-ink:#0d1103;                   /* texto sobre o lime */
+  --accent-soft:rgba(179,247,6,.13);
+  --accent-line:rgba(179,247,6,.30);
+  --accent-glow:0 8px 24px -8px rgba(179,247,6,.55);
+
+  /* status (separado do destaque) */
+  --status:#30d158;
+  --status-halo:rgba(48,209,88,.16);
+
+  /* fonte (Inter embutida; SF Pro so se o sistema tiver — a licenca dela nao permite embutir) */
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --font-features:"cv11","ss03";
+
+  /* escala de tipo */
+  --t-page:600 34px/1.1 var(--font);      --t-page-track:-.03em;
+  --t-value:600 44px/1.05 var(--font);    --t-value-track:-.04em;
+  --t-card:600 17px/1.3 var(--font);      --t-card-track:-.018em;
+  --t-label:500 13px/1.4 var(--font);
+  --t-body:400 14px/1.45 var(--font);
+  --fs-note:12.5px;
+  --fs-small:12px;
+
+  /* forma */
+  --r-card:22px;
+  --r-side:24px;
+  --r-item:12px;
+  --r-pill:999px;
+
+  /* movimento */
+  --dur:.16s;
+  --grow:.8s cubic-bezier(.2,.8,.2,1);
+
+  /* foco visivel em tudo */
+  --focus:2px solid var(--accent);
+}
+
+@media (prefers-reduced-motion:reduce){
+  :root{--dur:0s}
+}

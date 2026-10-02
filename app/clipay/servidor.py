@@ -128,6 +128,9 @@ def novo_job(fn):
 
 
 EXT_AUDIO = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac")
+ESTATICOS = {("/assets/img", ".png"): "image/png",          # (pasta, extensao) -> tipo. Fonte embutida: o app
+             ("/assets/fonts", ".woff2"): "font/woff2",     # funciona sem internet (nada de CDN)
+             ("/assets", ".css"): "text/css; charset=utf-8"}
 
 
 def escolhe_arquivo(tipo="video"):
@@ -478,12 +481,13 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
-        if u.path.startswith("/assets/img/"):            # so imagens da pasta de assets (logo)
-            nome = Path(u.path).name
-            p = ASSETS / "img" / nome
-            if nome.lower().endswith(".png") and p.is_file():
+        if u.path.startswith("/assets/"):                # estaticos: so estes tipos, cada um na sua pasta (sem subir pasta)
+            pasta, nome = Path(u.path).parent.as_posix(), Path(u.path).name
+            tipo = ESTATICOS.get((pasta, Path(nome).suffix.lower()))
+            p = ASSETS / pasta.removeprefix("/assets").strip("/") / nome
+            if tipo and p.is_file():
                 b = p.read_bytes()
-                self.send_response(200); self.send_header("Content-Type", "image/png")
+                self.send_response(200); self.send_header("Content-Type", tipo)
                 self.send_header("Cache-Control", "max-age=3600")
                 self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
             self.send_response(404); self.end_headers(); return
