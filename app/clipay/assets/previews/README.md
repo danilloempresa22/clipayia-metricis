@@ -1,0 +1,1 @@
+﻿Prévias da tela de escolher o modelo: cortes.mp4, legenda.mp4, ipad.mp4, rotina.mp4 (9:16, H.264, 6 a 10 s, sem som, menos de 1,5 MB cada) e, opcional, o quadro parado de cada um com o mesmo nome em .jpg.

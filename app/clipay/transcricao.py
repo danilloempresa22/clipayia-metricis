@@ -326,8 +326,9 @@ def motor(qual="preciso", threads=None, paralelo=1, avisa=None):
     return Whisper(qual, threads=threads) if threads else Whisper(qual)
 
 
-def frases(w, x, progresso=None, max_s=15.0, min_s=6.0):
-    """divide o audio em pausas (6-15s) e transcreve cada pedaco -> [[ini, fim, texto]] em s do audio."""
+def frases(w, x, progresso=None, max_s=15.0, min_s=6.0, ao_texto=None):
+    """divide o audio em pausas (6-15s) e transcreve cada pedaco -> [[ini, fim, texto]] em s do audio.
+    ao_texto(ini, texto): avisa cada trecho assim que sai (so pra mostrar na tela)."""
     h = 160; n = len(x) // h
     if n == 0: return []
     e = 20 * np.log10(np.sqrt((x[:n * h].reshape(n, h) ** 2).mean(1)) + 1e-9)
@@ -341,7 +342,9 @@ def frases(w, x, progresso=None, max_s=15.0, min_s=6.0):
     for i, (a, b) in enumerate(zip(cortes[:-1], cortes[1:])):
         if e[a:b].max() > -45:
             t = w.texto(x[a * h:b * h])
-            if t: out.append([a / 100, b / 100, t])
+            if t:
+                out.append([a / 100, b / 100, t])
+                if ao_texto: ao_texto(a / 100, t)
         if progresso: progresso(i + 1, len(cortes) - 1)
     return out
 

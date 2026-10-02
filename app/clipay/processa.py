@@ -33,7 +33,9 @@ def analisa_legenda(raiz, video_path, opcoes=None, avisa=None):
     if len(x) == 0 or float(np.abs(x).max()) < 1e-3:
         raise capcut.ErroProjeto("Não encontrei fala nesse vídeo (sem áudio ou totalmente mudo).")
     w = _whisper(op.get("modelo", "preciso"), avisa)
-    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo palavra por palavra", 0.2 + 0.72 * i / n))
+    linha = getattr(avisa, "linha", None)                              # tarefa do app: mostra as frases enquanto saem
+    pal = palavras.transcreve(w, x, lambda i, n: avisa("Transcrevendo palavra por palavra", 0.2 + 0.72 * i / n),
+                              **({"ao_texto": linha} if linha else {}))
     avisa("Achando os cortes", 0.95)
     keep, mantidas = legenda.cortes(pal, info["duracao"])
     if not mantidas:
@@ -339,8 +341,10 @@ def _analisa(raiz, draft, meta, pasta, modo, op, avisa):
         total = sum(len(x) for _, _, x in itens) or 1; feito = 0
         for k, (s, m, x) in enumerate(itens):
             src0 = s["source_timerange"]["start"] / 1e6
+            linha = getattr(avisa, "linha", None)
             fr = transcricao.frases(w, x, lambda i, n, f0=feito, lx=len(x):
-                                     avisa("Transcrevendo", 0.3 + 0.4 * (f0 + lx * i / n) / total))
+                                     avisa("Transcrevendo", 0.3 + 0.4 * (f0 + lx * i / n) / total),
+                                    **({"ao_texto": lambda a, t, s0=src0: linha(a + s0, t)} if linha else {}))
             frases[k] = [[a + src0, b + src0, t] for a, b, t in fr]
             feito += len(x)
 

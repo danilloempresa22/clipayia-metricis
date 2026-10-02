@@ -181,6 +181,178 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
 .vazio p{margin:0 0 14px}
 @media (prefers-reduced-motion:reduce){.g-bar{animation:none}.side *,.dash *{transition:none!important}}
 
+/* ---------- EDICAO: assistente por passos (referencia docs/design/edicao-novo-fluxo.html) ---------- */
+.wz{width:100%;max-width:1080px;margin-inline:auto;display:flex;flex-direction:column;gap:26px;padding:14px 2px 0;
+  min-height:calc(100vh - 32px - 6px);color:var(--text);
+  /* as telas que ja existiam herdam os tokens novos pelas variaveis antigas */
+  --card:var(--surface);--card2:var(--surface-2);--linha:var(--hair-2);--txt:var(--text);--mudo:var(--text-2);
+  --acc:var(--accent);--acc2:var(--accent-hi);--acc-claro:var(--accent-hi);--acc-tinta:var(--accent-ink);--raio:var(--r-card)}
+.conteudo:has(> #pag-edicao:not(.oculto)){padding-bottom:0}
+.wz :focus-visible{outline:var(--focus);outline-offset:2px}
+.wz .i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wz .card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-card);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.wz .card h2{font:var(--t-card);letter-spacing:var(--t-card-track)}
+.wz .sub{color:var(--text-2)}
+.wz-tela{display:flex;flex-direction:column;gap:24px}
+.wz-tela.pilha>.card{margin-bottom:0}
+.wz-cab h1{margin:0;font:var(--t-page);letter-spacing:var(--t-page-track);text-wrap:balance}
+.wz-lede{margin:8px 0 0;color:var(--text-2);font-size:15px;max-width:62ch}
+.wz-meta{margin:6px 0 0;color:var(--text-3);font-size:var(--fs-note)}
+.wz-meta:empty{display:none}
+.wz-card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-card);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);min-width:0}
+.wz-aviso{margin:-8px 0 0;font-size:var(--fs-note);color:var(--text-2);display:flex;align-items:center;gap:8px}
+.wz-aviso::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+/* passos no topo: barra segmentada com o nome de cada passo */
+.wz-passos{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.wz-passo{display:flex;flex-direction:column;gap:9px;font-size:12px;font-weight:500;color:var(--text-3);min-width:0}
+.wz-passo i{display:block;height:4px;border-radius:99px;background:var(--hair-2);transition:background .35s}
+.wz-passo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-passo.feito i,.wz-passo.agora i{background:var(--accent)}
+.wz-passo.feito{color:var(--text-2)}
+.wz-passo.agora{color:var(--text);font-weight:600}
+/* botoes do assistente */
+.wz button{font:inherit;cursor:pointer}
+.wz-primario{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 24px!important;border-radius:var(--r-pill)!important;
+  background:var(--accent)!important;color:var(--accent-ink)!important;font-weight:600!important;font-size:14.5px;letter-spacing:-.006em;border:0;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,var(--accent-glow);transition:filter var(--dur),transform .12s,opacity var(--dur)}
+.wz-primario:hover:not(:disabled){filter:brightness(1.08)}
+.wz-primario:active:not(:disabled){transform:scale(.98)}
+.wz-primario:disabled{opacity:.35;filter:none;cursor:not-allowed;box-shadow:none}
+.wz-voltar{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 18px 0 12px!important;border-radius:var(--r-pill)!important;border:0;
+  background:none!important;color:var(--text-2)!important;font-weight:500!important;font-size:14px;transition:background var(--dur),color var(--dur)}
+.wz-voltar:hover:not(:disabled){background:var(--raise)!important;color:var(--text)!important}
+.wz-voltar:disabled{opacity:.35;cursor:not-allowed}
+.wz-claro{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 20px!important;border-radius:var(--r-pill)!important;border:0;
+  background:#f5f5f7!important;color:#0b0b0c!important;font-weight:600!important;font-size:14px;transition:filter var(--dur),transform .12s}
+.wz-claro:hover:not(:disabled){filter:brightness(.92)}
+.wz-claro:active{transform:scale(.98)}
+.wz-claro .i{width:18px;height:18px}
+.wz-btn-texto{background:none!important;color:var(--text-2)!important;padding:4px 8px!important;font-weight:500!important;font-size:13px;border-radius:8px!important;border:0;align-self:flex-start}
+.wz-btn-texto:hover:not(:disabled){color:var(--text)!important;background:var(--raise)!important}
+.wz-icone{width:34px;height:34px;border-radius:50%!important;display:grid;place-items:center;color:var(--text-3)!important;background:none!important;padding:0!important;border:0;
+  transition:background var(--dur),color var(--dur);flex:none}
+.wz-icone:hover:not(:disabled){background:var(--raise)!important;color:var(--text)!important}
+.wz-icone:disabled{opacity:.3;cursor:default}
+.wz-icone .i{width:17px;height:17px}
+.wz-etiqueta{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:var(--r-pill);font-size:12px;font-weight:500;white-space:nowrap;
+  background:var(--raise);color:var(--text-2);border:1px solid var(--hair-2)}
+/* passo 1: lista de modelos (radio group) + previa */
+.wz-escolha{display:grid;grid-template-columns:minmax(300px,.82fr) minmax(0,1.18fr);gap:18px;align-items:stretch}
+.wz-modos{display:flex;flex-direction:column;gap:10px}
+.wz-modo{display:grid;grid-template-columns:22px minmax(0,1fr);gap:14px;align-items:start;text-align:left;width:100%;padding:16px 18px!important;
+  border-radius:18px!important;background:var(--surface)!important;border:1px solid var(--hair)!important;color:var(--text)!important;font-weight:400!important;
+  transition:background .18s,border-color .18s,box-shadow .18s}
+.wz-modo:hover:not(:disabled){background:var(--surface-2)!important;border-color:var(--hair-2)!important}
+.wz-modo[aria-checked="true"]{background:var(--surface-2)!important;border-color:var(--accent-line)!important;box-shadow:0 0 0 1px var(--accent-line),0 12px 30px -16px rgba(179,247,6,.35)}
+.wz-radio{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--hair-2);display:grid;place-items:center;margin-top:1px;transition:border-color .18s,background .18s}
+.wz-modo[aria-checked="true"] .wz-radio{border-color:var(--accent);background:var(--accent)}
+.wz-modo[aria-checked="true"] .wz-radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+.wz-modo-nome{display:block;font-size:16px;font-weight:600;letter-spacing:-.015em}
+.wz-modo-desc{display:block;margin:3px 0 10px;font-size:13.5px;color:var(--text-2);line-height:1.45}
+.wz-previa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:30px;padding:26px;align-items:center}
+.pv-texto{display:flex;flex-direction:column;gap:18px;min-width:0;animation:wz-sobe .45s cubic-bezier(.2,.8,.2,1) both}
+.pv-texto h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.025em;line-height:1.15}
+.pv-texto .pv-sub{margin:6px 0 0;color:var(--text-2);font-size:14px}
+.pv-rot{margin:0 0 8px;font-size:12px;font-weight:500;color:var(--text-3)}
+.pv-faz{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.pv-faz li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;font-size:14px;line-height:1.4}
+.pv-faz .i{width:18px;height:18px;color:var(--accent);stroke-width:2.2;margin-top:1px}
+.pv-nota{margin:0;font-size:12px;color:var(--text-3);line-height:1.4}
+@keyframes wz-sobe{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* quadro de celular 9:16: video real por cima, quadro estatico por baixo */
+.pv-tel{position:relative;width:236px;aspect-ratio:9/16;border-radius:32px;overflow:hidden;background:#070708;container-type:inline-size;flex:none;
+  box-shadow:0 0 0 6px #101012,0 0 0 7px var(--hair-2),0 34px 60px -24px rgba(0,0,0,.8)}
+.pv-cena,.pv-video{position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none}
+.pv-video{width:100%;height:100%;object-fit:cover;background:transparent}
+.pv-cena.on,.pv-video.on{opacity:1}
+.pv-pessoa{position:absolute;left:0;right:0;bottom:0;height:60%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;transform-origin:50% 92%}
+.pv-zoom{transform:scale(1.12)}
+.pv-cab{display:block;width:32cqw;height:32cqw;border-radius:50%;background:radial-gradient(circle at 38% 32%,#c9c9cf,#6b6b72)}
+.pv-omb{display:block;width:80cqw;height:30cqw;margin-top:-3cqw;border-radius:46% 46% 0 0/68% 68% 0 0;background:linear-gradient(#5d5d64,#36363b)}
+.pv-hl{position:absolute;left:6cqw;right:6cqw;top:10cqw;margin:0;text-align:center;font-weight:700;font-size:6.3cqw;line-height:1.2;letter-spacing:-.01em;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.pv-cortes{background:linear-gradient(180deg,#2a2c31,#101113)}
+.pv-tl{position:absolute;left:8cqw;right:8cqw;bottom:7cqw;height:5cqw;display:flex;gap:1.6cqw}
+.pv-tl i{flex:1 1 0;border-radius:99px;background:var(--accent)}
+.pv-legenda{background:linear-gradient(160deg,#1c2a38,#0e1116)}
+.pv-legenda .pv-pessoa{height:54%;left:22%}
+.pv-lg{position:absolute;left:7cqw;top:12cqw;display:flex;flex-direction:column;gap:1.4cqw;align-items:flex-start}
+.pv-lg p{margin:0;margin-left:var(--x);font-size:7cqw;line-height:1.15;font-weight:600;letter-spacing:-.015em;color:#fff}
+.pv-lg p.pv-em{font-size:12.5cqw;font-weight:800;color:#ff453a;letter-spacing:-.03em;margin-top:1cqw}
+.pv-ipad{background:#0b0b0d}
+.pv-tela-ipad{position:absolute;left:0;right:0;top:0;height:35%;background:linear-gradient(180deg,#121214,#0d0d0f);border-bottom:1px solid rgba(255,255,255,.1)}
+.pv-tela-ipad .pv-hl{top:auto;bottom:6cqw}
+.pv-sq{position:absolute;top:26%;width:20cqw;height:20cqw;border:.9cqw solid #e8e8ed;border-radius:1.6cqw}
+.pv-ipad .pv-pessoa{height:66%}
+.pv-rotina{background:linear-gradient(180deg,#2c3a2a,#10150f)}
+.pv-rotina .pv-pessoa{height:56%}
+.pv-clk{position:absolute;right:6cqw;top:7cqw;margin:0;font-size:7.4cqw;font-weight:600;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+/* passo 2: enviar */
+.wz-solta{border:1.5px dashed var(--hair-2);border-radius:26px;padding:60px 24px;background:rgba(255,255,255,.02);
+  display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;transition:border-color .2s,background .2s}
+.wz-solta.sobre{border-color:var(--accent);background:var(--accent-soft)}
+.wz-solta-ico{width:58px;height:58px;border-radius:19px;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);display:grid;place-items:center}
+.wz-solta-ico .i{width:24px;height:24px}
+.wz-solta-t{margin:0;font-size:16px;color:var(--text-2)}
+.wz-solta-t strong{color:var(--text);font-weight:600}
+.wz-dica{margin:4px auto 0;font-size:var(--fs-note);color:var(--text-3);max-width:52ch;text-align:center}
+.wz-dois{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.wz-vaga{display:flex;flex-direction:column;gap:10px}
+.wz-vaga-rot{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.006em}
+.wz-vaga .wz-solta{padding:44px 18px;flex:1}
+.wz-arq{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--hair)}
+.wz-arq-ico{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);flex:none}
+.wz-arq-main{min-width:0;flex:1}
+.wz-arq-nome{margin:0;font-weight:600;font-size:14.5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-arq-meta{margin:1px 0 0;font-size:var(--fs-note);color:var(--text-3);font-variant-numeric:tabular-nums}
+.wz-ok{width:22px;height:22px;border-radius:50%;background:var(--status);color:#06210d;display:grid;place-items:center;flex:none}
+.wz-ok .i{width:14px;height:14px;stroke-width:2.8}
+.wz-takes{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.wz-take{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--hair);cursor:grab}
+.wz-take.arrastando{opacity:.4}
+.wz-take.alvo{border-color:var(--accent-line);box-shadow:0 0 0 1px var(--accent-line)}
+.wz-take-n{width:26px;height:26px;border-radius:50%;background:var(--raise);display:grid;place-items:center;font-size:12.5px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums;flex:none}
+.wz-take .wz-arq-main{display:flex;align-items:baseline;gap:12px}
+.wz-take-barra{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.wz-take-barra p{margin:0;color:var(--text-2);font-size:13.5px}
+.wz-take-barra strong{color:var(--text)}
+.wz-bg{display:flex;align-items:center;gap:10px;font-size:var(--fs-note);color:var(--text-3)}
+/* andamento */
+.wz-trabalho{padding:28px;display:flex;flex-direction:column;gap:22px}
+.wz-trab-topo{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.wz-pct{margin:0;font-size:56px;line-height:1;font-weight:600;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+.wz-estado{margin:0;color:var(--text-2);font-size:14px}
+.wz-barra{height:8px;border-radius:99px;background:var(--hair-2);overflow:hidden}
+.wz-barra i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-hi));transition:width .45s linear}
+.wz-vivo{border-top:1px solid var(--hair);display:flex;flex-direction:column;gap:12px}
+.wz-vivo-cab{margin:14px 0 0;font-size:13px;font-weight:600;color:var(--text-2)}
+.wz-linhas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;min-height:130px}
+.wz-linhas li{font-size:15px;line-height:1.45;animation:wz-sobe .4s both}
+.wz-linhas time{color:var(--text-3);font-size:var(--fs-note);margin-right:10px;font-variant-numeric:tabular-nums}
+/* gerar */
+.wz-gerar{padding:24px;display:flex;flex-direction:column;gap:18px}
+.wz-resumo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.wz-resumo li{display:flex;gap:12px}
+.wz-resumo span{color:var(--text-3);min-width:110px}
+/* rodape fixo */
+.wz-acoes{margin-top:auto;position:sticky;bottom:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0 12px;
+  background:linear-gradient(180deg,transparent,var(--bg) 40%)}
+.wz-privado{margin:0;display:flex;align-items:center;gap:7px;color:var(--text-3);font-size:var(--fs-note)}
+.wz-privado .i{width:14px;height:14px}
+@media (prefers-reduced-motion:reduce){.wz *{animation:none!important;transition:none!important}}
+@media (max-width:1100px){.wz-escolha{grid-template-columns:1fr}}
+@media (max-width:720px){
+  .wz{min-height:0;gap:22px}
+  .wz-cab h1{font-size:28px}
+  .wz-passo span{display:none}
+  .wz-passo.agora span{display:block;overflow:visible}
+  .wz-previa{grid-template-columns:1fr;justify-items:center;padding:22px 18px}
+  .pv-texto{width:100%}
+  .wz-dois{grid-template-columns:1fr}
+  .wz-acoes{flex-wrap:wrap}
+  .wz-privado{order:-1;width:100%;justify-content:center}
+  .wz-pct{font-size:44px}
+}
+
 /* ---------- fluxo de edicao ---------- */
 .drop{border:1.5px dashed #333333;border-radius:var(--raio);padding:56px 24px;text-align:center;transition:.15s;background:var(--card)}
 .drop.sobre{border-color:var(--acc);background:var(--ok-fundo)}
@@ -374,6 +546,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></symbol>
+  <symbol id="i-esq" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
@@ -494,8 +670,8 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 
     <!-- ===== EDICAO (o fluxo de sempre) ===== -->
     <section id="pag-edicao" class="pagina oculto">
-      <div class="topo"><h1 id="edicao-titulo">Edição</h1></div>
-      <div class="estreito">
+      <div class="wz" id="wz">
+        <div class="wz-passos" id="wz-passos" role="list" aria-label="Progresso da edição"></div>
 
         <div id="tela-inativa" class="oculto">
           <div class="card">
@@ -505,63 +681,63 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           </div>
         </div>
 
-        <div id="tela-importar" class="oculto">
-          <p class="sub">O Clipay.ia corta silêncio e respiração, aplica o zoom e cria um projeto novo no CapCut. Seu vídeo não sai do seu computador.</p>
+        <!-- ===== passo 1: escolher o modelo ===== -->
+        <section id="tela-escolher" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Qual edição você vai fazer?</h1>
+            <p class="wz-lede">Escolha o modelo. Você ainda não precisa enviar nada.</p></header>
           <div id="imp-erro" class="msg erro oculto"></div>
+          <div id="escolher-aviso" class="wz-aviso oculto" role="status"></div>
           <div id="sem-capcut" class="msg aviso oculto">Não achei a pasta de projetos do CapCut. Informe o caminho abaixo.
             <div class="linha" style="margin-top:10px"><input type="text" id="raiz" placeholder="C:\Users\...\CapCut\User Data\Projects\com.lveditor.draft" style="flex:1"><button id="salvar-raiz" class="sec">Salvar</button></div></div>
-          <div class="modos" id="modos-edicao" role="radiogroup" aria-label="Modo de edição">
-            <button class="modo on" data-modo="cortes" role="radio" aria-checked="true">
-              <b>Cortes + Headline</b><span>Corte seco sem respiração, zoom punch-in e frase fixa no topo.</span></button>
-            <button class="modo" data-modo="legenda" role="radio" aria-checked="false">
-              <b>Legenda Complexa</b><span>Legenda acumulada em escada, palavras em ênfase, música de fundo.</span></button>
-            <button class="modo" data-modo="ipad" role="radio" aria-checked="false">
-              <b>Apresentador + iPad</b><span>Junta a câmera e a tela do iPad: iPad em cima, pessoa embaixo, headline e música.</span></button>
-            <button class="modo" data-modo="rotina" role="radio" aria-checked="false">
-              <b>Rotina</b><span>Vlog de rotina: cortes, relógio no canto que pula a cada corte, headline, 1,13x, filtro e música.</span></button>
+          <div class="wz-escolha">
+            <div class="wz-modos" id="wz-modos" role="radiogroup" aria-label="Modelo de edição"></div>
+            <article class="wz-card wz-previa" aria-live="polite">
+              <div class="pv-tel" id="pv-tel" aria-hidden="true">
+                <!-- quadro estatico (vale quando o video de previa ainda nao existe) -->
+                <div class="pv-cena pv-cortes" data-cena="cortes"><div class="pv-pessoa pv-zoom"><i class="pv-cab"></i><i class="pv-omb"></i></div>
+                  <p class="pv-hl">COMO CRESCER NO INSTAGRAM<br>COM ZERO SEGUIDORES</p><div class="pv-tl"><i></i><i></i><i></i><i></i></div></div>
+                <div class="pv-cena pv-legenda" data-cena="legenda"><div class="pv-pessoa"><i class="pv-cab"></i><i class="pv-omb"></i></div>
+                  <div class="pv-lg"><p style="--x:0cqw">o único jeito</p><p style="--x:5cqw">de crescer é</p><p style="--x:10cqw">ter</p><p class="pv-em" style="--x:4cqw">constância</p></div></div>
+                <div class="pv-cena pv-ipad" data-cena="ipad"><div class="pv-tela-ipad"><i class="pv-sq" style="left:12%"></i><i class="pv-sq" style="left:38%"></i><i class="pv-sq" style="left:64%"></i>
+                  <p class="pv-hl">COMO FATURAR<br>R$ 10 MIL POR MÊS</p></div><div class="pv-pessoa pv-zoom"><i class="pv-cab"></i><i class="pv-omb"></i></div></div>
+                <div class="pv-cena pv-rotina" data-cena="rotina"><div class="pv-pessoa"><i class="pv-cab"></i><i class="pv-omb"></i></div>
+                  <p class="pv-clk">09:40</p><p class="pv-hl" style="top:22cqw">MINHA ROTINA<br>COMO EMPRESÁRIO</p></div>
+                <!-- videos reais (assets/previews/<modelo>.mp4): entram por cima quando existirem -->
+                <video class="pv-video" data-video="cortes" muted loop playsinline preload="none"></video>
+                <video class="pv-video" data-video="legenda" muted loop playsinline preload="none"></video>
+                <video class="pv-video" data-video="ipad" muted loop playsinline preload="none"></video>
+                <video class="pv-video" data-video="rotina" muted loop playsinline preload="none"></video>
+              </div>
+              <div class="pv-texto" id="pv-texto"></div>
+            </article>
           </div>
-          <div class="card oculto" id="ipad-escolher">
-            <h2>Os dois vídeos</h2>
-            <div class="ip-escolhe">
-              <div><b>Tela do iPad</b><span id="ip-nome-ipad" class="sub" style="margin:0">Nenhum vídeo escolhido</span></div>
-              <button class="sec" data-escolhe="ipad">Escolher</button>
-            </div>
-            <div class="ip-escolhe">
-              <div><b>Câmera (a pessoa falando)</b><span id="ip-nome-pessoa" class="sub" style="margin:0">Nenhum vídeo escolhido</span></div>
-              <button class="sec" data-escolhe="pessoa">Escolher</button>
-            </div>
-            <button id="ip-preparar" disabled style="margin-top:6px">Continuar</button>
-            <p class="sub" style="margin:12px 0 0;font-size:13px">Antes de enquadrar, o app prepara uma cópia leve de cada vídeo (só para a prévia). O projeto final usa os vídeos originais.</p>
-          </div>
-          <div class="card oculto" id="rotina-escolher">
-            <h2>Os takes da rotina</h2>
-            <p class="sub" style="font-size:13px">Escolha todos os vídeos de uma vez (Ctrl ou Shift para selecionar vários). Eles entram no projeto nesta ordem: use ↑ ↓ para mudar.</p>
-            <div class="rt-lista" id="rt-takes"></div>
-            <div class="linha" style="margin-top:12px"><button class="sec" id="rt-add">Adicionar vídeos</button><button id="rt-analisar" disabled>Continuar</button></div>
-            <div class="linha oculto" id="rt-bg-box" style="margin-top:12px;gap:10px">
-              <span class="sub" id="rt-bg" style="margin:0;flex:1"></span><button class="sec" id="rt-bg-cancelar">Cancelar</button></div>
-            <p class="sub" style="margin:12px 0 0;font-size:13px">A transcrição começa assim que você escolhe os takes, enquanto você organiza a ordem. Take sem fala (só imagem) entra inteiro.</p>
-          </div>
-          <div class="drop" id="drop">
-            <div class="ico-grande"><svg class="ic"><use href="#i-upload"/></svg></div>
-            <p style="margin:0 0 16px;font-size:15px"><b>Arraste o vídeo bruto aqui</b> ou escolha no computador</p>
-            <button id="escolher">Escolher vídeo</button>
-            <p class="sub" style="margin:16px 0 0;font-size:13px">Dica: “Escolher vídeo” é mais rápido em arquivos grandes, porque não copia o arquivo.</p>
-          </div>
-        </div>
+        </section>
 
-        <div id="tela-progresso" class="oculto">
-          <div class="card">
-            <h2 id="prog-titulo">Processando…</h2>
-            <p class="sub" id="prog-sub" style="margin:0">Isso pode levar alguns minutos. Pode deixar esta janela aberta.</p>
-            <div class="barra-prog"><i id="barra"></i></div>
-            <div id="etapa" style="color:var(--mudo);font-size:13px">Começando</div>
-            <button class="sec oculto" id="prog-cancelar" style="margin-top:14px">Cancelar</button>
-          </div>
-        </div>
+        <!-- ===== passo 2: enviar ===== -->
+        <section id="tela-envio" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="up-titulo">Escolha o vídeo</h1><p class="wz-lede" id="up-lede"></p></header>
+          <div id="up-erro" class="msg erro oculto"></div>
+          <div id="up-corpo"></div>
+          <div class="wz-bg oculto" id="rt-bg-box"><span id="rt-bg"></span><button class="wz-btn-texto" id="rt-bg-cancelar" type="button">Cancelar</button></div>
+        </section>
 
-        <div id="tela-revisao" class="oculto pilha">
-          <p class="sub" id="rev-arq"></p>
+        <!-- ===== andamento (transcricao, preparar, achar cortes, gerar): progresso REAL do app ===== -->
+        <section id="tela-progresso" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="prog-titulo">Transcrevendo o áudio</h1><p class="wz-lede" id="prog-sub">Roda no seu computador, sem internet e sem custo por uso.</p></header>
+          <article class="wz-card wz-trabalho">
+            <div class="wz-trab-topo"><p class="wz-pct" id="pct" aria-live="polite">0%</p><p class="wz-estado" id="etapa">Começando…</p></div>
+            <div class="wz-barra"><i id="barra"></i></div>
+            <div id="prog-erro" class="msg erro oculto" role="alert"></div>
+            <div class="wz-vivo oculto" id="vivo">
+              <p class="wz-vivo-cab">Trecho transcrito</p>
+              <ol class="wz-linhas" id="linhas"></ol>
+            </div>
+            <button class="wz-btn-texto oculto" id="prog-cancelar" type="button">Cancelar</button>
+          </article>
+        </section>
+
+        <div id="tela-revisao" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Headline e cortes</h1><p class="wz-lede">Escreva a frase do topo, confira o lado do zoom e tire as frases que não quer.</p><p class="wz-meta" id="rev-arq"></p></header>
           <div id="rev-erro" class="msg erro oculto"></div>
           <div class="card"><div class="nums">
             <div><b id="n-antes">–</b>original</div><div><b class="ok" id="n-depois">–</b>depois dos cortes</div><div><b id="n-ped">–</b>pedaços</div></div></div>
@@ -580,14 +756,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <label>Clique numa frase para removê-la do vídeo (repetição, desvio de assunto). Clique de novo para manter.</label>
             <div class="frases" id="frases"></div>
           </div>
-          <div class="card">
-            <div class="campo"><label for="nome">Nome do projeto no CapCut</label><input type="text" id="nome"></div>
-            <div class="linha"><button id="gerar">Gerar projeto no CapCut</button><button class="sec" id="voltar">Trocar de vídeo</button></div>
-          </div>
         </div>
 
-        <div id="tela-ipad-enquadrar" class="oculto pilha">
-          <p class="sub">Posicione a pessoa e recorte o iPad. É esse enquadramento que o vídeo final e os zooms usam.</p>
+        <div id="tela-ipad-enquadrar" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Enquadrar</h1><p class="wz-lede">Posicione a pessoa e recorte o iPad. É esse enquadramento que o vídeo final e os zooms usam.</p></header>
           <div id="ip-invertido" class="msg ok oculto">Os vídeos estavam nos lugares trocados, então inverti: o vídeo com a fala ficou como câmera.</div>
           <div id="ip-enq-erro" class="msg erro oculto"></div>
           <div class="ip-grade">
@@ -630,10 +802,11 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
               <input type="range" id="ip-quadro" min="0" max="1" step="0.1" value="0" style="width:100%;accent-color:var(--acc)">
             </div>
           </div>
-          <div class="linha"><button id="ip-ir-sync">Continuar para a sincronia</button><button class="sec" id="ip-inverter">Inverter os vídeos</button><button class="sec" id="ip-voltar-1">Escolher outros vídeos</button></div>
+          <div class="linha"><button class="sec" id="ip-inverter">Inverter os vídeos</button><span class="sub" style="margin:0;font-size:12.5px">Use se o vídeo da pessoa ficou no lugar do iPad.</span></div>
         </div>
 
-        <div id="tela-ipad-sincronia" class="oculto pilha">
+        <div id="tela-ipad-sincronia" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Sincronizar</h1><p class="wz-lede">Deixe o desenho do iPad no mesmo momento da mão da pessoa.</p></header>
           <p class="sub">Aperte <b>play</b> e veja os dois juntos, já no formato final. Olhe a mão da pessoa e o desenho no iPad:
             se o desenho aparece <b>antes</b> da mão desenhar, aperte <b>−</b>; se aparece <b>depois</b>, aperte <b>+</b>. Dá pra ajustar com o vídeo tocando.</p>
           <div class="sy-grade">
@@ -669,10 +842,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             </div>
           </div>
           <div id="ip-sync-erro" class="msg erro oculto"></div>
-          <div class="linha"><button id="ip-sync-ok">Está sincronizado</button><button class="sec" id="ip-voltar-2">Voltar ao enquadramento</button></div>
         </div>
 
-        <div id="tela-ipad-revisao" class="oculto pilha">
+        <div id="tela-ipad-revisao" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Headline e acabamento</h1><p class="wz-lede">Escolha o corte, escreva a headline e decida zoom, velocidade e música.</p></header>
           <div id="ip-rev-erro" class="msg erro oculto"></div>
           <div class="card">
             <h2>Cortes</h2>
@@ -705,14 +878,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <label class="chave"><input type="checkbox" id="ip-mus-on"> Música de fundo (fica a −25 dB)</label>
             <div class="linha oculto" id="ip-mus-box"><button class="sec" id="ip-musica">Escolher música</button><span id="ip-musica-nome" class="sub" style="margin:0">Nenhuma</span></div>
           </div>
-          <div class="card">
-            <div class="campo"><label for="ip-nome">Nome do projeto no CapCut</label><input type="text" id="ip-nome"></div>
-            <div class="linha"><button id="ip-gerar">Gerar projeto no CapCut</button><button class="sec" id="ip-voltar-3">Voltar à sincronia</button></div>
-          </div>
         </div>
 
-        <div id="tela-revisao-legenda" class="oculto pilha">
-          <p class="sub" id="lg-arq"></p>
+        <div id="tela-revisao-legenda" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Revisão</h1><p class="wz-lede">Edite o texto da legenda, marque as ênfases e escolha onde o vídeo começa.</p><p class="wz-meta" id="lg-arq"></p></header>
           <div id="lg-erro" class="msg erro oculto"></div>
           <div class="card"><div class="nums">
             <div><b id="lg-antes">–</b>original</div><div><b class="ok" id="lg-depois">–</b>depois dos cortes</div><div><b id="lg-cortes">–</b>trechos</div></div></div>
@@ -759,14 +928,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <textarea id="lg-texto" rows="9" spellcheck="true"></textarea>
           </div>
 
-          <div class="card">
-            <div class="campo"><label for="lg-nome">Nome do projeto no CapCut</label><input type="text" id="lg-nome"></div>
-            <div class="linha"><button id="lg-gerar">Gerar projeto no CapCut</button><button class="sec" id="lg-voltar">Trocar de vídeo</button></div>
-          </div>
         </div>
 
-        <div id="tela-rotina-cortes" class="oculto pilha">
-          <p class="sub" id="rt-arq" style="margin:0"></p>
+        <div id="tela-rotina-cortes" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Cortes</h1><p class="wz-lede">Os trechos calculados pelo áudio. Ajuste o início e o fim ou apague o que não quer.</p><p class="wz-meta" id="rt-arq"></p></header>
           <div id="rt-cortes-erro" class="msg erro oculto"></div>
           <div class="card"><div class="nums">
             <div><b id="rt-antes">–</b>original</div><div><b class="ok" id="rt-depois">–</b>depois dos cortes e 1,13x</div><div><b id="rt-n">–</b>trechos</div></div></div>
@@ -784,10 +949,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <p class="sub" style="font-size:13px">Tempos no vídeo original (em segundos). Ajuste o início/fim ou apague o trecho.</p>
             <div class="rt-lista" id="rt-trechos"></div>
           </div>
-          <div class="linha"><button id="rt-ir-relogio">Continuar para o relógio</button><button class="sec" id="rt-voltar-1">Trocar de vídeo</button></div>
         </div>
 
-        <div id="tela-rotina-relogio" class="oculto pilha">
+        <div id="tela-rotina-relogio" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Relógio</h1><p class="wz-lede">Defina o horário inicial e quanto o relógio pula a cada corte.</p></header>
           <div id="rt-rel-erro" class="msg erro oculto"></div>
           <div class="card">
             <h2>Relógio</h2>
@@ -809,11 +974,10 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <h2>Horário de cada trecho</h2>
             <div class="rt-lista" id="rt-horas"></div>
           </div>
-          <div class="linha"><button id="rt-ir-final">Continuar</button><button class="sec" id="rt-voltar-2">Voltar aos cortes</button></div>
         </div>
 
-        <div id="tela-rotina-final" class="oculto pilha">
-          <div id="rt-final-erro" class="msg erro oculto"></div>
+        <div id="tela-rotina-headline" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Headline</h1><p class="wz-lede">A frase do começo do vídeo, no topo e abaixo do relógio.</p></header>
           <div class="card">
             <h2>Headline</h2>
             <div class="campo"><label for="rt-headline">Promessa ou ordem, 3 a 8 palavras, sem dois-pontos (fonte Classic, no topo, abaixo do relógio)</label>
@@ -823,6 +987,11 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
               <div class="campo"><label for="rt-head-s">Fica na tela (s)</label><input type="number" id="rt-head-s" min="1" max="60" step="0.5" value="5"></div>
             </div>
           </div>
+        </div>
+
+        <div id="tela-rotina-musica" class="wz-tela oculto pilha">
+          <header class="wz-cab"><h1>Música</h1><p class="wz-lede">Opcional. A música abaixa sozinha quando tem fala e volta nas pausas.</p></header>
+          <div id="rt-final-erro" class="msg erro oculto"></div>
           <div class="card">
             <h2>Música de fundo <span style="color:var(--mudo);font-weight:400;font-size:13px">(opcional)</span></h2>
             <div class="linha"><button class="sec" id="rt-musica">Escolher música</button><span id="rt-musica-nome" class="sub" style="margin:0">Nenhuma</span>
@@ -836,24 +1005,32 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
               </div>
             </div>
           </div>
-          <div class="card">
-            <p class="sub" style="font-size:13px">Também entram: velocidade 1,13x em todos os trechos e o filtro Aprimorar (60) no vídeo todo.</p>
-            <div class="campo"><label for="rt-nome">Nome do projeto no CapCut</label><input type="text" id="rt-nome"></div>
-            <div class="linha"><button id="rt-gerar">Gerar projeto no CapCut</button><button class="sec" id="rt-voltar-3">Voltar ao relógio</button></div>
-          </div>
+          <p class="sub" style="font-size:13px;margin:0">Também entram: velocidade 1,13x em todos os trechos e o filtro Aprimorar (60) no vídeo todo.</p>
         </div>
 
-        <div id="tela-pronto" class="oculto">
-          <div class="card">
-            <div class="linha" style="gap:10px;margin-bottom:6px"><span class="badge pos"><svg class="ic" style="width:14px;height:14px"><use href="#i-check"/></svg>Pronto</span></div>
-            <h2 style="font-size:20px">Projeto criado</h2>
-            <p class="sub" id="pronto-sub"></p>
+        <section id="tela-gerar" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Gerar o projeto</h1><p class="wz-lede">O Clipay.ia monta o projeto no CapCut. Seu vídeo continua no seu computador.</p></header>
+          <div id="g-erro" class="msg erro oculto" role="alert"></div>
+          <article class="wz-card wz-gerar">
+            <ul class="wz-resumo" id="g-resumo"></ul>
+            <div class="campo" style="margin:0"><label for="g-nome">Nome do projeto no CapCut</label><input type="text" id="g-nome" maxlength="120"></div>
+          </article>
+        </section>
+
+        <section id="tela-pronto" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Projeto criado</h1><p class="wz-lede" id="pronto-sub"></p></header>
+          <article class="wz-card wz-gerar">
             <div class="nums" id="pronto-nums"></div>
-            <div class="linha" style="margin-top:20px"><button id="abrir-capcut">Abrir o CapCut</button><button class="sec" id="outro">Editar outro vídeo</button></div>
-            <p class="sub" style="margin:16px 0 0;font-size:13px">Se o CapCut já estava aberto, feche e abra de novo para o projeto aparecer na lista.</p>
-          </div>
-        </div>
+            <div class="linha"><button class="wz-primario" id="abrir-capcut" type="button">Abrir o CapCut</button><button class="wz-claro" id="outro" type="button">Fazer outra edição</button></div>
+            <p class="sub" style="margin:0;font-size:12.5px">Se o CapCut já estava aberto, feche e abra de novo para o projeto aparecer na lista.</p>
+          </article>
+        </section>
 
+        <footer class="wz-acoes" id="wz-acoes">
+          <button class="wz-voltar" id="wz-voltar" type="button"><svg class="i"><use href="#i-esq"/></svg>Voltar</button>
+          <p class="wz-privado"><svg class="i"><use href="#i-cadeado"/></svg>Seu vídeo não sai do seu computador.</p>
+          <button class="wz-primario" id="wz-seguir" type="button">Continuar</button>
+        </footer>
       </div>
     </section>
 
@@ -868,8 +1045,8 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 <script>
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
-const telasEdicao = ["inativa","importar","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao",
-  "rotina-cortes","rotina-relogio","rotina-final","pronto"];
+const telasEdicao = ["inativa","escolher","envio","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao",
+  "rotina-cortes","rotina-relogio","rotina-headline","rotina-musica","gerar","pronto"];
 let modo = "cortes", gancho = null, musica = "";
 let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
 
@@ -917,16 +1094,16 @@ function pagina(nome){
     if(on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   history.replaceState(null, "", nome === "inicio" ? location.pathname : "#"+nome);
   if(nome === "inicio") carregaPainel();
-  if(nome === "edicao" && !ocupado) mostra(sessao && sessao.status === "ativo" ? "importar" : "inativa");
+  if(nome === "edicao" && !ocupado) mostra(sessao && sessao.status === "ativo" ? "escolher" : "inativa");
   window.scrollTo(0,0);
 }
 function mostra(tela){
   telasEdicao.forEach(t => $("tela-"+t).classList.toggle("oculto", t !== tela));
-  $("edicao-titulo").textContent = {revisao:"Revise antes de gerar", "revisao-legenda":"Revise a legenda", progresso:"Processando",
-    "ipad-enquadrar":"Enquadrar", "ipad-sincronia":"Sincronizar", "ipad-revisao":"Cortes e headline",
-    "rotina-cortes":"Rotina: cortes", "rotina-relogio":"Rotina: relógio", "rotina-final":"Rotina: headline e música",
-    pronto:"Edição concluída"}[tela] || "Edição";
   if(tela !== "revisao-legenda"){ const v = $("lg-video"); if(!v.paused) v.pause(); }
+  W.tela = tela; ocupado = !["escolher", "pronto", "inativa"].includes(tela);
+  atualizaWz();
+  if(tela !== "escolher") pausaPrevias(); else mostraPrevia();
+  window.scrollTo(0, 0);
 }
 document.querySelectorAll(".nav").forEach(b => b.onclick = () => pagina(b.dataset.pag));
 $("ir-inicio").onclick = () => pagina("inicio");
@@ -1085,51 +1262,29 @@ function grafico(semanas){
     barras + '</div><div class="g-x" aria-hidden="true">'+eixo+'</div>' + tabela;
 }
 
-// ---------------- edicao: importar ----------------
-document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
-  modo = b.dataset.modo;
-  $("drop").classList.toggle("oculto", modo === "ipad" || modo === "rotina"); $("ipad-escolher").classList.toggle("oculto", modo !== "ipad");
-  $("rotina-escolher").classList.toggle("oculto", modo !== "rotina");
-  document.querySelectorAll(".modo").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
-});
+// ---------------- edicao: transcricao + analise (Cortes + Headline e Legenda Complexa) ----------------
 async function analisar(caminho){
-  if(modo === "rotina") return;                 // a rotina tem a lista de takes (rotina-escolher)
-  erro("imp-erro"); ocupado = true; mostra("progresso");
-  $("prog-titulo").textContent = "Analisando o vídeo…";
-  $("prog-sub").textContent = modo === "legenda" || modo === "rotina"
-    ? "Transcrevendo palavra por palavra e achando os cortes. Pode levar alguns minutos."
-    : "Lendo o áudio, transcrevendo e achando os cortes. Na primeira vez baixa o modelo de transcrição.";
+  if(analise && W.analiseDe === caminho && analise.modo === W.modelo){ mostra("progresso"); return; }   // voltou: nao refaz
+  W.depois = null; W.aberta = false; W.rodando = true; W.passoProg = 2;
+  preparaProgresso("Transcrevendo o áudio", "Roda no seu computador, sem internet e sem custo por uso.", true);
+  mostra("progresso");
   try{
-    const {id} = await api("analisar", {caminho, modo});
-    analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    if(analise.modo === "rotina") abreRotina();
-    else analise.modo === "legenda" ? abreRevisaoLegenda() : abreRevisao();
-  }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
-  ocupado = false;
+    const {id} = await api("analisar", {caminho, modo: W.modelo});
+    analise = await acompanha(id, mostraJob);
+    W.analiseDe = caminho;
+    $("etapa").textContent = "Transcrição pronta. Você revisa no próximo passo.";
+    const tela = analise.modo === "legenda" ? "revisao-legenda" : "revisao";
+    W.depois = () => { if(W.aberta) return mostra(tela); W.aberta = true; analise.modo === "legenda" ? abreRevisaoLegenda() : abreRevisao(); };
+  }catch(e){ erro("prog-erro", e.message); $("etapa").textContent = "A análise parou."; }
+  W.rodando = false; atualizaWz();
 }
-$("escolher").onclick = async () => {
-  $("escolher").disabled = true;
-  try{ const {caminho} = await api("escolher-arquivo", {}); if(caminho) await analisar(caminho); }
-  catch(e){ erro("imp-erro", e.message); }
-  $("escolher").disabled = false;
-};
-const drop = $("drop");
-["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("sobre"); }));
-["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("sobre"); }));
-drop.addEventListener("drop", async e => {
-  const f = e.dataTransfer.files[0]; if(!f) return;
-  ocupado = true; mostra("progresso"); $("prog-titulo").textContent = "Copiando o vídeo…"; $("barra").style.width = "8%"; $("etapa").textContent = f.name;
-  try{ const {caminho} = await api("enviar?nome="+encodeURIComponent(f.name), f, {bruto:true, headers:{"Content-Type":"application/octet-stream"}}); await analisar(caminho); }
-  catch(err){ mostra("importar"); erro("imp-erro", err.message); }
-  ocupado = false;
-});
 
 // ---------------- edicao: revisao ----------------
 function abreRevisao(){
   removidas = new Set(); lado = analise.rosto || "centro";
   $("rev-arq").textContent = analise.nome + " · " + analise.largura + "×" + analise.altura;
   $("n-antes").textContent = seg(analise.duracao); $("n-depois").textContent = seg(analise.depois); $("n-ped").textContent = analise.pedacos;
-  $("nome").value = analise.nome.replace(/\.[^.]+$/, "") + " - corte";
+  W.nomePadrao = analise.nome.replace(/\.[^.]+$/, "") + " - corte";
   $("headline").value = "";
   document.querySelectorAll("#lados button").forEach(b => b.classList.toggle("on", b.dataset.l === lado));
   $("lado-dica").textContent = analise.rosto_confiavel
@@ -1150,17 +1305,38 @@ function abreRevisao(){
 }
 $("lados").onclick = e => { const b = e.target.closest("button"); if(!b) return; lado = b.dataset.l;
   document.querySelectorAll("#lados button").forEach(x => x.classList.toggle("on", x === b)); };
-$("voltar").onclick = () => { ocupado = false; mostra("importar"); };
-$("gerar").onclick = async () => {
-  erro("rev-erro"); mostra("progresso");
-  $("prog-titulo").textContent = "Gerando o projeto no CapCut…"; $("prog-sub").textContent = "Só mais um instante."; $("barra").style.width = "0";
-  try{
-    const remover = [...removidas].map(i => [analise.frases[i][0], analise.frases[i][1]]);
-    const {id} = await api("gerar", {analise: analise.analise, headline: $("headline").value, rosto: lado, remover, nome: $("nome").value});
-    const r = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    pronto(r);
-  }catch(e){ mostra("revisao"); erro("rev-erro", e.message); }
+// o que vai pro "gerar" de cada modelo (mesmos campos de antes; o nome vem da tela Gerar)
+const CORPO = {
+  cortes: nome => ({analise: analise.analise, headline: $("headline").value, rosto: lado,
+    remover: [...removidas].map(i => [analise.frases[i][0], analise.frases[i][1]]), nome}),
+  legenda: nome => {
+    if(!$("lg-texto").value.trim()) throw new Error("O texto da legenda está vazio. Volte à revisão.");
+    return {analise: analise.analise, texto: $("lg-texto").value, inicio: gancho === null ? null : analise.palavras[gancho][0],
+      zoom: $("lg-zoom-on").checked ? Number($("lg-zoom").value) : null,
+      velocidade: Number($("lg-vel").value), musica, volume: Number($("lg-vol").value), nome};
+  },
+  ipad: nome => {
+    const musica = $("ip-mus-on").checked ? musicaIpad : "";
+    if($("ip-mus-on").checked && !musica) throw new Error("Escolha a música (ou desmarque “Música de fundo”) no passo anterior.");
+    return {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
+      cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome,
+      velocidade: $("ip-vel-on").checked, musica};
+  },
+  rotina: nome => ({analise: analise.analise, trechos: RT.trechos, inicio: $("rt-inicio").value, saltos: RT.trechos.map((_, i) => i ? saltoDe(i) : 0),
+    headline: $("rt-headline").value, headline_s: Number($("rt-head-s").value), headline_ini: Number($("rt-head-ini").value),
+    fonte: $("rt-fonte").value, escala: Number($("rt-esc").value), musica: RT.musica,
+    volume: {silencio: Number($("rt-vol-sil").value), fala: Number($("rt-vol-fala").value), rampa: Number($("rt-rampa").value)}, nome}),
 };
+async function gerarProjeto(){
+  erro("g-erro");
+  const nome = $("g-nome").value.trim(); let corpo;
+  try{ corpo = CORPO[W.modelo](nome); }catch(e){ erro("g-erro", e.message); return; }
+  W.rodando = true; W.depois = null; W.passoProg = MODELOS_WZ[W.modelo].passos.length - 1;
+  preparaProgresso("Gerando o projeto no CapCut", "Conferindo tudo antes de gravar. Seu vídeo continua no seu computador.", false);
+  mostra("progresso");
+  try{ const r = await acompanha((await api("gerar", corpo)).id, mostraJob); W.rodando = false; pronto(r); }
+  catch(e){ W.rodando = false; mostra("gerar"); erro("g-erro", e.message); }
+}
 function pronto(r){
   $("pronto-sub").textContent = "“" + r.nome + "” já está na sua lista de projetos do CapCut." + (r.avisos && r.avisos.length ? " Atenção: " + r.avisos.join(" ") : "");
   const extra = r.modo === "legenda"
@@ -1168,7 +1344,7 @@ function pronto(r){
     : r.modo === "rotina" ? '<div><b>1,13×</b>velocidade</div>'
     : '<div><b>'+(r.zooms||0)+'</b>zooms</div>' + (r.legendas ? '<div><b>'+r.legendas+'</b>legendas</div>' : '');
   $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>trechos</div>' + extra;
-  ocupado = false; mostra("pronto");
+  mostra("pronto");
 }
 
 // ---------------- edicao: revisao da LEGENDA COMPLEXA ----------------
@@ -1177,7 +1353,7 @@ function abreRevisaoLegenda(){
   gancho = null; musica = "";
   $("lg-arq").textContent = analise.nome + " · " + analise.largura + "×" + analise.altura;
   $("lg-antes").textContent = seg(analise.duracao); $("lg-depois").textContent = seg(analise.depois); $("lg-cortes").textContent = analise.pedacos;
-  $("lg-nome").value = analise.nome.replace(/\.[^.]+$/, "") + " - legendado";
+  W.nomePadrao = analise.nome.replace(/\.[^.]+$/, "") + " - legendado";
   $("lg-texto").value = analise.palavras.map(p => p[2]).join(" ");
   $("previa").classList.toggle("horizontal", analise.largura > analise.altura);
   const v = $("lg-video");
@@ -1220,22 +1396,8 @@ $("lg-musica").onclick = async () => {
   catch(e){ erro("lg-erro", e.message); }
 };
 $("lg-musica-tira").onclick = () => { musica = ""; atualizaMusica(); };
-$("lg-voltar").onclick = () => { ocupado = false; mostra("importar"); };
-$("lg-gerar").onclick = async () => {
-  erro("lg-erro");
-  if(!$("lg-texto").value.trim()){ erro("lg-erro", "O texto da legenda está vazio."); return; }
-  mostra("progresso");
-  $("prog-titulo").textContent = "Montando a legenda e o projeto…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
-  try{
-    const {id} = await api("gerar", {analise: analise.analise, texto: $("lg-texto").value,
-      inicio: gancho === null ? null : analise.palavras[gancho][0],
-      zoom: $("lg-zoom-on").checked ? Number($("lg-zoom").value) : null,
-      velocidade: Number($("lg-vel").value), musica, volume: Number($("lg-vol").value), nome: $("lg-nome").value});
-    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
-  }catch(e){ mostra("revisao-legenda"); erro("lg-erro", e.message); }
-};
 $("abrir-capcut").onclick = async () => { const r = await api("abrir-capcut", {}); if(!r.ok) alert("Não achei o CapCut. Abra-o manualmente."); };
-$("outro").onclick = () => mostra("importar");
+$("outro").onclick = () => novaEdicao();
 
 // ================= APRESENTADOR + iPAD =================
 const IP = {arquivos: {ipad: "", pessoa: ""}, ses: null, pessoa: {escala: 1, x: 0, y: -0.17}, crop: [0, 0, 1, 1], off: 0, an: null};
@@ -1244,28 +1406,21 @@ const url = q => "/api/video?sessao=" + IP.ses.sessao + "&q=" + q + "&t=" + enco
   + "&v=" + encodeURIComponent(IP.ses[q].nome);             // muda quando os videos sao invertidos: nao reaproveita a previa errada
 const hms = s => { s = Math.max(0, s); const m = Math.floor(s / 60); return m + ":" + (s - m * 60).toFixed(3).padStart(6, "0"); };
 
-document.querySelectorAll("[data-escolhe]").forEach(b => b.onclick = async () => {
-  try{
-    const {caminho} = await api("escolher-arquivo", {tipo: "video"});
-    if(!caminho) return;
-    IP.arquivos[b.dataset.escolhe] = caminho;
-    $("ip-nome-" + b.dataset.escolhe).textContent = caminho.split(/[\\/]/).pop();
-    $("ip-preparar").disabled = !(IP.arquivos.ipad && IP.arquivos.pessoa);
-  }catch(e){ erro("imp-erro", e.message); }
-});
-$("ip-preparar").onclick = async () => {
-  erro("imp-erro"); ocupado = true; mostra("progresso");
-  $("prog-titulo").textContent = "Preparando os vídeos…";
-  $("prog-sub").textContent = "Criando uma cópia leve de cada vídeo para a prévia. Vídeos 4K longos levam alguns minutos (só na primeira vez).";
+async function preparaIpad(){
+  const arq = {ipad: W.arquivos.ipad, pessoa: W.arquivos.pessoa};
+  if(IP.ses && IP.arquivos.ipad === arq.ipad && IP.arquivos.pessoa === arq.pessoa){ abreEnquadrar(); return; }   // voltou: nao refaz
+  erro("up-erro"); IP.arquivos = arq; W.rodando = true; W.depois = null; W.passoProg = 1;
+  preparaProgresso("Preparando os vídeos", "Criando uma cópia leve de cada vídeo para a prévia. Vídeos 4K longos levam alguns minutos (só na primeira vez).", false);
+  mostra("progresso");
   try{
     const {id} = await api("ipad/preparar", IP.arquivos);
-    IP.ses = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
+    IP.ses = await acompanha(id, mostraJob);
     SV.ipad.removeAttribute("src"); SV.pessoa.removeAttribute("src");
+    W.rodando = false;
     abreEnquadrar();
     $("ip-invertido").classList.toggle("oculto", !IP.ses.invertido);
-  }catch(e){ mostra("importar"); erro("imp-erro", e.message); }
-  ocupado = false;
-};
+  }catch(e){ W.rodando = false; IP.ses = null; mostra("envio"); erro("up-erro", e.message); }
+}
 
 // ---------- enquadrar ----------
 function abreEnquadrar(){
@@ -1374,7 +1529,6 @@ document.querySelectorAll("[data-m]").forEach(b => { const [mx, my] = b.dataset.
   segura(b, () => { IP.pessoa.x = Math.round((IP.pessoa.x + mx * 0.005) * 10000) / 10000; IP.pessoa.y = Math.round((IP.pessoa.y + my * 0.005) * 10000) / 10000; }); });
 $("ip-centro").onclick = () => { IP.pessoa.x = 0; desenhaEnquadrar(); };
 $("ip-tela").addEventListener("wheel", e => { e.preventDefault(); zoomPessoa(IP.pessoa.escala * (e.deltaY < 0 ? 1.02 : 1 / 1.02)); desenhaEnquadrar(); }, {passive: false});
-$("ip-voltar-1").onclick = () => { ocupado = false; mostra("importar"); };
 $("ip-inverter").onclick = async () => {
   erro("ip-enq-erro");
   try{
@@ -1383,7 +1537,6 @@ $("ip-inverter").onclick = async () => {
     $("ip-invertido").classList.add("oculto"); abreEnquadrar();
   }catch(e){ erro("ip-enq-erro", e.message); }
 };
-$("ip-ir-sync").onclick = () => abreSincronia();
 
 // ---------- sincronizar (sempre por TEMPO, nunca por numero de quadro) ----------
 // a camera manda no tempo; o iPad segue: tempo_iPad = tempo_camera + IP.off
@@ -1436,18 +1589,19 @@ $("ip-final").onclick = () => {
   const fim = Math.min(IP.ses.pessoa.duracao, IP.ses.ipad.duracao - IP.off);
   SV.pessoa.currentTime = Math.max(0, fim - 8); syToca();
 };
-$("ip-voltar-2").onclick = () => { syPara(); mostra("ipad-enquadrar"); requestAnimationFrame(desenhaEnquadrar); };
-$("ip-sync-ok").onclick = async () => {
+async function sincronizado(){
   syPara(); erro("ip-sync-erro");
   const off = Math.round(IP.off * 1000) / 1000;
-  mostra("progresso"); $("prog-titulo").textContent = "Achando os cortes…";
-  $("prog-sub").textContent = "Terminando a transcrição (ela protege as palavras nos cortes) e achando as pausas."; $("barra").style.width = "0";
+  if(IP.an && IP.anOff === off){ mostra("ipad-revisao"); return; }      // voltou sem mexer na sincronia: nao refaz
+  W.rodando = true; W.depois = null; W.passoProg = 4;
+  preparaProgresso("Achando os cortes", "Terminando a transcrição (ela protege as palavras nos cortes) e achando as pausas.", false);
+  mostra("progresso");
   try{
     const {id} = await api("ipad/analisar", {sessao: IP.ses.sessao, offset: off});
-    IP.an = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; });
-    abreRevisaoIpad();
-  }catch(e){ mostra("ipad-sincronia"); erro("ip-sync-erro", e.message); }
-};
+    IP.an = await acompanha(id, mostraJob); IP.anOff = off;
+    W.rodando = false; abreRevisaoIpad();
+  }catch(e){ W.rodando = false; mostra("ipad-sincronia"); erro("ip-sync-erro", e.message); }
+}
 
 // ---------- legenda, headline, zoom ----------
 let corteIpad = "seco";
@@ -1456,7 +1610,7 @@ function abreRevisaoIpad(){
   $("ip-n-antes").textContent = seg(a.antes);
   for(const k of ["seco","leve","media","forte"]) $("ip-c-" + k).textContent = seg(a.cortes[k].depois) + " · " + a.cortes[k].trechos + " trechos";
   escolheCorte(corteIpad);
-  $("ip-nome").value = IP.ses.pessoa.nome.replace(/\.[^.]+$/, "") + " - ipad";
+  W.nomePadrao = IP.ses.pessoa.nome.replace(/\.[^.]+$/, "") + " - ipad";
   erro("ip-rev-erro"); mostra("ipad-revisao");
 }
 function escolheCorte(k){
@@ -1467,7 +1621,6 @@ document.querySelectorAll("#ip-cortes .modo").forEach(b => b.onclick = () => esc
 $("ip-head-s").oninput = () => { $("ip-head-s-v").textContent = fmt($("ip-head-s").value, 1) + " s"; };
 $("ip-int").oninput = () => { const v = Number($("ip-int").value); $("ip-int-v").textContent = v < 0.8 ? "leve" : v > 1.2 ? "forte" : "moderado"; };
 $("ip-zoom-on").onchange = () => $("ip-int-box").classList.toggle("desligado", !$("ip-zoom-on").checked);
-$("ip-voltar-3").onclick = () => abreSincronia();
 let musicaIpad = "";
 $("ip-mus-on").onchange = () => $("ip-mus-box").classList.toggle("oculto", !$("ip-mus-on").checked);
 $("ip-musica").onclick = async () => {
@@ -1475,41 +1628,12 @@ $("ip-musica").onclick = async () => {
     if(caminho){ musicaIpad = caminho; $("ip-musica-nome").textContent = caminho.split(/[\\/]/).pop(); } }
   catch(e){ erro("ip-rev-erro", e.message); }
 };
-$("ip-gerar").onclick = async () => {
-  erro("ip-rev-erro");
-  const musica = $("ip-mus-on").checked ? musicaIpad : "";
-  if($("ip-mus-on").checked && !musica){ erro("ip-rev-erro", "Escolha a música (ou desmarque “Música de fundo”)."); return; }
-  mostra("progresso");
-  $("prog-titulo").textContent = "Montando o projeto no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
-  try{
-    const {id} = await api("gerar", {analise: IP.an.analise, headline: $("ip-headline").value, headline_s: Number($("ip-head-s").value),
-      cortes: corteIpad, zoom: $("ip-zoom-on").checked, intensidade: Number($("ip-int").value), pessoa: IP.pessoa, crop_ipad: IP.crop, nome: $("ip-nome").value,
-      velocidade: $("ip-vel-on").checked, musica});
-    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
-  }catch(e){ mostra("ipad-revisao"); erro("ip-rev-erro", e.message); }
-};
+
 
 // ---------------- edicao: ROTINA ----------------
 // RT.takes: caminhos dos videos em ordem; RT.trechos: [[take,a,b]] na origem do take (s);
 // RT.mudou[i] / RT.saltos[i]: o salto ANTES do trecho i (o 1o mostra o horario inicial)
 const RT = {takes: [], trechos: [], mudou: [], saltos: [], musica: ""};
-function desenhaTakes(){
-  $("rt-takes").innerHTML = RT.takes.map((c, i) =>
-    '<div class="rt-linha"><b>'+(i+1)+'</b><span style="flex:1;min-width:0;overflow-wrap:anywhere">'+c.split(/[\\/]/).pop()+'</span>'+
-    '<button class="icone" data-sobe="'+i+'" aria-label="Subir take '+(i+1)+'"'+(i ? "" : " disabled")+'>↑</button>'+
-    '<button class="icone" data-desce="'+i+'" aria-label="Descer take '+(i+1)+'"'+(i < RT.takes.length-1 ? "" : " disabled")+'>↓</button>'+
-    '<button class="icone" data-tira="'+i+'" aria-label="Tirar take '+(i+1)+'">✕</button></div>').join("") ||
-    '<p class="sub" style="margin:0">Nenhum vídeo escolhido.</p>';
-  $("rt-analisar").disabled = !RT.takes.length;
-}
-$("rt-takes").addEventListener("click", e => {
-  const b = e.target.closest("button"); if(!b) return;
-  const t = RT.takes;
-  if(b.dataset.sobe !== undefined){ const i = +b.dataset.sobe; [t[i-1], t[i]] = [t[i], t[i-1]]; }
-  if(b.dataset.desce !== undefined){ const i = +b.dataset.desce; [t[i+1], t[i]] = [t[i], t[i+1]]; }
-  if(b.dataset.tira !== undefined) t.splice(+b.dataset.tira, 1);
-  desenhaTakes(); transcreveJa();
-});
 // transcricao em segundo plano: comeca assim que os takes sao escolhidos (mudar so a ordem nao refaz nada)
 let rtBgTimer = null;
 async function transcreveJa(){
@@ -1536,27 +1660,21 @@ $("prog-cancelar").onclick = async () => {
   $("prog-cancelar").disabled = true; $("etapa").textContent = "Cancelando…";
   try{ await api("rotina/cancelar", {}); }catch(e){}
 };
-$("rt-add").onclick = async () => {
-  erro("imp-erro");
-  try{ const {caminho} = await api("escolher-arquivo", {tipo: "videos"});
-    (Array.isArray(caminho) ? caminho : caminho ? [caminho] : []).forEach(c => { if(!RT.takes.includes(c)) RT.takes.push(c); });
-    desenhaTakes(); transcreveJa(); }
-  catch(e){ erro("imp-erro", e.message); }
-};
-$("rt-analisar").onclick = async () => {
-  erro("imp-erro"); ocupado = true; mostra("progresso");
-  $("prog-titulo").textContent = "Analisando os takes…";
-  $("prog-sub").textContent = "Transcrevendo os takes e achando os cortes. O que já foi transcrito antes não é refeito.";
+async function analisaRotina(){
+  const chave = RT.takes.join("|");
+  if(analise && analise.modo === "rotina" && W.analiseDe === chave){ mostra("rotina-cortes"); return; }   // voltou: mantem os ajustes
+  erro("up-erro"); W.rodando = true; W.depois = null; W.passoProg = 2;
+  preparaProgresso("Achando os cortes dos takes", "Transcrevendo os takes e achando os cortes. O que já foi transcrito antes não é refeito.", false);
   $("prog-cancelar").classList.remove("oculto"); $("prog-cancelar").disabled = false;
+  mostra("progresso");
   try{
     const {id} = await api("analisar", {modo: "rotina", caminhos: RT.takes});
-    analise = await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; if(!$("prog-cancelar").disabled) $("etapa").textContent = j.etapa; });
+    analise = await acompanha(id, j => { if(!$("prog-cancelar").disabled) mostraJob(j); });
+    W.analiseDe = chave; W.rodando = false;
     abreRotina();
-  }catch(e){ mostra("importar"); erro("imp-erro", e.message); acompanhaBg(); }
+  }catch(e){ W.rodando = false; mostra("envio"); erro("up-erro", e.message); acompanhaBg(); }
   $("prog-cancelar").classList.add("oculto");
-  ocupado = false;
-};
-desenhaTakes();
+}
 const VEL_RT = 1.13;
 const hhmm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); };
 const segN = s => Number(s).toFixed(2).replace(".", ",");
@@ -1569,7 +1687,7 @@ function abreRotina(){
   $("rt-fonte").value = a.padrao.fonte; $("rt-esc").value = a.padrao.escala; $("rt-salto").value = a.padrao.salto;
   $("rt-head-s").value = a.padrao.headline_s; $("rt-headline").value = ""; $("rt-head-ini").value = 0;
   $("rt-vol-sil").value = a.padrao.volume.silencio; $("rt-vol-fala").value = a.padrao.volume.fala; $("rt-rampa").value = a.padrao.volume.rampa;
-  $("rt-nome").value = a.takes[0].nome.replace(/\.[^.]+$/, "") + " - rotina";
+  W.nomePadrao = a.takes[0].nome.replace(/\.[^.]+$/, "") + " - rotina";
   atualizaMusicaRt(); volumesRt(); avisoFonte(); $("rt-esc-v").textContent = fmt($("rt-esc").value, 2);
   desenhaTrechos(); erro("rt-cortes-erro"); mostra("rotina-cortes");
 }
@@ -1612,14 +1730,13 @@ function trechosValidos(){
   }
   RT.trechos = t; return "";
 }
-$("rt-ir-relogio").onclick = () => {
+function irRelogio(){
   const m = trechosValidos(); if(m){ erro("rt-cortes-erro", m); return; }
   const n = RT.trechos.length;
   RT.mudou = Array.from({length: n}, (_, i) => RT.mudou[i] || false);
   RT.saltos = Array.from({length: n}, (_, i) => RT.saltos[i] || 0);
   desenhaHoras(); erro("rt-rel-erro"); mostra("rotina-relogio");
-};
-$("rt-voltar-1").onclick = () => { mostra("importar"); desenhaTakes(); };
+}
 function saltoDe(i){ const p = Number($("rt-salto").value) || 2; return RT.mudou[i] ? (RT.saltos[i] || 0) : (RT.saltos[i] || p); }
 function horasRt(){
   const [h, m] = ($("rt-inicio").value || "07:30").split(":").map(Number);
@@ -1653,7 +1770,7 @@ function avisoFonte(){
 }
 $("rt-fonte").onchange = avisoFonte;
 $("rt-esc").oninput = () => { $("rt-esc-v").textContent = fmt($("rt-esc").value, 2); };
-$("rt-ir-final").onclick = () => {
+function irHeadlineRotina(){
   for(let i = 1; i < RT.trechos.length; i++){
     const s = saltoDe(i);
     if(!(s >= 1 && s <= (RT.mudou[i] ? 720 : 3))){
@@ -1662,10 +1779,8 @@ $("rt-ir-final").onclick = () => {
     }
   }
   if(!/^\d\d:\d\d$/.test($("rt-inicio").value)){ erro("rt-rel-erro", "Preencha o horário do primeiro trecho."); return; }
-  erro("rt-final-erro"); mostra("rotina-final");
-};
-$("rt-voltar-2").onclick = () => { desenhaTrechos(); mostra("rotina-cortes"); };
-$("rt-voltar-3").onclick = () => { desenhaHoras(); mostra("rotina-relogio"); };
+  erro("rt-final-erro"); mostra("rotina-headline");
+}
 function atualizaMusicaRt(){
   const tem = !!RT.musica;
   $("rt-musica-nome").textContent = tem ? RT.musica.split(/[\\/]/).pop() : "Nenhuma";
@@ -1682,19 +1797,301 @@ $("rt-musica").onclick = async () => {
   catch(e){ erro("rt-final-erro", e.message); }
 };
 $("rt-musica-tira").onclick = () => { RT.musica = ""; atualizaMusicaRt(); };
-$("rt-gerar").onclick = async () => {
-  erro("rt-final-erro"); mostra("progresso");
-  $("prog-titulo").textContent = "Montando a rotina no CapCut…"; $("prog-sub").textContent = "Conferindo tudo antes de gravar."; $("barra").style.width = "0";
-  try{
-    const saltos = RT.trechos.map((_, i) => i ? saltoDe(i) : 0);
-    const {id} = await api("gerar", {analise: analise.analise, trechos: RT.trechos, inicio: $("rt-inicio").value, saltos,
-      headline: $("rt-headline").value, headline_s: Number($("rt-head-s").value), headline_ini: Number($("rt-head-ini").value),
-      fonte: $("rt-fonte").value, escala: Number($("rt-esc").value), musica: RT.musica,
-      volume: {silencio: Number($("rt-vol-sil").value), fala: Number($("rt-vol-fala").value), rampa: Number($("rt-rampa").value)},
-      nome: $("rt-nome").value});
-    pronto(await acompanha(id, j => { $("barra").style.width = (j.fracao*100)+"%"; $("etapa").textContent = j.etapa; }));
-  }catch(e){ mostra("rotina-final"); erro("rt-final-erro", e.message); }
+
+// ================= EDICAO: ASSISTENTE POR PASSOS =================
+// so organiza QUANDO cada tela aparece; o processamento e as chamadas ao servidor sao as mesmas de antes
+const MODELOS_WZ = {
+  cortes: {nome: "Cortes + Headline", desc: "Corte seco sem respiração, zoom punch-in e frase fixa no topo.", pede: "1 vídeo", envio: "um",
+    faz: ["Tira silêncio e respiração sem cortar a fala", "Zoom punch-in alternando com o plano normal", "Headline fixa no topo, em 2 linhas"],
+    precisa: "1 vídeo gravado de uma pessoa falando", revisao: "revisao",
+    passos: ["Edição", "Vídeo", "Transcrição", "Headline", "Gerar"],
+    telas: {escolher: 0, envio: 1, revisao: 3, gerar: 4}},
+  legenda: {nome: "Legenda Complexa", desc: "Legenda acumulada em escada, palavras em ênfase, música de fundo.", pede: "1 vídeo", envio: "um",
+    faz: ["Legenda acumulada em escada, palavra a palavra", "Palavras em ênfase em tamanho maior", "Música de fundo no volume certo"],
+    precisa: "1 vídeo gravado de uma pessoa falando", revisao: "revisao-legenda",
+    passos: ["Edição", "Vídeo", "Transcrição", "Revisão", "Gerar"],
+    telas: {escolher: 0, envio: 1, "revisao-legenda": 3, gerar: 4}},
+  ipad: {nome: "Apresentador + iPad", desc: "Junta a câmera e a tela do iPad: iPad em cima, pessoa embaixo, headline e música.", pede: "2 vídeos", envio: "dois",
+    faz: ["iPad em cima e pessoa embaixo, sincronizados por você", "Cortes nos dois vídeos ao mesmo tempo, zoom só na pessoa", "Headline no início, velocidade 1,13x e música, se quiser"],
+    precisa: "2 vídeos: a tela do iPad e a câmera com a pessoa", revisao: "ipad-revisao",
+    passos: ["Edição", "Vídeos", "Enquadrar", "Sincronizar", "Headline", "Gerar"],
+    telas: {escolher: 0, envio: 1, "ipad-enquadrar": 2, "ipad-sincronia": 3, "ipad-revisao": 4, gerar: 5}},
+  rotina: {nome: "Rotina", desc: "Vlog de rotina: cortes, relógio no canto que pula a cada corte, headline, 1,13x, filtro e música.", pede: "Vários takes", envio: "takes",
+    faz: ["Corta cada take e monta na ordem que você escolher", "Relógio no canto que pula o horário a cada corte", "Headline no começo, velocidade 1,13x, filtro e música"],
+    precisa: "Os takes do vlog, na ordem em que aparecem", revisao: "rotina-musica",
+    passos: ["Edição", "Takes", "Cortes", "Relógio", "Headline", "Música", "Gerar"],
+    telas: {escolher: 0, envio: 1, "rotina-cortes": 2, "rotina-relogio": 3, "rotina-headline": 4, "rotina-musica": 5, gerar: 6}},
 };
+const ENVIO = {
+  um: {t: "Escolha o vídeo", l: "Arraste o vídeo bruto ou escolha no computador."},
+  dois: {t: "Escolha os dois vídeos", l: "Um é a gravação de tela do iPad e o outro é a câmera com a pessoa. Eles podem começar em momentos diferentes: você sincroniza depois."},
+  takes: {t: "Adicione os takes", l: "Coloque os takes do vlog e deixe na ordem em que aparecem. O Clipay.ia monta tudo nessa ordem."},
+};
+const W = {modelo: "cortes", tela: "escolher", passoProg: 0, arquivos: {um: "", ipad: "", pessoa: ""}, info: {},
+  depois: null, aberta: false, rodando: false, analiseDe: "", nomePadrao: "", nomeDe: ""};
+const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ic = n => '<svg class="i"><use href="#i-' + n + '"/></svg>';
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const nomeArq = c => c.split(/[\\/]/).pop();
+
+// ---------- passos e rodape ----------
+function passoAtual(){
+  const m = MODELOS_WZ[W.modelo];
+  if(W.tela === "progresso") return W.passoProg;
+  if(W.tela === "pronto") return m.passos.length;
+  return m.telas[W.tela] ?? 0;
+}
+function atualizaWz(){
+  const m = MODELOS_WZ[W.modelo], p = passoAtual(), fora = W.tela === "inativa";
+  $("wz-passos").classList.toggle("oculto", fora);
+  $("wz-passos").innerHTML = m.passos.map((n, i) => '<div class="wz-passo ' + (i < p ? "feito" : i === p ? "agora" : "") + '" role="listitem"' +
+    (i === p ? ' aria-current="step"' : "") + '><i></i><span>' + n + '</span></div>').join("");
+  $("wz-acoes").classList.toggle("oculto", fora || W.tela === "pronto");
+  const v = $("wz-voltar"), s = $("wz-seguir");
+  v.classList.toggle("oculto", W.tela === "escolher");
+  v.disabled = W.rodando && !(W.tela === "progresso" && !$("prog-cancelar").classList.contains("oculto"));
+  s.textContent = W.tela === "escolher" ? "Continuar com " + m.nome : W.tela === "gerar" ? "Gerar projeto no CapCut" : "Continuar";
+  s.classList.toggle("oculto", W.tela === "progresso" && !W.depois && !W.rodando);
+  s.disabled = W.rodando || (W.tela === "envio" && !envioPronto()) || (W.tela === "progresso" && !W.depois) || (W.tela === "gerar" && !$("g-nome").value.trim());
+}
+$("wz-seguir").onclick = () => {
+  if($("wz-seguir").disabled) return;
+  const t = W.tela;
+  if(t === "escolher") return abreEnvio();
+  if(t === "envio") return comecaModelo();
+  if(t === "progresso") return W.depois && W.depois();
+  if(t === "ipad-enquadrar") return abreSincronia();
+  if(t === "ipad-sincronia") return sincronizado();
+  if(t === "rotina-cortes") return irRelogio();
+  if(t === "rotina-relogio") return irHeadlineRotina();
+  if(t === "rotina-headline") return mostra("rotina-musica");
+  if(t === "gerar") return gerarProjeto();
+  if(t === MODELOS_WZ[W.modelo].revisao) return abreGerar();
+};
+$("wz-voltar").onclick = () => {
+  const t = W.tela;
+  if(t === "progresso" && W.rodando) return $("prog-cancelar").click();          // so a Rotina deixa cancelar no meio
+  if(t === "envio") return mostra("escolher");
+  if(t === "progresso" || t === "ipad-enquadrar" || t === "rotina-cortes") return abreEnvio();
+  if(t === "revisao" || t === "revisao-legenda") return mostra("progresso");
+  if(t === "ipad-sincronia"){ syPara(); mostra("ipad-enquadrar"); return requestAnimationFrame(desenhaEnquadrar); }
+  if(t === "ipad-revisao") return abreSincronia();
+  if(t === "rotina-relogio"){ desenhaTrechos(); return mostra("rotina-cortes"); }
+  if(t === "rotina-headline"){ desenhaHoras(); return mostra("rotina-relogio"); }
+  if(t === "rotina-musica") return mostra("rotina-headline");
+  if(t === "gerar") return mostra(MODELOS_WZ[W.modelo].revisao);
+};
+$("g-nome").addEventListener("input", atualizaWz);
+
+// ---------- passo 1: escolher o modelo (radio group de verdade: setas trocam a opcao) ----------
+function desenhaModos(){
+  $("wz-modos").innerHTML = Object.entries(MODELOS_WZ).map(([id, m]) => {
+    const on = id === W.modelo;
+    return '<button class="wz-modo" type="button" role="radio" aria-checked="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-modelo="' + id + '">' +
+      '<span class="wz-radio" aria-hidden="true"></span><span><span class="wz-modo-nome">' + m.nome + '</span>' +
+      '<span class="wz-modo-desc">' + m.desc + '</span><span class="wz-etiqueta">' + m.pede + '</span></span></button>';
+  }).join("");
+}
+function desenhaPrevia(){
+  const m = MODELOS_WZ[W.modelo], box = $("pv-texto");
+  box.style.animation = "none"; void box.offsetWidth; box.style.animation = "";
+  box.innerHTML = '<div><h2>' + m.nome + '</h2><p class="pv-sub">' + m.desc + '</p></div>' +
+    '<div><p class="pv-rot">O que ele faz</p><ul class="pv-faz">' + m.faz.map(f => '<li>' + ic("ok") + '<span>' + f + '</span></li>').join("") + '</ul></div>' +
+    '<div><p class="pv-rot">Você precisa de</p><span class="wz-etiqueta">' + m.precisa + '</span></div>' +
+    '<p class="pv-nota" id="pv-nota">Prévia ilustrativa.</p>';
+  mostraPrevia();
+}
+// video de previa (assets/previews/<modelo>.mp4) por cima do quadro estatico; o que nao esta visivel fica pausado
+function mostraPrevia(){
+  const id = W.modelo;
+  document.querySelectorAll(".pv-cena").forEach(c => c.classList.toggle("on", c.dataset.cena === id));
+  document.querySelectorAll(".pv-video").forEach(v => {
+    const meu = v.dataset.video === id;
+    if(meu && !v.dataset.tentou){
+      v.dataset.tentou = "1";
+      v.onloadeddata = () => { v.dataset.ok = "1"; if(v.dataset.video === W.modelo) mostraPrevia(); };
+      v.onerror = () => { v.dataset.ok = "0"; };
+      v.poster = "/assets/previews/" + id + ".jpg"; v.src = "/assets/previews/" + id + ".mp4"; v.preload = "metadata";
+    }
+    const ok = v.dataset.ok === "1";
+    v.classList.toggle("on", meu && ok);
+    if(meu && ok){ if(!reduz && W.tela === "escolher") v.play().catch(() => {}); if($("pv-nota")) $("pv-nota").classList.add("oculto"); }
+    else if(!v.paused) v.pause();
+  });
+}
+function pausaPrevias(){ document.querySelectorAll(".pv-video").forEach(v => { if(!v.paused) v.pause(); }); }
+function temArquivos(){ return !!(W.arquivos.um || W.arquivos.ipad || W.arquivos.pessoa || RT.takes.length); }
+function escolheModelo(id){
+  if(id === W.modelo) return;
+  const tinha = temArquivos();
+  W.modelo = id; modo = id;
+  if(tinha){                                           // outro modelo: os arquivos do anterior saem, com aviso discreto
+    W.arquivos = {um: "", ipad: "", pessoa: ""}; RT.takes = [];
+    $("escolher-aviso").textContent = "Os arquivos que você tinha escolhido saíram, porque o novo modelo pede outros.";
+    $("escolher-aviso").classList.remove("oculto");
+  }
+  desenhaModos(); desenhaPrevia(); atualizaWz();
+}
+$("wz-modos").addEventListener("click", e => { const b = e.target.closest(".wz-modo"); if(b) escolheModelo(b.dataset.modelo); });
+$("wz-modos").addEventListener("keydown", e => {
+  const ids = Object.keys(MODELOS_WZ), k = e.key;
+  if(!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Home", "End"].includes(k)) return;
+  e.preventDefault();
+  let i = ids.indexOf(W.modelo);
+  i = k === "Home" ? 0 : k === "End" ? ids.length - 1 : (i + (k === "ArrowDown" || k === "ArrowRight" ? 1 : ids.length - 1)) % ids.length;
+  escolheModelo(ids[i]); document.querySelector('.wz-modo[data-modelo="' + ids[i] + '"]').focus();
+});
+
+// ---------- passo 2: enviar ----------
+const tamanho = b => b >= 1e9 ? (b / 1e9).toFixed(1).replace(".", ",") + " GB" : Math.max(1, Math.round(b / 1e6)) + " MB";
+function metaArq(c){ const i = W.info[c]; return !i ? "Lendo…" : tamanho(i.tamanho) + (i.duracao ? " · " + seg(i.duracao) : ""); }
+async function infoDe(c){
+  if(W.info[c]) return;
+  try{ W.info[c] = await api("arquivo-info", {caminho: c}); }catch(e){ W.info[c] = {nome: nomeArq(c), tamanho: 0, duracao: null}; }
+  if(W.tela === "envio") desenhaEnvio();
+}
+function cartaoArq(c, vaga){
+  return '<div class="wz-arq"><span class="wz-arq-ico">' + ic("camera") + '</span><div class="wz-arq-main"><p class="wz-arq-nome">' + esc(nomeArq(c)) +
+    '</p><p class="wz-arq-meta">' + metaArq(c) + '</p></div><span class="wz-ok" aria-label="Pronto">' + ic("ok") + '</span>' +
+    '<button class="wz-icone" type="button" data-tirar="' + vaga + '" aria-label="Remover ' + esc(nomeArq(c)) + '">' + ic("x") + '</button></div>';
+}
+function zonaSoltar(vaga, titulo, botao, varios){
+  return '<div class="wz-solta" data-soltar="' + vaga + '"' + (varios ? ' data-varios="1"' : "") + '><span class="wz-solta-ico">' + ic("upload") + '</span>' +
+    '<p class="wz-solta-t"><strong>' + titulo + '</strong> ou escolha no computador</p>' +
+    '<button class="wz-claro" type="button" data-escolher="' + vaga + '">' + botao + '</button></div>';
+}
+function desenhaEnvio(){
+  const tipo = MODELOS_WZ[W.modelo].envio, a = W.arquivos; let h = "";
+  $("up-titulo").textContent = ENVIO[tipo].t; $("up-lede").textContent = ENVIO[tipo].l;
+  if(tipo === "um"){
+    h = a.um ? cartaoArq(a.um, "um") : zonaSoltar("um", "Arraste o vídeo bruto aqui", "Escolher vídeo") +
+      '<p class="wz-dica">Dica: “Escolher vídeo” é mais rápido em arquivos grandes, porque não copia o arquivo.</p>';
+  }else if(tipo === "dois"){
+    h = '<div class="wz-dois"><div class="wz-vaga"><span class="wz-vaga-rot">1. Gravação de tela do iPad</span>' +
+      (a.ipad ? cartaoArq(a.ipad, "ipad") : zonaSoltar("ipad", "Arraste a gravação do iPad", "Escolher vídeo")) + '</div>' +
+      '<div class="wz-vaga"><span class="wz-vaga-rot">2. Vídeo da pessoa</span>' +
+      (a.pessoa ? cartaoArq(a.pessoa, "pessoa") : zonaSoltar("pessoa", "Arraste o vídeo da pessoa", "Escolher vídeo")) + '</div></div>' +
+      '<p class="wz-dica">Antes de enquadrar, o app prepara uma cópia leve de cada vídeo (só para a prévia). O projeto final usa os vídeos originais.</p>';
+  }else{
+    const t = RT.takes;
+    h = !t.length ? zonaSoltar("takes", "Arraste os takes aqui", "Escolher takes", true) +
+        '<p class="wz-dica">Dá para escolher vários de uma vez (Ctrl ou Shift). Take sem fala (só imagem) entra inteiro.</p>'
+      : '<div class="wz-take-barra"><p><strong>' + t.length + (t.length === 1 ? " take" : " takes") + '</strong> na ordem do vlog. Arraste para mudar a ordem.</p>' +
+        '<button class="wz-claro" type="button" data-escolher="takes">' + ic("mais") + 'Adicionar mais</button></div>' +
+        '<ol class="wz-takes" data-soltar="takes" data-varios="1">' + t.map((c, i) =>
+          '<li class="wz-take" draggable="true" data-i="' + i + '"><span class="wz-take-n">' + (i + 1) + '</span><div class="wz-arq-main"><p class="wz-arq-nome">' +
+          esc(nomeArq(c)) + '</p><p class="wz-arq-meta">' + metaArq(c) + '</p></div>' +
+          '<button class="wz-icone" type="button" data-mover="' + i + ':-1" aria-label="Subir ' + esc(nomeArq(c)) + '"' + (i === 0 ? " disabled" : "") + '>' + ic("cima") + '</button>' +
+          '<button class="wz-icone" type="button" data-mover="' + i + ':1" aria-label="Descer ' + esc(nomeArq(c)) + '"' + (i === t.length - 1 ? " disabled" : "") + '>' + ic("baixo") + '</button>' +
+          '<button class="wz-icone" type="button" data-tirar="take:' + i + '" aria-label="Remover ' + esc(nomeArq(c)) + '">' + ic("x") + '</button></li>').join("") + '</ol>';
+  }
+  $("up-corpo").innerHTML = h;
+  if(tipo !== "takes" || !RT.takes.length) $("rt-bg-box").classList.add("oculto");   // o resto e' do mostraBg (estado real)
+  atualizaWz();
+}
+function abreEnvio(){ erro("up-erro"); $("escolher-aviso").classList.add("oculto"); desenhaEnvio(); mostra("envio"); }
+function envioPronto(){
+  const tipo = MODELOS_WZ[W.modelo].envio, a = W.arquivos;
+  return tipo === "um" ? !!a.um : tipo === "dois" ? !!(a.ipad && a.pessoa) : RT.takes.length > 0;
+}
+function poeArquivos(vaga, caminhos){
+  caminhos = caminhos.filter(Boolean); if(!caminhos.length) return;
+  if(vaga === "takes"){ caminhos.forEach(c => { if(!RT.takes.includes(c)) RT.takes.push(c); }); transcreveJa(); }
+  else W.arquivos[vaga] = caminhos[0];
+  caminhos.forEach(infoDe); desenhaEnvio();
+}
+async function escolheArquivo(vaga){
+  erro("up-erro");
+  try{
+    const {caminho} = await api("escolher-arquivo", {tipo: vaga === "takes" ? "videos" : "video"});
+    poeArquivos(vaga, Array.isArray(caminho) ? caminho : [caminho]);
+  }catch(e){ erro("up-erro", e.message); }
+}
+async function enviaSoltos(vaga, files){            // arrastar: o navegador nao da o caminho, entao copia (em blocos)
+  const lista = [...files].slice(0, vaga === "takes" ? 99 : 1), feitos = [];
+  for(const [k, f] of lista.entries()){
+    const z = document.querySelector('[data-soltar="' + vaga + '"] .wz-solta-t') || $("up-lede");
+    z.textContent = "Copiando " + f.name + (lista.length > 1 ? " (" + (k + 1) + " de " + lista.length + ")" : "") + "…";
+    try{ feitos.push((await api("enviar?nome=" + encodeURIComponent(f.name), f, {bruto: true, headers: {"Content-Type": "application/octet-stream"}})).caminho); }
+    catch(e){ erro("up-erro", f.name + ": " + e.message); }
+  }
+  poeArquivos(vaga, feitos);
+}
+$("up-corpo").addEventListener("click", e => {
+  const esc_ = e.target.closest("[data-escolher]"), tira = e.target.closest("[data-tirar]"), mv = e.target.closest("[data-mover]");
+  if(esc_) return escolheArquivo(esc_.dataset.escolher);
+  if(tira){
+    const k = tira.dataset.tirar;
+    if(k.startsWith("take:")){ RT.takes.splice(+k.split(":")[1], 1); transcreveJa(); } else W.arquivos[k] = "";
+    return desenhaEnvio();
+  }
+  if(mv){
+    const [i, d] = mv.dataset.mover.split(":").map(Number), j = i + d, t = RT.takes;
+    if(j < 0 || j >= t.length) return;
+    [t[i], t[j]] = [t[j], t[i]]; desenhaEnvio(); transcreveJa();
+    const b = document.querySelector('[data-mover="' + j + ':' + d + '"]') || document.querySelector('[data-mover^="' + j + ':"]'); if(b) b.focus();
+  }
+});
+// arrastar arquivos do computador (zona) e arrastar takes pra reordenar (lista)
+let arrastaTake = null;
+$("up-corpo").addEventListener("dragstart", e => { const li = e.target.closest(".wz-take"); if(!li) return;
+  arrastaTake = +li.dataset.i; li.classList.add("arrastando"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", li.dataset.i); });
+$("up-corpo").addEventListener("dragend", () => { arrastaTake = null; document.querySelectorAll(".wz-take").forEach(x => x.classList.remove("arrastando", "alvo")); });
+$("up-corpo").addEventListener("dragover", e => {
+  const li = e.target.closest(".wz-take"), z = e.target.closest("[data-soltar]");
+  if(arrastaTake !== null && li){ e.preventDefault(); document.querySelectorAll(".wz-take").forEach(x => x.classList.toggle("alvo", x === li)); return; }
+  if(z && e.dataTransfer.types.includes("Files")){ e.preventDefault(); z.classList.add("sobre"); }
+});
+$("up-corpo").addEventListener("dragleave", e => { const z = e.target.closest("[data-soltar]"); if(z && !z.contains(e.relatedTarget)) z.classList.remove("sobre"); });
+$("up-corpo").addEventListener("drop", e => {
+  const li = e.target.closest(".wz-take"), z = e.target.closest("[data-soltar]");
+  if(arrastaTake !== null && li){
+    e.preventDefault(); const t = RT.takes, [x] = t.splice(arrastaTake, 1); t.splice(+li.dataset.i, 0, x);
+    arrastaTake = null; desenhaEnvio(); transcreveJa(); return;
+  }
+  if(z && e.dataTransfer.files.length){ e.preventDefault(); z.classList.remove("sobre"); enviaSoltos(z.dataset.soltar, e.dataTransfer.files); }
+});
+function comecaModelo(){
+  const m = W.modelo;
+  if(m === "cortes" || m === "legenda") return analisar(W.arquivos.um);
+  if(m === "ipad") return preparaIpad();
+  return analisaRotina();
+}
+
+// ---------- andamento: progresso REAL do app (fracao, etapa e trechos transcritos) ----------
+function preparaProgresso(titulo, sub, comLinhas){
+  $("prog-titulo").textContent = titulo; $("prog-sub").textContent = sub;
+  $("pct").textContent = "0%"; $("barra").style.width = "0"; $("etapa").textContent = "Começando…";
+  $("linhas").innerHTML = ""; $("vivo").classList.toggle("oculto", !comLinhas); erro("prog-erro");
+  $("prog-cancelar").classList.add("oculto");
+}
+function mostraJob(j){
+  const p = Math.round((j.fracao || 0) * 100);
+  $("pct").textContent = p + "%"; $("barra").style.width = p + "%"; $("etapa").textContent = j.etapa + (j.fim ? "" : "…");
+  const ls = j.linhas || [], ol = $("linhas");
+  if(!$("vivo").classList.contains("oculto") && ls.length){
+    const ja = [...ol.children].map(li => li.dataset.k);
+    ls.forEach(([t, txt]) => { const k = t + "|" + txt; if(ja.includes(k)) return;
+      const li = document.createElement("li"); li.dataset.k = k; li.innerHTML = '<time>' + seg(t) + '</time>'; li.append(txt); ol.appendChild(li); });
+    while(ol.children.length > 6) ol.firstChild.remove();
+  }
+}
+
+// ---------- gerar e pronto ----------
+function abreGerar(){
+  const m = MODELOS_WZ[W.modelo], a = W.arquivos;
+  if(W.nomeDe !== W.nomePadrao){ $("g-nome").value = W.nomePadrao; W.nomeDe = W.nomePadrao; }
+  const arqs = m.envio === "um" ? [nomeArq(a.um)] : m.envio === "dois" ? [nomeArq(a.ipad), nomeArq(a.pessoa)] : RT.takes.map(nomeArq);
+  $("g-resumo").innerHTML = '<li><span>Modelo</span>' + m.nome + '</li><li><span>' + (arqs.length > 1 ? arqs.length + " arquivos" : "Arquivo") + '</span>' +
+    esc(arqs.length > 3 ? arqs.slice(0, 3).join(", ") + "…" : arqs.join(", ")) + '</li>';
+  erro("g-erro"); mostra("gerar");
+}
+function novaEdicao(){
+  W.arquivos = {um: "", ipad: "", pessoa: ""}; RT.takes = []; W.analiseDe = ""; W.depois = null; W.nomeDe = "";
+  analise = null; IP.ses = null; IP.an = null; IP.arquivos = {ipad: "", pessoa: ""};
+  mostra("escolher");
+}
+desenhaModos(); desenhaPrevia();
 
 inicio();
 </script>

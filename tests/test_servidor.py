@@ -1,4 +1,4 @@
-"""Servidor local + conta. Supabase e Whisper sao simulados; o resto (ffmpeg, cortes, CapCut falso) e' real."""
+﻿"""Servidor local + conta. Supabase e Whisper sao simulados; o resto (ffmpeg, cortes, CapCut falso) e' real."""
 import json, threading, time, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -12,7 +12,7 @@ def app(monkeypatch, raiz_capcut, tmp_path):
     monkeypatch.setattr(servidor, "raiz_atual", lambda: raiz_capcut)
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
     monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
-    monkeypatch.setattr(transcricao, "frases", lambda w, x, p=None: [[0.0, 3.0, "primeira fala"], [4.5, 7.5, "segunda fala"], [9.0, 10.0, "final"]])
+    monkeypatch.setattr(transcricao, "frases", lambda w, x, p=None, **k: [[0.0, 3.0, "primeira fala"], [4.5, 7.5, "segunda fala"], [9.0, 10.0, "final"]])
     estado = {"status": "ativo", "usos": 0}
     monkeypatch.setattr(conta, "estado", lambda: {"logado": True, "email": "a@b.c", "username": "a", "status": estado["status"]})
     monkeypatch.setattr(conta, "registra_processamento", lambda: estado.update(usos=estado["usos"] + 1))
@@ -104,7 +104,7 @@ def test_analise_inexistente_e_arquivo_invalido(app):
 def test_fluxo_legenda_complexa_pela_api(app, video_vertical, raiz_capcut, monkeypatch):
     chama, espera, estado, base = app
     from clipay import palavras
-    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None, **k: [
         *palavras.espalha("isso aqui muda tudo", [[0.0, 3.0]]), *palavras.espalha("você nunca tentou", [[4.5, 7.5]])])
     c, r = chama("/api/analisar", {"caminho": str(video_vertical), "modo": "legenda"})
     assert c == 200

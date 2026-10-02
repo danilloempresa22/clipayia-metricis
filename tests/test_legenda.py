@@ -1,4 +1,4 @@
-"""Legenda Complexa: regua de corte, marcadores, matematica da legenda, checklist e estrutura de composto aninhado."""
+﻿"""Legenda Complexa: regua de corte, marcadores, matematica da legenda, checklist e estrutura de composto aninhado."""
 import copy, json, os
 from pathlib import Path
 import pytest
@@ -142,7 +142,7 @@ def analise(video_vertical, raiz_capcut, monkeypatch):
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
     monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
     frases = iter(["isso aqui muda tudo", "você nunca tentou isso", "fim"])
-    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None, **k: [
         *palavras.espalha("isso aqui muda tudo", [[0.0, 3.0]]),
         *palavras.espalha("você nunca tentou isso", [[4.5, 7.5]]),
         *palavras.espalha("fim", [[9.0, 10.0]])])

@@ -66,8 +66,8 @@ def espalha(texto, trechos):
     return out
 
 
-def transcreve(w, x, progresso=None):
-    """[{"t","a","b"}] em s, em ordem"""
+def transcreve(w, x, progresso=None, ao_texto=None):
+    """[{"t","a","b"}] em s, em ordem. ao_texto(ini, texto): avisa cada frase assim que sai (so pra mostrar na tela)."""
     from .transcricao import CRONO
     with CRONO("achar fala"):
         bs = blocos(trechos_de_fala(x))
@@ -75,6 +75,7 @@ def transcreve(w, x, progresso=None):
     for i, bl in enumerate(bs):
         a, b = max(0.0, bl[0][0] - 0.05), bl[-1][1] + 0.05
         for s0, s1, txt in (w.segmentos(x[int(a * audio.SR):int(b * audio.SR)]) if b > a else []):
+            if ao_texto: ao_texto(a + s0, txt)
             with CRONO("mapear"):
                 s0, s1 = a + s0, a + min(s1, b - a)
                 if s1 > s0:

@@ -1,4 +1,4 @@
-"""Apresentador + iPad: sincronia, cortes que nunca cortam palavra, compostos (iPad + pessoa -> Video -> raiz),
+﻿"""Apresentador + iPad: sincronia, cortes que nunca cortam palavra, compostos (iPad + pessoa -> Video -> raiz),
 legenda, velocidade, musica, headline e verificacao."""
 import copy, json, os
 from pathlib import Path
@@ -38,7 +38,7 @@ def test_cortes_nunca_cortam_palavra_e_respeitam_a_intensidade(video_vertical):
 def an(video_vertical, video_horizontal, raiz_capcut, monkeypatch):
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
     monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
-    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None: [
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None, **k: [
         *palavras.espalha("isso aqui muda tudo", [[0.0, 2.0]]), *palavras.espalha("você nunca tentou", [[4.0, 5.0]])])
     vids = {"pessoa": {"video": str(video_vertical), "info": audio.probe_video(video_vertical)},
             "ipad": {"video": str(video_horizontal), "info": audio.probe_video(video_horizontal)}}

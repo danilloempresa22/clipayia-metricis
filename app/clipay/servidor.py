@@ -108,6 +108,10 @@ def roda_job(jid, fn):
     """roda fn(avisa) em segundo plano, uma edicao por vez (CPU e root_meta_info do CapCut)"""
     def avisa(etapa, fr):
         JOBS[jid].update({"etapa": etapa, "fracao": round(fr, 3)})
+
+    def linha(ini, texto):                       # trecho transcrito, pra tela mostrar enquanto sai (so as ultimas)
+        ls = JOBS[jid].setdefault("linhas", []); ls.append([round(float(ini), 2), texto]); del ls[:-12]
+    avisa.linha = linha
     try:
         with TRAVA:
             JOBS[jid]["etapa"] = "Começando"
@@ -130,7 +134,9 @@ def novo_job(fn):
 EXT_AUDIO = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac")
 ESTATICOS = {("/assets/img", ".png"): "image/png",          # (pasta, extensao) -> tipo. Fonte embutida: o app
              ("/assets/fonts", ".woff2"): "font/woff2",     # funciona sem internet (nada de CDN)
-             ("/assets", ".css"): "text/css; charset=utf-8"}
+             ("/assets", ".css"): "text/css; charset=utf-8",
+             ("/assets/previews", ".mp4"): "video/mp4",     # previa de cada modelo na tela de escolher (o usuario entrega)
+             ("/assets/previews", ".jpg"): "image/jpeg"}
 
 
 def escolhe_arquivo(tipo="video"):
@@ -610,6 +616,15 @@ class H(BaseHTTPRequestHandler):
                 if not p.is_dir(): return self._json({"erro": "Essa pasta não existe."}, 400)
                 cfg = le_cfg(); cfg["raiz"] = str(p); grava_cfg(cfg)
                 return self._json({"ok": True})
+            if u.path == "/api/arquivo-info":            # cartao do arquivo escolhido: nome, tamanho e duracao (so leitura)
+                p = Path(c.get("caminho", ""))
+                if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
+                    return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
+                try:
+                    dur = audio.probe_video(p)["duracao"]
+                except RuntimeError:
+                    dur = None
+                return self._json({"nome": p.name, "tamanho": p.stat().st_size, "duracao": dur})
             if u.path == "/api/escolher-arquivo":
                 return self._json({"caminho": escolhe_arquivo(c.get("tipo", "video")) or ""})
             if u.path == "/api/ipad/preparar":
