@@ -15,6 +15,10 @@ def autoteste():
     tenta("config_supabase", lambda: conta.SUPABASE_URL.startswith("https://") and len(conta.ANON_KEY) > 100)
     tenta("detector_rosto", lambda: rosto._detector(__import__("cv2")) is not None)
     tenta("onnxruntime", lambda: __import__("onnxruntime").__version__)
+    tenta("motor_rapido", lambda: transcricao.motor_rapido_disponivel() and __import__("ctranslate2").__version__
+          or (_ for _ in ()).throw(RuntimeError("faster-whisper/ctranslate2 nao carregou")))
+    if transcricao.ct2_pronto("preciso"):           # modelo ja baixado: transcreve 1 s de silencio (DLLs do motor ok)
+        tenta("motor_rapido_roda", lambda: transcricao.WhisperRapido("preciso").segmentos(__import__("numpy").zeros(16000)) is not None)
     tenta("tkinter", lambda: __import__("tkinter.filedialog") is not None)
     tenta("moldes_capcut", lambda: all((capcut.MOLDES / m / "draft_content.json").exists() for m in ("vertical", "horizontal")))
     tenta("pasta_dados", lambda: str(transcricao.pasta_dados()))
