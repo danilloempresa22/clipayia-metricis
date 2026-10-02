@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from . import audio, palavras, transcricao, vlog
 
-VERSAO = 1                           # muda quando o metodo mudar (invalida o cache)
+VERSAO = 2                           # muda quando o metodo mudar (invalida o cache). 2 = motor faster-whisper
 PARALELO = 3                         # takes transcritos ao mesmo tempo (threads do onnxruntime divididas entre eles)
 
 
@@ -106,7 +106,7 @@ def transcreve_takes(w, arquivos, modelo="preciso", usar_cache=True, progresso=N
     total = sum(n for _, n in fila)
     par = max(1, min(paralelo, len(fila)))
     if fila and callable(w) and not hasattr(w, "segmentos"):
-        w = w(threads=max(1, transcricao.nucleos_fisicos() // par))
+        w = w(threads=max(1, transcricao.nucleos_fisicos() // par), paralelo=par)
     feitos = {"n": 0}; trava = threading.Lock()
 
     def um(c):

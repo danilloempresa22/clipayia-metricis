@@ -4,15 +4,16 @@
 from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
 
 datas = [("clipay/assets", "clipay/assets"), ("clipay/config_publica.json", "clipay")]
-binaries = collect_dynamic_libs("onnxruntime") + [("bin/ffmpeg.exe", "bin")]
-for pacote in ("webview", "cv2"):                    # cv2: traz o haarcascade do detector de rosto
+binaries = collect_dynamic_libs("onnxruntime") + collect_dynamic_libs("ctranslate2") + [("bin/ffmpeg.exe", "bin")]
+for pacote in ("webview", "cv2", "faster_whisper"):  # cv2: haarcascade do rosto; faster_whisper: assets (VAD)
     try:
         datas += collect_data_files(pacote)
     except Exception:
         pass
 
 a = Analysis(["app.py"], pathex=["."], binaries=binaries, datas=datas,
-             hiddenimports=["onnxruntime", "webview", "cv2", "tkinter", "tkinter.filedialog"],
+             hiddenimports=["onnxruntime", "webview", "cv2", "tkinter", "tkinter.filedialog",
+                            "faster_whisper", "ctranslate2", "tokenizers", "av"],
              excludes=["matplotlib", "PyQt5", "PySide6", "pytest"])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name="Clipay", console=False, icon=None,

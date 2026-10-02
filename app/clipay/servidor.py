@@ -174,7 +174,7 @@ def rotina_em_segundo_plano(caminhos, modelo="preciso"):
             if job["cancelar"].is_set():
                 raise pacote.Cancelado()
             job["res"] = pacote.transcreve_takes(
-                lambda threads=None: processa._whisper(modelo, lambda e, f=None: job.update(etapa=e), 0, 0, threads),
+                lambda threads=None, paralelo=1: processa._whisper(modelo, lambda e, f=None: job.update(etapa=e), 0, 0, threads, paralelo),
                 job["caminhos"], modelo,
                 ao_ler=lambda k, n: job.update(etapa=f"Lendo o áudio dos takes ({k} de {n})"),
                 progresso=lambda k, n: job.update(feitas=k, total=n, etapa=f"Transcrevendo (trecho {k} de {n})"),
@@ -508,7 +508,7 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/estado":
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
-                                   "modelo": transcricao.modelo_pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
+                                   "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
             if u.path == "/api/rotina/estado":
                 return self._json(estado_rotina())
             if u.path == "/api/ipad/legenda":             # andamento da transcricao em segundo plano

@@ -236,6 +236,96 @@ class Whisper:
         return segs
 
 
+# ---------------- motor rapido: faster-whisper (CTranslate2), gratuito (MIT), offline ----------------
+# Medido no PC do usuario (2026-10-02, mesmo modelo small): video de 10,7 min 524 s -> 113 s; 30 takes 239 s -> 101 s;
+# ~90% das palavras iguais ao motor ONNX (as diferencas sao de transcricao, sem perda: o ONNX inventava frase
+# repetida). O motor ONNX acima fica de reserva: se o rapido nao carregar nesta maquina, o app usa o antigo.
+CT2 = {"preciso": "small", "rapido": "base"}
+CT2_URL = "https://huggingface.co/Systran/faster-whisper-{nome}/resolve/main/{arq}"
+CT2_ARQS = ("config.json", "model.bin", "tokenizer.json", "vocabulary.txt")
+
+
+def pasta_ct2(qual):
+    return pasta_dados() / "modelos" / f"ct2-{CT2[qual]}"
+
+
+def ct2_pronto(qual="preciso"):
+    d = pasta_ct2(qual)
+    return all((d / a).exists() for a in CT2_ARQS)
+
+
+def baixa_ct2(qual="preciso", progresso=None):
+    """baixa uma vez (~460 MB no 'preciso'); arquivo pela metade nunca fica com o nome final"""
+    d = pasta_ct2(qual); d.mkdir(parents=True, exist_ok=True)
+    tamanhos = {}
+    for a in CT2_ARQS:                               # tamanho total pra barra de progresso
+        if (d / a).exists(): continue
+        req = urllib.request.Request(CT2_URL.format(nome=CT2[qual], arq=a), method="HEAD")
+        with urllib.request.urlopen(req) as r:
+            tamanhos[a] = int(r.headers.get("Content-Length", 0) or r.headers.get("X-Linked-Size", 0) or 0)
+    total = sum(tamanhos.values()) or 1; feito = 0
+    for a in tamanhos:
+        tmp = d / (a + ".part")
+        with urllib.request.urlopen(CT2_URL.format(nome=CT2[qual], arq=a)) as r, open(tmp, "wb") as f:
+            while True:
+                bloco = r.read(1 << 20)
+                if not bloco: break
+                f.write(bloco); feito += len(bloco)
+                if progresso: progresso(min(feito, total), total)
+        tmp.replace(d / a)
+    return d
+
+
+class WhisperRapido:
+    """mesma interface do Whisper ONNX (segmentos com marca de tempo do proprio Whisper), configurado igual:
+    portugues, greedy (beam 1), sem fallback de temperatura, sem VAD, sem contexto entre chamadas"""
+    def __init__(self, qual="preciso", threads=None, paralelo=1):
+        from faster_whisper import WhisperModel
+        self.m = WhisperModel(str(pasta_ct2(qual)), device="cpu", compute_type="int8",
+                              cpu_threads=threads or nucleos_fisicos(), num_workers=max(1, paralelo))
+
+    def segmentos(self, x):
+        with CRONO("faster-whisper"):
+            segs, _ = self.m.transcribe(np.asarray(x, np.float32), language="pt", beam_size=1, best_of=1,
+                                        temperature=0.0, condition_on_previous_text=False, vad_filter=False,
+                                        without_timestamps=False, word_timestamps=False)
+            return [(float(s.start), float(s.end), s.text.strip()) for s in segs if s.text.strip()]
+
+    def texto(self, x):
+        """so o texto (Cortes + Headline: frases da tela de revisao)"""
+        return " ".join(t for _, _, t in self.segmentos(x)).strip()
+
+
+def motor_rapido_disponivel():
+    if os.environ.get("CLIPAY_MOTOR") == "onnx":       # forca o motor antigo (testes / diagnostico)
+        return False
+    try:
+        import faster_whisper, ctranslate2  # noqa: F401
+        return True
+    except Exception:                                # noqa: BLE001 — sem o pacote ou DLL que nao carrega: usa o ONNX
+        return False
+
+
+def pronto(qual="preciso"):
+    """o modelo do motor que vai ser usado ja esta baixado?"""
+    return ct2_pronto(qual) if motor_rapido_disponivel() else modelo_pronto(qual)
+
+
+def motor(qual="preciso", threads=None, paralelo=1, avisa=None):
+    """o motor de transcricao: o rapido (faster-whisper) se carregar, senao o ONNX. Baixa o modelo na 1a vez.
+    avisa(feito, total) durante o download."""
+    if motor_rapido_disponivel():
+        try:
+            if not ct2_pronto(qual):
+                baixa_ct2(qual, avisa)
+            return WhisperRapido(qual, threads, paralelo)
+        except Exception:                            # noqa: BLE001 — qualquer falha do rapido: cai no antigo
+            pass
+    if not modelo_pronto(qual):
+        baixa_modelo(qual, avisa)
+    return Whisper(qual, threads=threads) if threads else Whisper(qual)
+
+
 def frases(w, x, progresso=None, max_s=15.0, min_s=6.0):
     """divide o audio em pausas (6-15s) e transcreve cada pedaco -> [[ini, fim, texto]] em s do audio."""
     h = 160; n = len(x) // h

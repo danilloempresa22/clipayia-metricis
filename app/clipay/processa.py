@@ -15,10 +15,10 @@ def agrupa(pl):
     return list(g.values())
 
 
-def _whisper(qual, avisa, fr0=0.1, fr1=0.2, threads=None):
-    if not transcricao.modelo_pronto(qual):
-        transcricao.baixa_modelo(qual, lambda f, t: avisa("Baixando o modelo de transcrição (só na 1ª vez)", fr0 + (fr1 - fr0) * f / t))
-    return transcricao.Whisper(qual, threads=threads) if threads else transcricao.Whisper(qual)
+def _whisper(qual, avisa, fr0=0.1, fr1=0.2, threads=None, paralelo=1):
+    """motor de transcricao (o rapido se carregar, senao o ONNX); baixa o modelo na 1a vez"""
+    return transcricao.motor(qual, threads, paralelo,
+                             lambda f, t: avisa("Baixando o modelo de transcrição (só na 1ª vez)", fr0 + (fr1 - fr0) * f / t))
 
 
 # ---------------- LEGENDA COMPLEXA ----------------
@@ -131,7 +131,8 @@ def analisa_rotina(raiz, videos, opcoes=None, avisa=None, cancelado=None, pronto
     r = pronto
     if r is None or set(r["palavras"]) != set(infos):
         audios = {c: np.zeros(0, np.float32) for c, i in infos.items() if not i["tem_audio"]}
-        r = pacote.transcreve_takes(lambda threads=None: _whisper(modelo, avisa, 0.3, 0.3, threads), list(infos), modelo, audios=audios,
+        r = pacote.transcreve_takes(lambda threads=None, paralelo=1: _whisper(modelo, avisa, 0.3, 0.3, threads, paralelo),
+                                    list(infos), modelo, audios=audios,
                                     ao_ler=lambda k, n: avisa(f"Lendo o áudio dos takes ({k} de {n})", 0.02 + 0.28 * k / n),
                                     progresso=lambda k, n: avisa(f"Transcrevendo (trecho {k} de {n})", 0.3 + 0.65 * k / n),
                                     cancelado=cancelado)
@@ -334,9 +335,7 @@ def _analisa(raiz, draft, meta, pasta, modo, op, avisa):
     frases = {}
     if op.get("transcrever"):
         qual = op.get("modelo", "preciso")
-        if not transcricao.modelo_pronto(qual):
-            transcricao.baixa_modelo(qual, lambda f, t: avisa("Baixando o modelo de transcrição (só na 1ª vez)", 0.2 + 0.1 * f / t))
-        w = transcricao.Whisper(qual)
+        w = _whisper(qual, avisa, 0.2, 0.3)
         total = sum(len(x) for _, _, x in itens) or 1; feito = 0
         for k, (s, m, x) in enumerate(itens):
             src0 = s["source_timerange"]["start"] / 1e6

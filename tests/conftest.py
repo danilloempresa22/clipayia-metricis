@@ -23,6 +23,12 @@ def _gera_video(destino, largura, altura, com_audio=True):
     return destino
 
 
+@pytest.fixture(autouse=True)
+def motor_onnx(monkeypatch):
+    """os testes simulam o motor ONNX (transcricao.Whisper); o motor rapido e' medido a parte"""
+    monkeypatch.setenv("CLIPAY_MOTOR", "onnx")
+
+
 @pytest.fixture(scope="session")
 def video_vertical(tmp_path_factory):
     return _gera_video(tmp_path_factory.mktemp("v") / "vertical.mp4", 540, 960)
