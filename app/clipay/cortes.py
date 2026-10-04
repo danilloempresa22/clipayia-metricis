@@ -125,9 +125,10 @@ def _kfs(modelo_kf, t0, t1, ini, fim):
     return out
 
 
-def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None):
+def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None, efeito=True):
     """video: caminho do original. ini/fim: s no original. cache: pasta 'User Data/Cache' do CapCut (efeito e fonte).
-    musica: {path, nome, dur} ou None. pessoa: (px, py) ou None = detecta. Devolve um dict pra grava()."""
+    musica: {path, nome, dur} ou None. pessoa: (px, py) ou None = detecta. efeito=False tira o estroboscopio de
+    tremor. Devolve um dict pra grava()."""
     mod = mod or modelo()
     video = Path(video)
     info = audio.probe_video(video)
@@ -190,6 +191,10 @@ def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None):
     sc["volume"] = sc["last_nonzero_volume"] = float(co["volume_fala"])
     sc["clip"] = dict(sc["clip"], scale={"x": co["escala"], "y": co["escala"]}, transform={"x": co["x"], "y": co["y"]})
     ef = porcat.get("video_effects")
+    if ef and not efeito:                                    # "Efeito de tremor" desligado nos Ajustes
+        sc["extra_material_refs"] = [r for r in sc["extra_material_refs"] if r != ef["id"]]
+        M["video_effects"] = [x for x in M["video_effects"] if x.get("id") != ef["id"]]
+        ef = None
     if ef:
         ef["path"] = composto.caminho_no_cache(mod["efeito"]["id"], efeitos)
         for p in ef.get("adjust_params") or []:

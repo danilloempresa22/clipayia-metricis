@@ -4,7 +4,7 @@ transcricao real: ids, ordem, sobreposicao, minimo, teto (vira 'longo', nunca co
 filtro por tipo e limites puxados pro audio (longo.ajusta_limite).
 BETA: a IA roda no proprio computador pelo Ollama (gratis, sem chave, nada sai do PC). A versao paga troca so
 `chama_ia` pela Edge Function; a configuracao fica em assets/cortes/achar.json."""
-import hashlib, json, re, unicodedata, urllib.request, urllib.error
+import hashlib, json, os, re, subprocess, sys, time, unicodedata, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from . import audio, capcut, cortes, longo, transcricao
@@ -89,6 +89,42 @@ def janelas(frases, janela_s=900, sobreposicao_s=120):
         ini += janela_s - sobreposicao_s
 
 
+def ollama_exe():
+    """o Ollama instalado neste computador (instalador oficial do Windows), ou None"""
+    for c in (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe",
+              Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Ollama" / "ollama.exe"):
+        if c.exists():
+            return c
+    return None
+
+
+def ollama_no_ar(cfg, espera=0.0):
+    fim = time.time() + espera
+    while True:
+        try:
+            with urllib.request.urlopen(cfg["url"].rstrip("/") + "/api/version", timeout=2):
+                return True
+        except (urllib.error.URLError, TimeoutError, OSError):
+            if time.time() >= fim:
+                return False
+            time.sleep(0.5)
+
+
+def garante_ollama(cfg):
+    """abre o Ollama (sem janela) se ele estiver instalado e fechado. Sem ele: SemIA com o modo manual."""
+    if cfg.get("provedor") != "ollama" or ollama_no_ar(cfg):
+        return
+    if not cfg["url"].rstrip("/").endswith(":11434"):           # endereco que nao e' o do Ollama local: nao abre nada
+        raise SemIA("A IA que acha os cortes não respondeu. " + MSG_MANUAL)
+    exe = ollama_exe()
+    if not exe:
+        raise SemIA("A IA que acha os cortes (Ollama) não está instalada neste computador. " + MSG_MANUAL)
+    subprocess.Popen([str(exe), "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                     creationflags=0x08000000 if sys.platform == "win32" else 0)
+    if not ollama_no_ar(cfg, espera=20.0):
+        raise SemIA("A IA que acha os cortes (Ollama) não abriu. " + MSG_MANUAL)
+
+
 def chama_ollama(texto, cfg):
     corpo = {"model": cfg["modelo"], "stream": False, "format": ESQUEMA,
              "options": {"temperature": 0, "num_ctx": cfg.get("num_ctx", 16384)},
@@ -112,6 +148,7 @@ def chama_ollama(texto, cfg):
 def chama_ia(texto, cfg):
     """(texto da resposta, uso). So o Ollama no BETA; a Edge Function entra aqui na versao paga."""
     if cfg["provedor"] == "ollama":
+        garante_ollama(cfg)
         return chama_ollama(texto, cfg)
     raise SemIA(f"Provedor de IA desconhecido: {cfg['provedor']}. " + MSG_MANUAL)
 
@@ -343,7 +380,8 @@ def achar_cortes(transcricao_longa, tipos=TIPOS, cfg=None, chamar=None, progress
 def nome_corte(video, c):
     base = unicodedata.normalize("NFKD", Path(video).stem).encode("ascii", "ignore").decode()
     base = re.sub(r"[^A-Za-z0-9 _-]+", " ", base); base = re.sub(r"\s+", " ", base).strip() or "video"
-    return f"{base} - corte {c['numero']:02d} - {NOME_TIPO[c['tipo']]}" + (" - longo" if c["longo"] else "")
+    tipo = f" - {NOME_TIPO[c['tipo']]}" if c.get("tipo") in NOME_TIPO else ""     # corte digitado a mao: sem tipo
+    return f"{base} - corte {c['numero']:02d}{tipo}" + (" - longo" if c.get("longo") else "")
 
 
 def gera_todos(video, lista, raiz, cache=None, musica=None, progresso=None, cancelado=None):

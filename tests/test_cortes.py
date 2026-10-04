@@ -93,3 +93,12 @@ def test_grava_em_pasta_nova_com_subdraft_igual(corte, raiz_capcut):
     assert (p / "subdraft" / fid / "sub_draft_config.json").exists()
     assert cortes.verifica(corte, p) == []
     assert cortes.grava(raiz_capcut, "corte teste", corte) != nome       # nunca sobrescreve
+
+
+def test_sem_efeito_e_sem_velocidade(video_horizontal, monkeypatch):
+    monkeypatch.setattr(rosto, "posicao_2d", lambda v, a, b: (0.0, 0.0, False))
+    mod = cortes.modelo(); mod["composto"]["velocidade"] = 1.0
+    r = cortes.monta(video_horizontal, 0.5, 9.5, mod=mod, efeito=False)
+    d = r["draft"]; sc = d["tracks"][0]["segments"][0]
+    assert not d["materials"]["video_effects"] and sc["speed"] == pytest.approx(1.0, abs=0.01)
+    assert cortes.verifica(r) == []

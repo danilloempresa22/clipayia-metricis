@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -201,42 +201,30 @@ def rotina_em_segundo_plano(caminhos, modelo="preciso"):
     return job
 
 
-CT_BG = {"job": None}                # Cortes: transcricao do video longo em segundo plano (longo.py)
+# ---------------- CORTES (tela da Fase 4): o trabalho fica em fluxo_cortes.py ----------------
+def carrega_whisper(modelo):
+    return lambda threads=None, paralelo=1: processa._whisper(modelo, lambda e, f=None: None, 0, 0, threads, paralelo)
 
 
-def cortes_transcreve(caminho, modelo="preciso"):
-    """comeca (ou continua, pelo cache) a transcricao do video longo. Mesmo video ja rodando: devolve o mesmo trabalho."""
-    ant = CT_BG["job"]
-    if ant and ant["caminho"] == caminho and not ant["fim"]:
-        return ant
-    if ant and not ant["fim"]:
-        ant["cancelar"].set(); ant["thread"].join()
-    job = {"caminho": caminho, "modelo": modelo, "cancelar": threading.Event(), "etapa": "Na fila", "progresso": {},
-           "erro": None, "fim": False}
-
-    def roda():
-        try:
-            longo.transcreve(caminho, lambda threads=None, paralelo=1: processa._whisper(
-                modelo, lambda e, f=None: job.update(etapa=e), 0, 0, threads, paralelo), modelo,
-                progresso=lambda e: job.update(progresso=e, etapa="Transcrevendo"), cancelado=job["cancelar"].is_set)
-            job["etapa"] = "Transcrição pronta"
-        except longo.Cancelado:
-            job["erro"] = "cancelado"; job["etapa"] = "Cancelado"
-        except Exception as e:                       # noqa: BLE001 — aparece na tela; o cache guarda o que ja foi feito
-            traceback.print_exc(); job["erro"] = str(e); job["etapa"] = "Erro na transcrição"
-        finally:
-            job["fim"] = True
-    job["thread"] = threading.Thread(target=roda, daemon=True)
-    CT_BG["job"] = job
-    job["thread"].start()
-    return job
+def acesso_cortes():
+    """quem usa Cortes vem da configuracao (assets/cortes/achar.json, "acesso"). BETA: toda conta ativa. Lista de
+    planos: a sessao ainda nao traz o plano, entao ninguem passa ate o plano existir na conta."""
+    return achar.config().get("acesso", "todas_ativas") == "todas_ativas"
 
 
-def estado_cortes():
-    j = CT_BG["job"]
-    if not j:
-        return {"ativo": False}
-    return {"ativo": True, "caminho": j["caminho"], "etapa": j["etapa"], "fim": j["fim"], "erro": j["erro"], **j["progresso"]}
+def destino_cortes():
+    """pasta onde os projetos dos cortes sao gravados: a do CapCut. CLIPAY_CORTES_DESTINO (so teste) grava em outra
+    pasta, mas o efeito e a fonte continuam vindo do cache do CapCut de verdade."""
+    raiz = raiz_atual()
+    if not raiz:
+        raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho na Edição.")
+    teste = os.environ.get("CLIPAY_CORTES_DESTINO")
+    return (Path(teste) if teste else Path(raiz)), Path(raiz).parent.parent / "Cache"
+
+
+def musica_cortes():
+    c = le_cfg().get("musica_cortes") or ""
+    return {"caminho": c, "nome": Path(c).name if c else "", "existe": bool(c) and Path(c).is_file()}
 
 
 def estado_rotina():
@@ -551,11 +539,16 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/estado":
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
-                                   "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
+                                   "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel(),
+                                   "cortes": {"acesso": acesso_cortes()}})
             if u.path == "/api/rotina/estado":
                 return self._json(estado_rotina())
             if u.path == "/api/cortes/estado":
-                return self._json(estado_cortes())
+                return self._json(fluxo_cortes.estado())
+            if u.path == "/api/cortes/gerar-estado":
+                return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/cortes/musica":
+                return self._json(musica_cortes())
             if u.path == "/api/cortes/resultado":         # frases e pausas prontas (Fase 3); null se ainda falta janela
                 p = Path(q.get("caminho", [""])[0])
                 if not p.is_file():
@@ -711,17 +704,72 @@ class H(BaseHTTPRequestHandler):
                 conta.exige_ativa()
                 rotina_em_segundo_plano([str(p) for p in ps], c.get("modelo", "preciso"))
                 return self._json(estado_rotina())
-            if u.path == "/api/cortes/transcrever":       # video longo: comeca ou continua de onde parou
+            if u.path == "/api/cortes/info":              # cartao do video: ja foi processado neste computador?
+                p = Path(c.get("caminho", ""))
+                if not p.is_file():
+                    return self._json({"erro": "Esse vídeo não está mais nesse lugar."}, 400)
+                return self._json(fluxo_cortes.info_cache(str(p)))
+            if u.path in ("/api/cortes/transcrever", "/api/cortes/analisar"):   # comeca ou continua de onde parou
                 p = Path(c.get("caminho", ""))
                 if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
-                    return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
+                    return self._json({"erro": "Esse vídeo não está mais nesse lugar. Ele foi movido ou apagado?"}, 400)
                 conta.exige_ativa()
-                cortes_transcreve(str(p), c.get("modelo", "preciso"))
-                return self._json(estado_cortes())
+                if not acesso_cortes():
+                    return self._json({"erro": "Seu plano não inclui Cortes."}, 403)
+                m = c.get("modelo", "preciso")
+                fluxo_cortes.analisa(str(p), m, carrega_whisper(m))
+                return self._json(fluxo_cortes.estado())
             if u.path == "/api/cortes/cancelar":
-                j = CT_BG["job"]
-                if j: j["cancelar"].set()
-                return self._json(estado_cortes())
+                fluxo_cortes.cancela()
+                return self._json(fluxo_cortes.estado())
+            if u.path == "/api/cortes/confirmar":         # apresentador escolhido: acha os cortes (IA)
+                try:
+                    fluxo_cortes.confirma(str(c.get("apresentador", "")), c.get("tipos") or achar.TIPOS)
+                except fluxo_cortes.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+                return self._json(fluxo_cortes.estado())
+            if u.path == "/api/cortes/lista":             # filtro por tipo: so le o cache (nao chama a IA)
+                try:
+                    return self._json({"cortes": fluxo_cortes.lista([t for t in c.get("tipos") or [] if t in achar.TIPOS])})
+                except (fluxo_cortes.Erro, ValueError) as e:
+                    return self._json({"erro": str(e)}, 400)
+            if u.path == "/api/cortes/musica":            # "Trocar" a musica: o app lembra a escolha
+                cam = c.get("caminho") or ""
+                if cam and not Path(cam).is_file():
+                    return self._json({"erro": "Não achei essa música."}, 400)
+                cfg = le_cfg(); cfg["musica_cortes"] = cam; grava_cfg(cfg)
+                return self._json(musica_cortes())
+            if u.path == "/api/cortes/gerar":             # um projeto por corte, todos de uma vez
+                conta.exige_ativa()
+                p = Path(c.get("caminho", ""))
+                if not p.is_file():
+                    return self._json({"erro": "Esse vídeo não está mais nesse lugar. Ele foi movido ou apagado?"}, 400)
+                lista = c.get("cortes") or []
+                if not lista:
+                    return self._json({"erro": "Nenhum corte para gerar."}, 400)
+                dur = audio.probe_video(str(p))["duracao"]
+                for k in lista:
+                    if not (0 <= float(k["ini"]) < float(k["fim"]) <= dur + 0.05):
+                        return self._json({"erro": f"O corte {k.get('numero')} está fora do vídeo."}, 400)
+                try:
+                    raiz, cache = destino_cortes()
+                except capcut.ErroProjeto as e:
+                    return self._json({"erro": str(e)}, 400)
+                mu = None
+                if c.get("musica"):
+                    mc = musica_cortes()
+                    if not mc["existe"]:
+                        return self._json({"erro": "A música escolhida não está mais nesse lugar. Escolha de novo."}, 400)
+                    mu = {"path": mc["caminho"], "nome": Path(mc["caminho"]).stem, "dur": audio.duracao(mc["caminho"])}
+                try:
+                    fluxo_cortes.gera(str(p), lista, raiz, cache, mu, bool(c.get("velocidade", True)),
+                                      bool(c.get("efeito", True)), c.get("so"))
+                except fluxo_cortes.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+                return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/cortes/gerar-cancelar":
+                fluxo_cortes.cancela_geracao()
+                return self._json(fluxo_cortes.estado_geracao())
             if u.path == "/api/rotina/cancelar":
                 j = RT_BG["job"]
                 if j: j["cancelar"].set()

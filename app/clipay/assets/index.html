@@ -353,6 +353,107 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
   .wz-pct{font-size:44px}
 }
 
+/* ---------- CORTES: mesmo assistente da Edicao (referencia docs/design/cortes-novo-fluxo.html) ---------- */
+.conteudo:has(> #pag-cortes:not(.oculto)){padding-bottom:0}
+.side .item .cad{width:14px;height:14px;margin-left:auto;color:var(--text-3)}
+.ct-soon{opacity:.6;cursor:default;border-style:dashed!important}
+.ct-soon:hover{background:var(--surface)!important;border-color:var(--hair)!important}
+.ct-mais{width:22px;height:22px;border-radius:50%;border:1.5px dashed var(--hair-2);display:grid;place-items:center;color:var(--text-3);margin-top:1px}
+.ct-mais .i{width:13px!important;height:13px!important}
+/* previa estatica (quando o video de previa ainda nao existe): vertical com o quadrado no meio */
+.ct-cena{position:absolute;inset:0;background:#000}
+.ct-cena .pv-hl{top:19cqw;font-size:6cqw}
+.ct-sq{position:absolute;left:0;right:0;top:50%;transform:translateY(-52%);aspect-ratio:1;background:linear-gradient(160deg,#3a2f26,#15110e);overflow:hidden}
+.ct-sq .pv-pessoa{height:92%;transform:scale(1.14)}
+.ct-cena .pv-tl{bottom:9cqw}
+.ct-cena .pv-tl i.gap{flex:.55 1 0;background:rgba(255,255,255,.2)}
+.ct-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+.ct-video.on{opacity:1}
+/* passo 2 */
+.ct-nota{margin:0;font-size:var(--fs-note);color:var(--text-3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ct-nota b{color:var(--text-2);font-weight:500}
+/* passo 3: tipos */
+.ct-tbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ct-tbar p{margin:0;color:var(--text-2);font-size:14px}
+.ct-tbar strong{color:var(--text)}
+.ct-tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ct-tipo{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;align-items:start;padding:18px!important;border-radius:20px!important;text-align:left;
+  background:var(--surface)!important;border:1px solid var(--hair)!important;color:var(--text)!important;font-weight:400!important;transition:background .16s,border-color .16s}
+.ct-tipo:hover:not(:disabled){background:var(--surface-2)!important}
+.ct-tipo[aria-checked="true"]{background:var(--surface-2)!important;border-color:var(--accent-line)!important}
+.ct-cb{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--hair-2);display:grid;place-items:center;color:transparent;transition:.16s}
+.ct-cb .i{width:14px!important;height:14px!important;stroke-width:2.8!important}
+.ct-tipo[aria-checked="true"] .ct-cb,.ct-voz[aria-checked="true"] .ct-cb{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.ct-tipo b{display:block;font-size:16px;font-weight:600;letter-spacing:-.015em}
+.ct-tipo small{display:block;margin-top:3px;font-size:13px;color:var(--text-2);line-height:1.45}
+/* passo 4: fases */
+.ct-fases{display:flex;gap:10px;flex-wrap:wrap}
+.ct-fase{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px 0 6px;border-radius:999px;border:1px solid var(--hair);color:var(--text-3);font-size:13px;font-weight:500}
+.ct-fase i{width:20px;height:20px;border-radius:50%;background:var(--raise);display:grid;place-items:center;font-style:normal;font-size:11.5px;font-weight:600}
+.ct-fase.on{color:var(--text);border-color:var(--accent-line);background:var(--accent-soft)}
+.ct-fase.on i{background:var(--accent);color:var(--accent-ink)}
+.ct-fase.feito{color:var(--text-2)}
+.ct-fase.feito i{background:var(--status);color:#06210d}
+.ct-acoes-trab{display:flex;gap:8px;flex-wrap:wrap}
+.ct-vozes{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.ct-voz{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;text-align:left;padding:14px 16px!important;border-radius:18px!important;
+  background:var(--surface)!important;border:1px solid var(--hair)!important;color:var(--text)!important;font-weight:400!important}
+.ct-voz:hover:not(:disabled){background:var(--surface-2)!important}
+.ct-voz[aria-checked="true"]{background:var(--surface-2)!important;border-color:var(--accent-line)!important}
+.ct-voz .wz-radio{margin:0}
+.ct-voz[aria-checked="true"] .wz-radio{border-color:var(--accent);background:var(--accent)}
+.ct-voz[aria-checked="true"] .wz-radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+.ct-voz-ex{margin:2px 0 0;font-size:14px;line-height:1.45;color:var(--text-2)}
+.ct-voz-n{font-weight:600;font-size:14.5px}
+.ct-voz-t{font-size:var(--fs-note);color:var(--text-3);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ct-achados{display:flex;gap:6px;flex-wrap:wrap}
+/* modo manual */
+.ct-man{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.ct-man li{display:grid;grid-template-columns:30px repeat(2,minmax(90px,140px)) minmax(120px,170px) auto minmax(0,1fr);gap:10px;align-items:center}
+.ct-man input,.ct-man select{height:40px;border-radius:12px;border:1px solid var(--hair-2);background:var(--bg);color:var(--text);padding:0 12px;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;width:100%}
+.ct-man input[aria-invalid="true"]{border-color:var(--erro)}
+.ct-man .ct-man-erro{font-size:var(--fs-note);color:var(--erro)}
+.ct-man-cab{display:grid;grid-template-columns:30px repeat(2,minmax(90px,140px)) minmax(120px,170px);gap:10px;font-size:12px;color:var(--text-3)}
+/* passo 5: ajustes */
+.ct-ajustes{max-width:640px;padding:22px}
+.ct-opt{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}
+.ct-opt:first-of-type{border-top:0;padding-top:0}
+.ct-opt-t{margin:0;font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+.ct-opt-s{margin:2px 0 0;font-size:var(--fs-note);color:var(--text-3);line-height:1.4}
+.ct-opt-s button{background:none!important;color:var(--accent)!important;padding:0 2px!important;margin-left:6px;font-weight:500!important;font-size:var(--fs-note);border-radius:6px!important}
+.ct-sw{width:44px;height:26px;border-radius:99px!important;background:var(--hair-2)!important;position:relative;transition:background .2s;flex:none;padding:0!important;border:0}
+.ct-sw::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.ct-sw[aria-checked="true"]{background:var(--accent)!important}
+.ct-sw[aria-checked="true"]::after{transform:translateX(18px);background:var(--accent-ink)}
+.ct-sw:disabled{opacity:.35;cursor:not-allowed}
+/* passo 6: gerar */
+.ct-gen{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ct-g{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--hair)}
+.ct-g-n{width:30px;height:30px;border-radius:50%;background:var(--raise);display:grid;place-items:center;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.ct-g.ok .ct-g-n{background:var(--status);color:#06210d}
+.ct-g.falhou .ct-g-n{background:var(--erro-fundo);color:var(--erro)}
+.ct-g-n .i{width:15px!important;height:15px!important;stroke-width:2.8!important}
+.ct-g-nome{margin:0;font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-g-meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.ct-g-bar{height:5px;border-radius:99px;background:var(--hair-2);margin-top:8px;overflow:hidden}
+.ct-g-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s linear}
+.ct-g-st{font-size:var(--fs-note);color:var(--text-3);font-variant-numeric:tabular-nums;text-align:right}
+.ct-g-erro{margin:6px 0 0;font-size:var(--fs-note);color:var(--erro)}
+.ct-pronto{display:flex;align-items:center;gap:16px;padding:20px 22px;border-color:var(--accent-line)!important;background:linear-gradient(180deg,rgba(179,247,6,.07),var(--surface))!important}
+.ct-pronto .wz-ok{width:36px;height:36px}
+.ct-pronto .wz-ok .i{width:20px;height:20px}
+/* sem acesso */
+.ct-trava{max-width:560px;padding:28px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.ct-trava .wz-solta-ico{width:48px;height:48px;border-radius:16px}
+@media (max-width:720px){
+  .ct-man li,.ct-man-cab{grid-template-columns:24px 1fr 1fr}
+  .ct-man li select{grid-column:2 / 4}
+  .ct-voz{grid-template-columns:22px minmax(0,1fr)}
+  .ct-voz-t{grid-column:2;text-align:left}
+  .ct-g{grid-template-columns:30px minmax(0,1fr)}
+  .ct-g-st{grid-column:2;text-align:left}
+}
+
 /* ---------- fluxo de edicao ---------- */
 .drop{border:1.5px dashed #333333;border-radius:var(--raio);padding:56px 24px;text-align:center;transition:.15s;background:var(--card)}
 .drop.sobre{border-color:var(--acc);background:var(--ok-fundo)}
@@ -549,6 +650,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
   <symbol id="i-cima" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
   <symbol id="i-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-cortes" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M3 9v6M21 9v6"/></symbol>
 </svg>
 
 <!-- ================= LOGIN ================= -->
@@ -581,6 +683,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
     <nav aria-label="Principal">
       <button class="nav item" type="button" data-pag="inicio" title="Início"><svg class="i"><use href="#i-casa"/></svg><span>Início</span></button>
       <button class="nav item" type="button" data-pag="edicao" title="Edição"><svg class="i"><use href="#i-tesoura"/></svg><span>Edição</span></button>
+      <button class="nav item" type="button" data-pag="cortes" title="Cortes" id="nav-cortes"><svg class="i"><use href="#i-cortes"/></svg><span>Cortes</span><svg class="i cad oculto" id="nav-cortes-cad" aria-label="sem acesso no seu plano"><use href="#i-cadeado"/></svg></button>
       <button class="nav item" type="button" data-pag="tutorial" title="Tutorial"><svg class="i"><use href="#i-tutorial"/></svg><span>Tutorial</span></button>
     </nav>
     <div class="conta" id="conta">
@@ -1022,6 +1125,141 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
       </div>
     </section>
 
+    <!-- ===== CORTES (podcast longo -> varios cortes; tudo vem do trabalho real das Fases 1 a 3) ===== -->
+    <section id="pag-cortes" class="pagina oculto">
+      <div class="wz" id="ct">
+        <div class="wz-passos" id="ct-passos" role="list" aria-label="Progresso dos cortes"></div>
+
+        <section id="ct-trava" class="wz-tela oculto">
+          <article class="wz-card ct-trava">
+            <span class="wz-solta-ico"><svg class="i"><use href="#i-cadeado"/></svg></span>
+            <h1 style="margin:0;font:var(--t-card);font-size:22px">Cortes não está no seu plano</h1>
+            <p class="wz-lede" style="margin:0">Cortes transforma um podcast longo em vários cortes prontos no CapCut. Para usar, mude o seu plano.</p>
+            <button class="wz-primario" type="button" id="ct-ver-planos">Ver planos e cobrança</button>
+          </article>
+        </section>
+
+        <!-- 1: modelo -->
+        <section id="ct-modelo" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Qual modelo de corte?</h1><p class="wz-lede">Escolha o estilo dos cortes. Você ainda não precisa enviar nada.</p></header>
+          <div class="wz-escolha">
+            <div class="wz-modos" id="ct-modos" role="radiogroup" aria-label="Modelo de corte">
+              <button class="wz-modo" type="button" role="radio" aria-checked="true" tabindex="0" data-modelo="basico">
+                <span class="wz-radio" aria-hidden="true"></span>
+                <span><span class="wz-modo-nome">Corte básico</span><span class="wz-modo-desc">Lê o podcast inteiro, acha todos os melhores momentos e monta cada um como corte vertical completo, com zoom, headline e música.</span><span class="wz-etiqueta">1 vídeo longo</span></span>
+              </button>
+              <div class="wz-modo ct-soon" aria-disabled="true">
+                <span class="ct-mais" aria-hidden="true"><svg class="i"><use href="#i-mais"/></svg></span>
+                <span><span class="wz-modo-nome">Mais modelos de corte</span><span class="wz-modo-desc">Novos estilos entram aqui, no mesmo formato.</span><span class="wz-etiqueta">Em breve</span></span>
+              </div>
+            </div>
+            <article class="wz-card wz-previa">
+              <div class="pv-tel" aria-hidden="true">
+                <div class="ct-cena"><p class="pv-hl">MEU PLANO PARA<br>500K DE SEGUIDORES</p>
+                  <div class="ct-sq"><div class="pv-pessoa"><i class="pv-cab"></i><i class="pv-omb"></i></div></div>
+                  <div class="pv-tl"><i></i><i class="gap"></i><i></i><i class="gap"></i><i></i></div></div>
+                <video class="ct-video" id="ct-pv-video" muted loop playsinline preload="none"></video>
+              </div>
+              <div class="pv-texto">
+                <div><h2>Corte básico</h2><p class="pv-sub">De um podcast de horas para vários cortes completos, prontos no CapCut.</p></div>
+                <div><p class="pv-rot">O que ele faz</p><ul class="pv-faz">
+                  <li><svg class="i"><use href="#i-ok"/></svg><span>Gera o máximo de cortes que achar: histórias, polêmicas, emoção, humor</span></li>
+                  <li><svg class="i"><use href="#i-ok"/></svg><span>Corte inteiro: começa no início do assunto e só termina quando o assunto muda</span></li>
+                  <li><svg class="i"><use href="#i-ok"/></svg><span>Corte seco, zoom na pessoa, headline no topo, 1,13x e música baixa</span></li>
+                </ul></div>
+                <div><p class="pv-rot">Você precisa de</p><span class="wz-etiqueta">1 vídeo longo: podcast de 2 ou 3 horas, entrevista</span></div>
+                <p class="pv-nota" id="ct-pv-nota">Prévia ilustrativa.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 2: video -->
+        <section id="ct-video" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Escolha o vídeo longo</h1><p class="wz-lede">Pode ser um podcast de duas ou três horas. O arquivo fica no seu computador.</p></header>
+          <div id="ct-video-erro" class="msg erro oculto" role="alert"></div>
+          <div id="ct-video-aviso" class="wz-aviso oculto" role="status"></div>
+          <div id="ct-video-corpo"></div>
+          <p class="ct-nota" id="ct-cota"><svg class="i" style="width:14px;height:14px"><use href="#i-cadeado"/></svg><b>IA no seu computador:</b> sem limite de análises no BETA.</p>
+        </section>
+
+        <!-- 3: tipos -->
+        <section id="ct-tipos" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Que tipo de corte você quer?</h1><p class="wz-lede">O Clipay.ia gera todos os cortes que encontrar, e você escolhe o que postar direto no CapCut. Aqui você só diz quais tipos ele deve procurar.</p></header>
+          <div class="ct-tbar"><p><strong id="ct-tsel">5</strong> de 5 tipos</p><button class="wz-claro" type="button" id="ct-todos">Limpar seleção</button></div>
+          <div class="ct-tipos" id="ct-tipos-lista" role="group" aria-label="Tipos de corte"></div>
+          <p class="ct-nota">Cada corte vem inteiro, do começo do assunto até ele mudar. Mudar os tipos depois não refaz a análise.</p>
+        </section>
+
+        <!-- 4: transcricao, vozes, apresentador, achar (progresso REAL das Fases 2 e 3) -->
+        <section id="ct-analise" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="ct-a-titulo">Transcrevendo o áudio</h1><p class="wz-lede" id="ct-a-lede">Roda no seu computador, sem internet e sem custo por uso.</p></header>
+          <article class="wz-card wz-trabalho">
+            <div class="ct-fases" id="ct-fases"></div>
+            <div id="ct-a-num">
+              <div class="wz-trab-topo"><p class="wz-pct" id="ct-pct" aria-live="polite">0%</p><p class="wz-estado" id="ct-estado">Começando…</p></div>
+              <div class="wz-barra" style="margin-top:22px"><i id="ct-barra"></i></div>
+            </div>
+            <div id="ct-a-erro" class="msg erro oculto" role="alert" style="margin:0"></div>
+            <ul class="ct-vozes oculto" id="ct-vozes" role="radiogroup" aria-label="Quem é o apresentador"></ul>
+            <div class="ct-achados oculto" id="ct-achados"></div>
+            <p class="ct-nota" id="ct-a-nota"></p>
+            <div class="ct-acoes-trab">
+              <button class="wz-btn-texto oculto" id="ct-a-cancelar" type="button">Cancelar</button>
+              <button class="wz-btn-texto oculto" id="ct-a-tentar" type="button">Tentar de novo</button>
+              <button class="wz-btn-texto" id="ct-a-manual" type="button">Digitar cortes à mão</button>
+            </div>
+          </article>
+          <article class="wz-card wz-gerar oculto" id="ct-manual">
+            <h2 class="card-h" style="margin:0;font:var(--t-card)">Cortes digitados à mão</h2>
+            <p class="ct-nota" style="margin:0">Digite o início e o fim de cada corte no vídeo (h:mm:ss). O Clipay.ia monta cada um do mesmo jeito.</p>
+            <div class="ct-man-cab" aria-hidden="true"><span></span><span>Início</span><span>Fim</span><span>Tipo (opcional)</span></div>
+            <ol class="ct-man" id="ct-man"></ol>
+            <button class="wz-claro" type="button" id="ct-man-mais" style="align-self:flex-start"><svg class="i"><use href="#i-mais"/></svg>Adicionar corte</button>
+            <button class="wz-btn-texto oculto" id="ct-man-voltar-ia" type="button">Voltar para a IA</button>
+          </article>
+        </section>
+
+        <!-- 5: ajustes -->
+        <section id="ct-ajustes" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Ajuste o acabamento</h1><p class="wz-lede">A headline você troca depois, direto no CapCut.</p></header>
+          <div id="ct-aj-erro" class="msg erro oculto" role="alert"></div>
+          <article class="wz-card ct-ajustes">
+            <h2 class="card-h" style="margin:0 0 14px;font-size:15px;font-weight:600">Acabamento</h2>
+            <div class="ct-opt"><div><p class="ct-opt-t" id="ct-l-vel">Velocidade 1,13x</p><p class="ct-opt-s">Deixa o ritmo mais rápido sem mudar a voz.</p></div>
+              <button class="ct-sw" type="button" role="switch" aria-checked="true" aria-labelledby="ct-l-vel" data-aj="velocidade"></button></div>
+            <div class="ct-opt"><div><p class="ct-opt-t" id="ct-l-ef">Efeito de tremor</p><p class="ct-opt-s">Estroboscópio de tremor, bem leve.</p></div>
+              <button class="ct-sw" type="button" role="switch" aria-checked="true" aria-labelledby="ct-l-ef" data-aj="efeito"></button></div>
+            <div class="ct-opt"><div><p class="ct-opt-t" id="ct-l-mus">Música de fundo</p><p class="ct-opt-s"><span id="ct-mus-nome">Nenhuma música escolhida</span><button type="button" id="ct-mus-trocar">Escolher</button></p></div>
+              <button class="ct-sw" type="button" role="switch" aria-checked="false" aria-labelledby="ct-l-mus" data-aj="musica" id="ct-sw-mus"></button></div>
+          </article>
+        </section>
+
+        <!-- 6: gerar -->
+        <section id="ct-gerar" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="ct-g-titulo">Gerando os cortes</h1><p class="wz-lede">O Clipay.ia monta um projeto no CapCut para cada corte. Seu vídeo continua no seu computador.</p></header>
+          <div id="ct-g-erro" class="msg erro oculto" role="alert"></div>
+          <article class="wz-card ct-pronto oculto" id="ct-pronto">
+            <span class="wz-ok"><svg class="i"><use href="#i-ok"/></svg></span>
+            <div style="flex:1"><p class="ct-opt-t" id="ct-pronto-t">Pronto</p><p class="ct-opt-s">Abra o CapCut: estão todos na sua lista de projetos, com o nome do vídeo, o número e o tipo do corte. Escolha lá quais postar.</p></div>
+          </article>
+          <div class="linha" id="ct-g-botoes">
+            <button class="wz-btn-texto oculto" id="ct-g-cancelar" type="button">Cancelar</button>
+            <button class="wz-claro oculto" id="ct-g-tentar" type="button">Tentar de novo os que falharam</button>
+            <button class="wz-primario oculto" id="ct-g-capcut" type="button">Abrir o CapCut</button>
+            <button class="wz-claro oculto" id="ct-g-outro" type="button">Fazer outros cortes</button>
+          </div>
+          <ol class="ct-gen" id="ct-gen"></ol>
+        </section>
+
+        <footer class="wz-acoes" id="ct-acoes">
+          <button class="wz-voltar" id="ct-voltar" type="button"><svg class="i"><use href="#i-esq"/></svg>Voltar</button>
+          <p class="wz-privado"><svg class="i"><use href="#i-cadeado"/></svg><span id="ct-privado">Seu vídeo não sai do seu computador.</span></p>
+          <button class="wz-primario" id="ct-seguir" type="button">Continuar</button>
+        </footer>
+      </div>
+    </section>
+
     <!-- ===== TUTORIAL (conteudo vira depois) ===== -->
     <section id="pag-tutorial" class="pagina oculto">
       <div class="topo"><h1>Tutorial</h1></div>
@@ -1083,6 +1321,7 @@ function pagina(nome){
   history.replaceState(null, "", nome === "inicio" ? location.pathname : "#"+nome);
   if(nome === "inicio") carregaPainel();
   if(nome === "edicao" && !ocupado) mostra(sessao && sessao.status === "ativo" ? "escolher" : "inativa");
+  if(nome === "cortes") ctAbre();
   window.scrollTo(0,0);
 }
 function mostra(tela){
@@ -1103,6 +1342,8 @@ async function inicio(){
     const est = await api("estado"); site = est.site;
     ["ou-google", "google"].forEach(id => $(id).classList.toggle("oculto", !est.google));   // Google so aparece quando estiver ligado no Supabase
     $("sem-capcut").classList.toggle("oculto", !!est.raiz);
+    CT.acesso = !est.cortes || est.cortes.acesso !== false;            // quem tem Cortes vem da configuracao (achar.json)
+    $("nav-cortes-cad").classList.toggle("oculto", CT.acesso);
     sessao = await api("sessao");
   }catch(e){ sessao = {logado:false}; }
   aplicaSessao();
@@ -1125,7 +1366,7 @@ function aplicaSessao(){
   $("u-ponto").classList.toggle("on", ativo);
   saudacao();
   const h = location.hash.slice(1);
-  pagina(["edicao","tutorial"].includes(h) ? h : "inicio");
+  pagina(["edicao","cortes","tutorial"].includes(h) ? h : "inicio");
 }
 function avisoLogin(msg){ const e = $("login-ok"); e.textContent = msg || ""; e.classList.toggle("oculto", !msg); erro("login-erro"); }
 $("form-login").onsubmit = async ev => {
@@ -2069,6 +2310,430 @@ function novaEdicao(){
   mostra("escolher");
 }
 desenhaModos(); desenhaPrevia();
+
+
+// ================= CORTES (Fase 4): a tela so mostra o estado REAL do app (fluxo_cortes.py); nada e' simulado =================
+const CT_TIPOS = [
+  {id: "historia", n: "História", d: "Alguém conta o que viveu, do começo ao desfecho."},
+  {id: "polemico", n: "Polêmico", d: "Opiniões fortes, que dividem as pessoas."},
+  {id: "emocional", n: "Emocional", d: "Momentos tristes, de perda ou de virada."},
+  {id: "engracado", n: "Engraçado", d: "Trechos em que a conversa vira piada ou caos."},
+  {id: "insight", n: "Insight", d: "Alguém ensina algo: um conhecimento ou uma sacada."}];
+const CT_NOME = Object.fromEntries(CT_TIPOS.map(t => [t.id, t.n]));
+const CT_PASSOS = ["Modelo", "Vídeo", "Tipos", "Transcrição", "Ajustes", "Gerar"];
+const CT_TELAS = {modelo: 0, video: 1, tipos: 2, analise: 3, ajustes: 4, gerar: 5};
+const CT_FASES = [["transcrever", "Transcrever no seu computador"], ["vozes", "Identificar as vozes"],
+  ["apresentador", "Confirmar o apresentador"], ["achar", "Achar os cortes"]];
+const CT_PRIV = "Seu vídeo não sai do seu computador.";
+const CT_PRIV_IA = "Nada sai do seu computador: nem o vídeo, nem o áudio, nem o texto.";
+const CT = {tela: "modelo", acesso: true, video: "", info: null, cache: null, tipos: new Set(CT_TIPOS.map(t => t.id)),
+  est: null, cortes: null, manual: [], usaManual: false, escolhaAp: "", aj: {velocidade: true, efeito: true, musica: null},
+  mus: null, ger: null, poll: null, gpoll: null, aberta: false};
+
+function ctHms(s){ s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return h + ":" + String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0"); }
+const ctMesmo = (a, b) => !!a && !!b && a.replace(/\\/g, "/").toLowerCase() === b.replace(/\\/g, "/").toLowerCase();   // C:\x == C:/x
+function ctLeHms(t){                                   // "1:02:03", "2:03" ou "75" -> segundos (null se invalido)
+  t = String(t || "").trim().replace(",", ".");
+  if(!/^\d+(:\d{1,2}){0,2}(\.\d+)?$/.test(t)) return null;
+  return t.split(":").reverse().reduce((a, v, i) => a + Number(v) * 60 ** i, 0);
+}
+function ctGuarda(){                                   // conveniencia: lembrar onde a pessoa estava (o trabalho fica no cache do app)
+  try{ localStorage.setItem("clipay-cortes", JSON.stringify({video: CT.video, tipos: [...CT.tipos], manual: CT.manual,
+    usaManual: CT.usaManual, aj: CT.aj, tela: CT.tela, ap: CT.escolhaAp})); }catch(e){}
+}
+function ctLe(){
+  try{ const g = JSON.parse(localStorage.getItem("clipay-cortes") || "null"); if(!g) return;
+    CT.video = g.video || ""; if(Array.isArray(g.tipos)) CT.tipos = new Set(g.tipos.filter(t => CT_NOME[t]));
+    CT.manual = Array.isArray(g.manual) ? g.manual : []; CT.usaManual = !!g.usaManual; CT.aj = Object.assign(CT.aj, g.aj || {});
+    CT.escolhaAp = g.ap || ""; CT.tela = CT_TELAS[g.tela] !== undefined && g.tela !== "gerar" ? g.tela : "modelo";
+  }catch(e){}
+}
+
+// ---------- telas, passos e rodape ----------
+function ctMostra(tela){
+  CT.tela = tela;
+  ["trava", ...Object.keys(CT_TELAS)].forEach(t => $("ct-" + t).classList.toggle("oculto", t !== tela));
+  if(tela === "modelo") ctPrevia(); else { const v = $("ct-pv-video"); if(!v.paused) v.pause(); }
+  if(tela === "video") ctDesenhaVideo();
+  if(tela === "tipos") ctDesenhaTipos();
+  if(tela === "analise") ctDesenhaAnalise();
+  if(tela === "ajustes") ctDesenhaAjustes();
+  ctAtualiza(); ctGuarda(); window.scrollTo(0, 0);
+}
+function ctAtualiza(){
+  const p = CT.tela === "trava" ? -1 : CT_TELAS[CT.tela];
+  $("ct-passos").classList.toggle("oculto", p < 0);
+  $("ct-passos").innerHTML = CT_PASSOS.map((n, i) => '<div class="wz-passo ' + (i < p ? "feito" : i === p ? "agora" : "") + '" role="listitem"' +
+    (i === p ? ' aria-current="step"' : "") + '><i></i><span>' + n + '</span></div>').join("");
+  const e = CT.est || {}, s = $("ct-seguir"), v = $("ct-voltar");
+  $("ct-acoes").classList.toggle("oculto", p < 0);
+  v.classList.toggle("oculto", CT.tela === "modelo" || CT.tela === "gerar");
+  s.classList.toggle("oculto", CT.tela === "gerar");
+  const fase = e.fase, manual = CT.usaManual;
+  let txt = "Continuar", ok = true;
+  if(CT.tela === "modelo") txt = "Continuar com Corte básico";
+  else if(CT.tela === "video") ok = !!CT.video;
+  else if(CT.tela === "tipos") ok = CT.tipos.size > 0;
+  else if(CT.tela === "analise"){
+    if(manual) ok = ctManualValido().length > 0;
+    else if(fase === "apresentador"){ txt = "Confirmar e achar os cortes"; ok = !!CT.escolhaAp; }
+    else ok = fase === "pronto" && (CT.cortes || []).length > 0;
+  }else if(CT.tela === "ajustes"){ const n = ctLista().length; txt = "Gerar " + n + (n === 1 ? " corte" : " cortes"); ok = n > 0; }
+  s.textContent = txt; s.disabled = !ok;
+  $("ct-privado").textContent = CT.tela === "analise" && !manual && ["achar", "pronto"].includes(fase) ? CT_PRIV_IA : CT_PRIV;
+}
+$("ct-seguir").onclick = async () => {
+  if($("ct-seguir").disabled) return;
+  const t = CT.tela;
+  if(t === "modelo") return ctMostra("video");
+  if(t === "video") return ctMostra("tipos");
+  if(t === "tipos"){ ctMostra("analise"); return ctAnalisa(); }
+  if(t === "analise"){
+    if(!CT.usaManual && CT.est && CT.est.fase === "apresentador") return ctConfirma();
+    return ctMostra("ajustes");
+  }
+  if(t === "ajustes") return ctGera();
+};
+$("ct-voltar").onclick = () => {
+  const t = CT.tela;
+  if(t === "video") return ctMostra("modelo");
+  if(t === "tipos") return ctMostra("video");
+  if(t === "analise") return ctMostra("tipos");          // a analise continua em segundo plano
+  if(t === "ajustes") return ctMostra("analise");
+};
+
+// ---------- 1: modelo (um so, radio de verdade; previa em video quando o arquivo existir) ----------
+function ctPrevia(){
+  const v = $("ct-pv-video");
+  if(!v.dataset.tentou){
+    v.dataset.tentou = "1";
+    v.onloadeddata = () => { v.dataset.ok = "1"; ctPrevia(); };
+    v.onerror = () => { v.dataset.ok = "0"; };
+    v.poster = "/assets/previews/cortes-basico.jpg"; v.src = "/assets/previews/cortes-basico.mp4"; v.preload = "metadata";
+  }
+  const ok = v.dataset.ok === "1";
+  v.classList.toggle("on", ok); $("ct-pv-nota").classList.toggle("oculto", ok);
+  if(ok && !reduz && CT.tela === "modelo") v.play().catch(() => {});
+}
+$("ct-modos").addEventListener("keydown", e => {                    // so existe um modelo: as setas o mantem marcado
+  if(["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)){ e.preventDefault(); e.target.closest(".wz-modo") && e.target.focus(); }
+});
+
+// ---------- 2: video ----------
+async function ctDesenhaVideo(){
+  const c = CT.video;
+  if(!c){
+    $("ct-video-corpo").innerHTML = zonaSoltar("ct", "Arraste o vídeo longo aqui", "Escolher vídeo") +
+      '<p class="wz-dica">Dica: “Escolher vídeo” é mais rápido em arquivos grandes, porque não copia o arquivo.</p>';
+    return ctAtualiza();
+  }
+  const i = CT.info, ca = CT.cache;
+  const meta = !i ? "Lendo…" : tamanho(i.tamanho) + (i.duracao ? " · " + ctHms(i.duracao) : "");
+  const proc = ca && ca.ja_processado ? '<p class="ct-nota" style="margin-top:10px"><span class="wz-ok" style="width:16px;height:16px">' + ic("ok") +
+    '</span>Já processado neste computador' + (ca.transcrito ? ": as próximas etapas passam na hora." : ": continua de onde parou.") + '</p>' : "";
+  $("ct-video-corpo").innerHTML = '<div class="wz-arq"><span class="wz-arq-ico">' + ic("camera") + '</span><div class="wz-arq-main"><p class="wz-arq-nome">' +
+    esc(nomeArq(c)) + '</p><p class="wz-arq-meta">' + meta + '</p></div><span class="wz-ok" aria-label="Pronto">' + ic("ok") + '</span>' +
+    '<button class="wz-icone" type="button" data-ct-tirar aria-label="Remover ' + esc(nomeArq(c)) + '">' + ic("x") + '</button></div>' + proc;
+  ctAtualiza();
+}
+async function ctPoeVideo(c){
+  if(!c) return;
+  const tinha = CT.video && c !== CT.video && (CT.est || CT.cortes || CT.manual.length);
+  CT.video = c; CT.info = null; CT.cache = null;
+  if(tinha) ctLimpa("A transcrição, as vozes e os cortes do vídeo anterior saíram desta tela (o que foi feito continua guardado neste computador).");
+  ctGuarda(); ctDesenhaVideo();
+  try{ CT.info = await api("arquivo-info", {caminho: c}); }catch(e){ CT.info = {tamanho: 0, duracao: null}; }
+  try{ CT.cache = await api("cortes/info", {caminho: c}); }catch(e){ erro("ct-video-erro", e.message); }
+  if(CT.tela === "video") ctDesenhaVideo();
+}
+function ctLimpa(aviso){                              // trocar o video limpa o que depende dele, sem perder o resto da tela
+  CT.est = null; CT.cortes = null; CT.manual = []; CT.usaManual = false; CT.escolhaAp = ""; clearTimeout(CT.poll);
+  const a = $("ct-video-aviso"); a.textContent = aviso || ""; a.classList.toggle("oculto", !aviso);
+}
+$("ct-video-corpo").addEventListener("click", async e => {
+  if(e.target.closest("[data-ct-tirar]")){
+    const tinha = CT.est || CT.cortes || CT.manual.length;
+    CT.video = ""; CT.info = null; CT.cache = null;
+    if(tinha) ctLimpa("A transcrição, as vozes e os cortes deste vídeo saíram desta tela (o que foi feito continua guardado neste computador).");
+    ctGuarda(); return ctDesenhaVideo();
+  }
+  if(e.target.closest('[data-escolher="ct"]')){
+    erro("ct-video-erro");
+    try{ const {caminho} = await api("escolher-arquivo", {tipo: "video"}); ctPoeVideo(Array.isArray(caminho) ? caminho[0] : caminho); }
+    catch(x){ erro("ct-video-erro", x.message); }
+  }
+});
+$("ct-video-corpo").addEventListener("dragover", e => { const z = e.target.closest("[data-soltar]"); if(z && e.dataTransfer.types.includes("Files")){ e.preventDefault(); z.classList.add("sobre"); } });
+$("ct-video-corpo").addEventListener("dragleave", e => { const z = e.target.closest("[data-soltar]"); if(z && !z.contains(e.relatedTarget)) z.classList.remove("sobre"); });
+$("ct-video-corpo").addEventListener("drop", async e => {           // arrastar: o navegador nao da o caminho, entao copia em blocos
+  const z = e.target.closest("[data-soltar]"); if(!z || !e.dataTransfer.files.length) return;
+  e.preventDefault(); z.classList.remove("sobre"); const f = e.dataTransfer.files[0];
+  z.querySelector(".wz-solta-t").textContent = "Copiando " + f.name + "…";
+  try{ ctPoeVideo((await api("enviar?nome=" + encodeURIComponent(f.name), f, {bruto: true, headers: {"Content-Type": "application/octet-stream"}})).caminho); }
+  catch(x){ erro("ct-video-erro", f.name + ": " + x.message); ctDesenhaVideo(); }
+});
+
+// ---------- 3: tipos ----------
+function ctDesenhaTipos(){
+  $("ct-tipos-lista").innerHTML = CT_TIPOS.map(t => '<button class="ct-tipo" type="button" role="checkbox" aria-checked="' + CT.tipos.has(t.id) +
+    '" data-tipo="' + t.id + '"><span class="ct-cb">' + ic("check") + '</span><span><b>' + t.n + '</b><small>' + t.d + '</small></span></button>').join("");
+  $("ct-tsel").textContent = CT.tipos.size;
+  $("ct-todos").textContent = CT.tipos.size === CT_TIPOS.length ? "Limpar seleção" : "Selecionar todos";
+  ctAtualiza();
+}
+$("ct-tipos-lista").addEventListener("click", e => {
+  const b = e.target.closest(".ct-tipo"); if(!b) return;
+  const t = b.dataset.tipo; CT.tipos.has(t) ? CT.tipos.delete(t) : CT.tipos.add(t);
+  ctGuarda(); ctDesenhaTipos(); document.querySelector('.ct-tipo[data-tipo="' + t + '"]').focus();
+  if(CT.est && CT.est.fase === "pronto") ctBuscaLista();          // filtro no app, sobre a lista completa (nao chama a IA)
+});
+$("ct-todos").onclick = () => {
+  if(CT.tipos.size === CT_TIPOS.length) CT.tipos.clear(); else CT_TIPOS.forEach(t => CT.tipos.add(t.id));
+  ctGuarda(); ctDesenhaTipos(); if(CT.est && CT.est.fase === "pronto") ctBuscaLista();
+};
+
+// ---------- 4: analise (transcrever -> vozes -> apresentador -> achar), progresso real ----------
+async function ctAnalisa(){
+  erro("ct-a-erro");
+  try{ CT.est = await api("cortes/analisar", {caminho: CT.video}); }
+  catch(e){ CT.est = {fase: "erro", falha: e.message, parado: true, progresso: {}}; }
+  ctDesenhaAnalise(); ctAcompanha();
+}
+function ctAcompanha(){
+  clearTimeout(CT.poll);
+  const vez = async () => {
+    let e;
+    try{ e = await api("cortes/estado"); }catch(x){ erro("ct-a-erro", x.message); CT.poll = setTimeout(vez, 2000); return; }
+    if(!e.ativo || !ctMesmo(e.caminho, CT.video)){ return; }       // trabalho de outro video: esta tela nao mexe
+    const antes = CT.est && CT.est.fase; CT.est = e;
+    if(e.fase === "apresentador" && !CT.escolhaAp) CT.escolhaAp = (e.palpite || {}).letra || "";
+    if(e.fase === "pronto" && (antes !== "pronto" || !CT.cortes)) await ctBuscaLista();
+    if(CT.tela === "analise") ctDesenhaAnalise(); else ctAtualiza();
+    if(!e.parado) CT.poll = setTimeout(vez, 700);
+  };
+  vez();
+}
+async function ctBuscaLista(){
+  try{ CT.cortes = (await api("cortes/lista", {tipos: [...CT.tipos]})).cortes; }catch(e){ CT.cortes = []; erro("ct-a-erro", e.message); }
+  if(CT.tela === "analise") ctDesenhaAnalise(); else ctAtualiza();
+}
+function ctMinutos(s){ return s < 60 ? Math.max(1, Math.round(s)) + " s" : Math.round(s / 60) + " min"; }
+function ctDesenhaAnalise(){
+  const e = CT.est || {fase: "transcrever", progresso: {}}, f = e.fase, pr = e.progresso || {};
+  const ordem = CT_FASES.map(x => x[0]), at = f === "pronto" ? 4 : f === "sem_ia" ? 3 : ordem.indexOf(f);
+  $("ct-fases").innerHTML = CT_FASES.map(([id, n], i) => '<span class="ct-fase ' + (i < at ? "feito" : i === at ? "on" : "") + '"><i>' +
+    (i < at ? ic("check").replace('class="i"', 'class="i" style="width:12px;height:12px;stroke-width:3"') : i + 1) + '</i>' + n + '</span>').join("");
+  const T = {transcrever: ["Transcrevendo o áudio", "Roda no seu computador, sem internet e sem custo por uso."],
+    vozes: ["Identificando as vozes", "Separa quem fala, aqui no seu computador. O áudio não sai daqui."],
+    apresentador: ["Quem é o apresentador?", "O corte é feito da fala do convidado. Confirme quem conduz a conversa e faz as perguntas."],
+    achar: ["Procurando os cortes", "A IA lê só o texto da transcrição, aqui no seu computador."],
+    pronto: ["Cortes encontrados", "Cada corte vem inteiro, do começo do assunto até ele mudar."],
+    sem_ia: ["A IA não está disponível", "Você pode digitar os cortes à mão: o Clipay.ia monta cada um do mesmo jeito."],
+    erro: ["Não deu certo", "O que já foi feito continua guardado neste computador."],
+    cancelado: ["Análise pausada", "O que já foi feito continua guardado neste computador."]}[f] || ["Transcrevendo o áudio", ""];
+  $("ct-a-titulo").textContent = CT.usaManual ? "Digite os cortes" : T[0];
+  $("ct-a-lede").textContent = CT.usaManual ? "Sem IA: você diz onde começa e termina cada corte." : T[1];
+  const num = ["transcrever", "vozes", "achar", "pronto"].includes(f);
+  $("ct-a-num").classList.toggle("oculto", !num || CT.usaManual);
+  const p = f === "pronto" ? 100 : Math.floor((pr.fracao || 0) * 100);
+  $("ct-pct").textContent = p + "%"; $("ct-barra").style.width = p + "%";
+  let est = "Começando…", nota = "";
+  if(f === "transcrever"){
+    est = pr.janelas_total ? "Trecho " + Math.min(pr.janelas_prontas + 1, pr.janelas_total) + " de " + pr.janelas_total + " · " + ctHms(pr.segundos_video || 0) +
+      " de " + ctHms(pr.duracao || 0) : "Lendo o áudio…";
+    nota = (pr.falta_s ? "Faltam cerca de " + ctMinutos(pr.falta_s) + ". " : "") + (pr.do_cache ? pr.do_cache + " trecho(s) já estavam prontos neste computador. " : "") +
+      "Roda em segundo plano: você pode sair desta tela e continuar usando o Clipay.ia.";
+  }else if(f === "vozes"){
+    est = pr.baixando !== undefined ? "Baixando o modelo de voz (só na 1ª vez): " + Math.round(pr.baixando * 100) + "%" :
+      pr.janelas_total ? "Trecho " + pr.janelas_prontas + " de " + pr.janelas_total : "Começando…";
+    nota = "Roda em segundo plano: você pode sair desta tela e voltar.";
+  }else if(f === "achar"){
+    est = pr.janelas_total ? "Parte " + pr.janelas_prontas + " de " + pr.janelas_total + " do texto" : "Abrindo a IA no seu computador…";
+    nota = "A IA roda aqui mesmo: sem limite de análises no BETA.";
+  }else if(f === "pronto"){
+    const n = (CT.cortes || []).length;
+    est = CT.cortes === null ? "Filtrando pelos tipos marcados…" : n ? "Encontramos " + n + (n === 1 ? " corte completo." : " cortes completos.") :
+      "Nenhum corte dos tipos marcados. Volte e marque outros tipos, ou digite à mão.";
+    nota = e.total && CT.cortes && e.total > n ? "Ao todo a IA achou " + e.total + " cortes; " + n + " são dos tipos que você marcou." : "";
+  }else if(f === "apresentador"){
+    nota = "Isso entra no pedido à IA. Se trocar depois, a busca dos cortes é feita de novo.";
+  }
+  $("ct-estado").textContent = est; $("ct-a-nota").textContent = CT.usaManual ? "" : nota;
+  // vozes (confirmar o apresentador)
+  const vz = $("ct-vozes"), mostraVozes = f === "apresentador" && !CT.usaManual;
+  vz.classList.toggle("oculto", !mostraVozes);
+  if(mostraVozes){
+    const pal = e.palpite || {};
+    vz.innerHTML = (e.vozes || []).map(v => '<li><button class="ct-voz" type="button" role="radio" aria-checked="' + (v.letra === CT.escolhaAp) + '" tabindex="' +
+      (v.letra === CT.escolhaAp ? 0 : -1) + '" data-voz="' + v.letra + '"><span class="wz-radio" aria-hidden="true"></span><span><span class="ct-voz-n">Voz ' + v.letra +
+      (v.letra === pal.letra ? ' <span class="wz-etiqueta">Palpite do app · ' + Math.round((pal.confianca || 0) * 100) + '% de confiança</span>' : "") +
+      '</span><p class="ct-voz-ex">' + (v.exemplo ? "“" + esc(v.exemplo) + "”" : "") + '</p></span><span class="ct-voz-t">' + ctMinutos(v.fala_s) + ' de fala · ' +
+      Math.round(v.parte * 100) + '%</span></button></li>').join("");
+  }
+  // achados por tipo
+  const ac = $("ct-achados"), mostraAc = f === "pronto" && !CT.usaManual && (CT.cortes || []).length;
+  ac.classList.toggle("oculto", !mostraAc);
+  if(mostraAc){
+    const por = {}; CT.cortes.forEach(c => por[c.tipo] = (por[c.tipo] || 0) + 1);
+    ac.innerHTML = Object.entries(por).map(([t, n]) => '<span class="wz-etiqueta">' + n + " " + CT_NOME[t] + '</span>').join("");
+  }
+  // erro, cancelar, tentar de novo, modo manual
+  erro("ct-a-erro", ["erro", "sem_ia"].includes(f) && !CT.usaManual ? e.falha : "");
+  $("ct-a-cancelar").classList.toggle("oculto", CT.usaManual || !["transcrever", "vozes", "achar"].includes(f) || e.parado);
+  $("ct-a-tentar").classList.toggle("oculto", CT.usaManual || !["erro", "sem_ia", "cancelado"].includes(f));
+  $("ct-a-tentar").textContent = f === "cancelado" ? "Continuar de onde parou" : "Tentar de novo";
+  if(f === "sem_ia" && !CT.usaManual && !CT.manual.length){ CT.usaManual = true; ctManualNova(); }
+  $("ct-a-manual").classList.toggle("oculto", CT.usaManual);
+  $("ct-manual").classList.toggle("oculto", !CT.usaManual);
+  $("ct-man-voltar-ia").classList.toggle("oculto", f === "sem_ia");
+  if(CT.usaManual) ctDesenhaManual();
+  ctAtualiza();
+}
+$("ct-vozes").addEventListener("click", e => { const b = e.target.closest(".ct-voz"); if(!b) return; CT.escolhaAp = b.dataset.voz; ctGuarda(); ctDesenhaAnalise();
+  document.querySelector('.ct-voz[data-voz="' + CT.escolhaAp + '"]').focus(); });
+$("ct-vozes").addEventListener("keydown", e => {
+  const vs = (CT.est.vozes || []).map(v => v.letra), k = e.key;
+  if(!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(k) || !vs.length) return;
+  e.preventDefault(); let i = vs.indexOf(CT.escolhaAp);
+  i = (i + (k === "ArrowDown" || k === "ArrowRight" ? 1 : vs.length - 1)) % vs.length;
+  CT.escolhaAp = vs[i]; ctGuarda(); ctDesenhaAnalise(); document.querySelector('.ct-voz[data-voz="' + vs[i] + '"]').focus();
+});
+async function ctConfirma(){
+  erro("ct-a-erro"); CT.cortes = null;
+  try{ CT.est = await api("cortes/confirmar", {apresentador: CT.escolhaAp, tipos: [...CT.tipos]}); }catch(e){ erro("ct-a-erro", e.message); return; }
+  ctDesenhaAnalise(); ctAcompanha();
+}
+$("ct-a-cancelar").onclick = async () => { try{ CT.est = await api("cortes/cancelar", {}); }catch(e){} ctAcompanha(); };
+$("ct-a-tentar").onclick = () => (CT.est && CT.est.fase === "sem_ia") ? ctConfirma() : ctAnalisa();
+$("ct-a-manual").onclick = () => { CT.usaManual = true; if(!CT.manual.length) ctManualNova(); ctGuarda(); ctDesenhaAnalise(); $("ct-man").querySelector("input").focus(); };
+$("ct-man-voltar-ia").onclick = () => { CT.usaManual = false; ctGuarda(); ctDesenhaAnalise(); };
+
+// ---------- modo manual: inicio e fim digitados (mesmo montador da Fase 1) ----------
+function ctManualNova(){ CT.manual.push({ini: "", fim: "", tipo: ""}); }
+function ctDurVideo(){ return (CT.info && CT.info.duracao) || (CT.est && CT.est.duracao) || null; }
+function ctErroLinha(l){
+  const a = ctLeHms(l.ini), b = ctLeHms(l.fim), d = ctDurVideo();
+  if(!l.ini && !l.fim) return "";
+  if(a === null || b === null) return "Use h:mm:ss, por exemplo 0:12:30.";
+  if(b <= a) return "O fim tem que ser depois do início.";
+  if(d && b > d + 0.05) return "Passa do fim do vídeo (" + ctHms(d) + ").";
+  return "";
+}
+function ctManualValido(){
+  const ok = CT.manual.filter(l => l.ini && l.fim && !ctErroLinha(l));
+  if(CT.manual.some(l => ctErroLinha(l))) return [];
+  return ok.map(l => ({ini: ctLeHms(l.ini), fim: ctLeHms(l.fim), tipo: l.tipo || null})).sort((x, y) => x.ini - y.ini)
+    .map((c, i) => ({numero: i + 1, tipo: c.tipo, ini: c.ini, fim: c.fim, duracao: c.fim - c.ini, longo: false}));
+}
+function ctDesenhaManual(){
+  const op = '<option value="">Sem tipo</option>' + CT_TIPOS.map(t => '<option value="' + t.id + '">' + t.n + '</option>').join("");
+  $("ct-man").innerHTML = CT.manual.map((l, i) => { const er = ctErroLinha(l);
+    return '<li data-i="' + i + '"><span class="wz-take-n">' + (i + 1) + '</span>' +
+      '<input type="text" inputmode="numeric" placeholder="0:00:00" aria-label="Início do corte ' + (i + 1) + '" data-campo="ini" value="' + esc(l.ini) + '"' + (er ? ' aria-invalid="true"' : "") + '>' +
+      '<input type="text" inputmode="numeric" placeholder="0:00:00" aria-label="Fim do corte ' + (i + 1) + '" data-campo="fim" value="' + esc(l.fim) + '"' + (er ? ' aria-invalid="true"' : "") + '>' +
+      '<select aria-label="Tipo do corte ' + (i + 1) + '" data-campo="tipo">' + op.replace('value="' + l.tipo + '"', 'value="' + l.tipo + '" selected') + '</select>' +
+      '<button class="wz-icone" type="button" data-man-tirar="' + i + '" aria-label="Remover o corte ' + (i + 1) + '">' + ic("x") + '</button>' +
+      '<span class="ct-man-erro" role="status">' + esc(er) + '</span></li>'; }).join("");
+}
+function ctMarcaLinha(li){                            // so a linha mexida: redesenhar a lista tiraria o foco do campo seguinte
+  const er = ctErroLinha(CT.manual[+li.dataset.i]);
+  li.querySelectorAll("input").forEach(x => er ? x.setAttribute("aria-invalid", "true") : x.removeAttribute("aria-invalid"));
+  li.querySelector(".ct-man-erro").textContent = er;
+}
+$("ct-man").addEventListener("change", e => {
+  const li = e.target.closest("li"), c = e.target.dataset.campo; if(!li || !c) return;
+  CT.manual[+li.dataset.i][c] = e.target.value; ctGuarda(); ctMarcaLinha(li); ctAtualiza();
+});
+$("ct-man").addEventListener("input", e => {
+  const li = e.target.closest("li"), c = e.target.dataset.campo; if(!li || !c || c === "tipo") return;
+  CT.manual[+li.dataset.i][c] = e.target.value; ctGuarda(); ctAtualiza();
+});
+$("ct-man").addEventListener("click", e => { const b = e.target.closest("[data-man-tirar]"); if(!b) return;
+  CT.manual.splice(+b.dataset.manTirar, 1); if(!CT.manual.length) ctManualNova(); ctGuarda(); ctDesenhaManual(); ctAtualiza(); });
+$("ct-man-mais").onclick = () => { ctManualNova(); ctGuarda(); ctDesenhaManual(); ctAtualiza(); const ins = $("ct-man").querySelectorAll("input"); ins[ins.length - 2].focus(); };
+
+// ---------- 5: ajustes (velocidade, efeito, musica que o app lembra) ----------
+function ctLista(){ return CT.usaManual ? ctManualValido() : (CT.cortes || []); }
+async function ctDesenhaAjustes(){
+  try{ CT.mus = await api("cortes/musica"); }catch(e){ CT.mus = {existe: false}; }
+  if(CT.aj.musica === null) CT.aj.musica = !!CT.mus.existe;
+  if(!CT.mus.existe) CT.aj.musica = false;
+  $("ct-mus-nome").textContent = CT.mus.existe ? CT.mus.nome : CT.mus.caminho ? "A música escolhida sumiu: escolha de novo" : "Nenhuma música escolhida";
+  $("ct-mus-trocar").textContent = CT.mus.existe ? "Trocar" : "Escolher";
+  document.querySelectorAll("#ct-ajustes .ct-sw").forEach(b => b.setAttribute("aria-checked", String(!!CT.aj[b.dataset.aj])));
+  $("ct-sw-mus").disabled = !CT.mus.existe;
+  ctAtualiza();
+}
+document.querySelectorAll("#ct-ajustes .ct-sw").forEach(b => b.onclick = () => { if(b.disabled) return; CT.aj[b.dataset.aj] = !CT.aj[b.dataset.aj];
+  b.setAttribute("aria-checked", String(CT.aj[b.dataset.aj])); ctGuarda(); });
+$("ct-mus-trocar").onclick = async () => {
+  erro("ct-aj-erro");
+  try{
+    const {caminho} = await api("escolher-arquivo", {tipo: "musica"}); if(!caminho) return;
+    CT.mus = await api("cortes/musica", {caminho}); CT.aj.musica = true; ctGuarda(); ctDesenhaAjustes();
+  }catch(e){ erro("ct-aj-erro", e.message); }
+};
+
+// ---------- 6: gerar (um projeto por corte, todos de uma vez; um que falha nao para os outros) ----------
+const CT_EST = {fila: "Na fila", montando: "Montando…", gravando: "Gravando no CapCut…", pronto: "Pronto", erro: "Falhou", cancelado: "Cancelado"};
+async function ctGera(so){
+  erro("ct-g-erro"); erro("ct-aj-erro");
+  const lista = ctLista();
+  try{
+    CT.ger = await api("cortes/gerar", {caminho: CT.video, cortes: lista, velocidade: CT.aj.velocidade, efeito: CT.aj.efeito, musica: !!CT.aj.musica,
+      so: so || null});
+  }catch(e){ if(CT.tela === "ajustes") return erro("ct-aj-erro", e.message); return erro("ct-g-erro", e.message); }
+  ctMostra("gerar"); ctDesenhaGerar(); ctAcompanhaGer();
+}
+function ctAcompanhaGer(){
+  clearTimeout(CT.gpoll);
+  const vez = async () => {
+    try{ CT.ger = await api("cortes/gerar-estado"); }catch(e){ erro("ct-g-erro", e.message); CT.gpoll = setTimeout(vez, 2000); return; }
+    if(CT.tela === "gerar") ctDesenhaGerar();
+    if(CT.ger.ativo && !CT.ger.parado) CT.gpoll = setTimeout(vez, 600);
+  };
+  vez();
+}
+function ctDesenhaGerar(){
+  const g = CT.ger || {linhas: []}, ls = g.linhas || [], fim = !!g.parado;
+  $("ct-gen").innerHTML = ls.map(l => '<li class="ct-g' + (l.estado === "pronto" ? " ok" : l.estado === "erro" ? " falhou" : "") + '"><span class="ct-g-n">' +
+    (l.estado === "pronto" ? ic("check") : l.estado === "erro" ? ic("x") : l.numero) + '</span><div style="min-width:0"><p class="ct-g-nome">' + esc(l.nome) + '</p>' +
+    '<div class="ct-g-meta">' + (l.tipo ? '<span class="wz-etiqueta">' + CT_NOME[l.tipo] + '</span>' : "") + '<span class="wz-etiqueta">' + ctMinutos(l.duracao) + '</span>' +
+    (l.nome.endsWith(" - longo") ? '<span class="wz-etiqueta">longo</span>' : "") + '</div>' +
+    '<div class="ct-g-bar"><i style="width:' + Math.round(l.fracao * 100) + '%"></i></div>' + (l.erro ? '<p class="ct-g-erro">' + esc(l.erro) + '</p>' : "") +
+    '</div><span class="ct-g-st">' + CT_EST[l.estado] + '</span></li>').join("");
+  const ok = ls.filter(l => l.estado === "pronto").length, ruins = ls.filter(l => ["erro", "cancelado"].includes(l.estado)).length;
+  $("ct-g-titulo").textContent = !fim ? "Gerando os cortes" : ok ? "Cortes prontos" : "Nenhum corte foi gerado";
+  $("ct-pronto").classList.toggle("oculto", !fim || !ok);
+  $("ct-pronto-t").textContent = ok + (ok === 1 ? " projeto criado no CapCut" : " projetos criados no CapCut") + (ruins ? " · " + ruins + " não" : "");
+  $("ct-g-cancelar").classList.toggle("oculto", fim);
+  $("ct-g-tentar").classList.toggle("oculto", !fim || !ruins);
+  $("ct-g-capcut").classList.toggle("oculto", !fim || !ok);
+  $("ct-g-outro").classList.toggle("oculto", !fim);
+}
+$("ct-g-cancelar").onclick = async () => { try{ await api("cortes/gerar-cancelar", {}); }catch(e){} };
+$("ct-g-tentar").onclick = () => ctGera((CT.ger.linhas || []).filter(l => ["erro", "cancelado"].includes(l.estado)).map(l => l.numero));
+$("ct-g-capcut").onclick = () => api("abrir-capcut", {});
+$("ct-g-outro").onclick = () => { CT.video = ""; CT.info = null; CT.cache = null; ctLimpa(); CT.ger = null; ctMostra("modelo"); };
+$("ct-ver-planos").onclick = () => api("abrir-site", {caminho: "/conta"});
+
+// ---------- abrir a secao ----------
+function ctAbre(){
+  if(!CT.acesso) return ctMostra("trava");
+  if(!CT.aberta){                                     // 1a vez nesta aba: volta onde a pessoa estava (o trabalho esta no cache do app)
+    CT.aberta = true; ctLe();
+    if(CT.video){ const c = CT.video; CT.video = ""; ctPoeVideo(c); }
+    api("cortes/gerar-estado").then(g => { if(g.ativo && !g.parado){ CT.ger = g; ctMostra("gerar"); ctDesenhaGerar(); ctAcompanhaGer(); } }).catch(() => {});
+    if(CT.tela === "analise" || CT.tela === "ajustes"){
+      api("cortes/estado").then(e => { if(e.ativo && ctMesmo(e.caminho, CT.video)){ CT.est = e; ctAcompanha(); } else if(CT.video && !CT.usaManual) ctAnalisa(); })
+        .catch(() => {});
+    }
+  }
+  if(CT.tela === "gerar" && !CT.ger) CT.tela = "ajustes";
+  ctMostra(CT.tela);
+  if(CT.tela === "analise" && CT.est && !CT.est.parado) ctAcompanha();
+}
 
 inicio();
 </script>
