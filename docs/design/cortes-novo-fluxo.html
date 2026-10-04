@@ -385,6 +385,48 @@ h2{margin:0}
 .g-meta{display:flex;gap:6px;margin-top:4px}
 
 .adjust{grid-template-columns:minmax(0,640px);justify-content:start}
+
+/* cortes prontos: grade de prévias */
+.gstatus{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 18px;border-radius:18px;background:var(--surface);border:1px solid var(--hair);position:relative;overflow:hidden}
+.gs-ico{width:22px;height:22px;border-radius:50%;border:2px solid var(--hair-2);border-top-color:var(--accent);animation:spin .9s linear infinite}
+.gstatus.ok .gs-ico{animation:none;border:0;background:var(--ok);display:grid;place-items:center;color:#06210d}
+.gstatus.ok .gs-ico .i{width:14px;height:14px;stroke-width:2.8}
+.gstatus.ok{border-color:var(--accent-line);background:linear-gradient(180deg,rgba(179,247,6,.07),var(--surface))}
+.gstatus p{margin:0;font-size:14px;color:var(--text-2)}
+.gstatus.ok p{color:var(--text)}
+.gs-n{font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.gs-bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:transparent}
+.gs-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
+.gstatus.ok .gs-bar{opacity:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cuts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px 14px}
+.cut{display:flex;flex-direction:column;gap:10px;min-width:0}
+.cut-v{position:relative;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#000;container-type:inline-size;box-shadow:0 0 0 1px var(--hair),0 18px 30px -18px rgba(0,0,0,.8);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.cut:hover .cut-v{transform:translateY(-3px);box-shadow:0 0 0 1px var(--accent-line),0 22px 36px -16px rgba(0,0,0,.9)}
+.cut-v .hl{top:9cqw;left:5cqw;right:5cqw;font-size:6.2cqw;line-height:1.18;opacity:0;transition:opacity .4s .1s}
+.cut-v .csq{position:absolute;left:0;right:0;top:50%;transform:translateY(-52%);aspect-ratio:1;overflow:hidden;opacity:0;transition:opacity .4s}
+.cut-v .csq .person{height:94%;animation:zoomcut var(--d,6s) ease-in-out var(--dl,0s) infinite;animation-play-state:paused}
+.cut.play .cut-v .person{animation-play-state:running}
+@keyframes zoomcut{0%,18%{transform:scale(1)}30%,52%{transform:scale(1.19)}62%,70%{transform:scale(1)}82%,100%{transform:scale(1.13)}}
+.cut-v .tl{bottom:8cqw;left:6cqw;right:6cqw;height:2cqw;opacity:0;transition:opacity .4s .15s}
+.cut-v .tl i{animation:tlp var(--d,6s) linear var(--dl,0s) infinite;animation-play-state:paused;transform-origin:left;opacity:.9}
+.cut.play .cut-v .tl i{animation-play-state:running}
+@keyframes tlp{0%{opacity:.35}50%{opacity:1}100%{opacity:.35}}
+.cut-v .sk{position:absolute;inset:0;background:linear-gradient(110deg,#121214 30%,#1f1f23 50%,#121214 70%);background-size:220% 100%;animation:shim 1.2s linear infinite;display:grid;place-items:center;transition:opacity .45s}
+.cut-v .sk span{font-size:10.5cqw;color:var(--text-3);font-weight:500}
+@keyframes shim{to{background-position:-120% 0}}
+.cut.ready .sk{opacity:0;pointer-events:none}
+.cut.ready .hl,.cut.ready .csq,.cut.ready .tl{opacity:1}
+.cut-b{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
+.cut-n{font-size:12px;font-weight:600;letter-spacing:-.01em;line-height:1.35;color:var(--text-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.cut-m{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.cut-t{margin:-4px 2px 0;font-size:12px;color:var(--text-2)}
+.cut-v .dur{position:absolute;right:6px;bottom:6px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);color:#fff;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
+.cut.ready .dur{opacity:1}
+.cut-v .person .head-s,.cut-v .person .shoulders{transition:none}
+@media (max-width:1100px){.cuts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:860px){.cuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.cuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -548,17 +590,19 @@ h2{margin:0}
     </div>
   </section>
 
-  <!-- 6: gerar -->
+  <!-- 6: cortes prontos -->
   <section id="s-gen" class="screen" hidden>
     <header class="head">
-      <h1 id="gTitle">Gerando os cortes</h1>
-      <p class="lede" id="gLede">O Clipay.ia monta um projeto no CapCut para cada corte. Seu vídeo continua no seu computador.</p>
+      <h1 id="gTitle">Seus cortes</h1>
+      <p class="lede" id="gLede">Cada corte vira um projeto no CapCut. Seu vídeo continua no seu computador.</p>
     </header>
-    <ol class="gen" id="genList"></ol>
-    <article class="card done" id="done" hidden>
-      <span class="ok-badge big-ok"><svg class="i"><use href="#i-check"/></svg></span>
-      <div><p class="opt-t" id="doneT">Pronto</p><p class="opt-s">Abra o CapCut: estão todos na sua lista de projetos, com o nome do vídeo, o número e o tipo do corte. Escolha lá quais postar.</p></div>
-    </article>
+    <div class="gstatus" id="gStatus" aria-live="polite">
+      <span class="gs-ico" id="gsIco"></span>
+      <p id="gsText">Criando os projetos no CapCut…</p>
+      <span class="gs-n" id="gsN">0 de 0</span>
+      <div class="gs-bar"><i id="gsBar"></i></div>
+    </div>
+    <ol class="cuts" id="cuts"></ol>
   </section>
 
   <footer class="actions">
@@ -581,28 +625,23 @@ h2{margin:0}
     {c:'Insight',d:'Alguém ensina algo: um conhecimento ou uma sacada.'}
   ];
   var M=[
-    {t:'0:15:00',d:'1 min 05 s',cat:'Insight',hl:'Não seja ansioso'},
-    {t:'0:21:40',d:'2 min 40 s',cat:'Engraçado',hl:'Saí de pijama'},
-    {t:'0:33:12',d:'3 min 10 s',cat:'História',hl:'Meu primeiro prejuízo'},
-    {t:'0:48:10',d:'2 min 20 s',cat:'Polêmico',hl:'Ninguém quer ouvir isso'},
-    {t:'0:57:30',d:'1 min 50 s',cat:'Insight',hl:'Pare de adiar'},
-    {t:'1:05:48',d:'3 min 20 s',cat:'Emocional',hl:'Eu não me despedi'},
-    {t:'1:12:40',d:'3 min 25 s',cat:'História',hl:'Eu levei um tiro'},
-    {t:'1:26:05',d:'2 min 05 s',cat:'Polêmico',hl:'Curso é enganação?'},
-    {t:'1:40:30',d:'2 min 40 s',cat:'Engraçado',hl:'A pior entrevista'},
-    {t:'2:05:22',d:'2 min 18 s',cat:'Emocional',hl:'Liga pro seu pai'},
-    {t:'2:21:09',d:'4 min 00 s',cat:'História',hl:'Como perdi tudo'},
-    {t:'2:30:15',d:'3 min 35 s',cat:'Polêmico',hl:'Vendi e me arrependi'}
+    {t:'0:04:54',d:'2:05',cat:'História'},{t:'0:09:12',d:'1:34',cat:'Polêmico'},
+    {t:'0:15:00',d:'0:43',cat:'Insight'},{t:'0:17:19',d:'0:26',cat:'Polêmico'},
+    {t:'0:21:40',d:'2:40',cat:'Engraçado'},{t:'0:26:03',d:'1:12',cat:'Emocional'},
+    {t:'0:30:12',d:'0:46',cat:'Insight'},{t:'0:33:12',d:'3:10',cat:'História'},
+    {t:'0:37:18',d:'0:25',cat:'Insight'},{t:'0:38:20',d:'1:11',cat:'Insight'},
+    {t:'0:44:51',d:'2:20',cat:'Polêmico'},{t:'0:48:10',d:'1:50',cat:'Engraçado'},
+    {t:'0:52:37',d:'3:20',cat:'Emocional'},{t:'0:57:30',d:'1:05',cat:'Insight'},
+    {t:'1:02:15',d:'2:18',cat:'História'},{t:'1:05:00',d:'1:40',cat:'Polêmico'},
+    {t:'1:07:22',d:'0:58',cat:'Engraçado'},{t:'1:08:40',d:'1:21',cat:'Emocional'}
   ];
   var $=function(s){return document.querySelector(s)};
   var ic=function(n){return '<svg class="i"><use href="#i-'+n+'"/></svg>'};
   var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   var st={step:0,file:null,types:{},heads:{},ready:false};
   TYPES.forEach(function(t){st.types[t.c]=true});
-  M.forEach(function(m,i){st.heads[i]=m.hl});
+  
   function chosen(){return M.map(function(_,i){return i}).filter(function(i){return st.types[M[i].cat]})}
-  function two(n){return String(n).padStart(2,'0')}
-
   function progress(){
     $('#progress').innerHTML=STEPS.map(function(s,i){
       var c=i<st.step?'done':i===st.step?'now':'';
@@ -662,20 +701,40 @@ h2{margin:0}
   function adjust(){}
   document.querySelectorAll('.sw').forEach(function(s){s.addEventListener('click',function(){s.setAttribute('aria-checked',s.getAttribute('aria-checked')!=='true')})});
 
-  var gt=null;
+  var gt=null,io=null;
+  var TINTS=['#3a2f26,#15110e','#27323d,#10151a','#2c3a2a,#10150f','#3a2630,#150e11','#2f2c3d,#111016','#3a362a,#15130e'];
+  function two(n){return String(n).padStart(2,'0')}
   function gen(){
-    clearInterval(gt);var list=chosen();
-    $('#done').hidden=true;$('#gTitle').textContent='Gerando os cortes';
-    $('#genList').innerHTML=list.map(function(i,k){
-      return '<li class="g-row" id="g'+k+'"><span class="g-n">'+(k+1)+'</span><div><p class="g-name">Podcast Ale EP6 - corte '+two(k+1)+' - '+M[i].cat+'</p><div class="g-meta"><span class="chip chip--muted">'+M[i].d+'</span></div><div class="g-bar"><i></i></div></div><span class="g-st">Na fila</span></li>';
+    clearInterval(gt);if(io)io.disconnect();
+    var list=chosen(),N=list.length;
+    var gs=$('#gStatus');gs.classList.remove('ok');$('#gsIco').innerHTML='';
+    $('#gsText').textContent='Criando os projetos no CapCut…';$('#gsN').textContent='0 de '+N;$('#gsBar').style.width='0';
+    $('#gTitle').textContent='Seus cortes';
+    $('#cuts').innerHTML=list.map(function(i,k){
+      var m=M[i],t=TINTS[k%TINTS.length].split(','),nm='Podcast Ale EP6 - corte '+two(k+1)+' - '+m.cat+(m.d>='4:'?' - longo':'');
+      return '<li class="cut" id="c'+k+'" style="--d:'+(5+(k%4)*.9).toFixed(1)+'s;--dl:-'+((k*1.3)%5).toFixed(1)+'s">'
+        +'<div class="cut-v" style="background:linear-gradient(180deg,#000,#000)">'
+        +'<p class="hl">SUA HEADLINE AQUI<br>SOBRE O SEU CORTE</p>'
+        +'<div class="csq" style="background:linear-gradient(160deg,'+t[0]+','+t[1]+')"><div class="person"><i class="head-s"></i><i class="shoulders"></i></div></div>'
+        +'<div class="tl"><i></i><i class="gap"></i><i></i><i class="gap"></i><i></i></div>'
+        +'<span class="dur">'+m.d+'</span>'
+        +'<div class="sk"><span>'+two(k+1)+'</span></div></div>'
+        +'<div class="cut-b"><span class="cut-n" title="'+nm+'">'+nm+'</span></div></li>';
     }).join('');
-    var k=0,p=0;
+    // só anima o que está visível
+    io=new IntersectionObserver(function(es){es.forEach(function(e){e.target.classList.toggle('play',e.isIntersecting)})},{threshold:.2});
+    document.querySelectorAll('.cut').forEach(function(el){io.observe(el)});
+    var k=0;
+    function done(){
+      gs.classList.add('ok');$('#gsIco').innerHTML=ic('check');
+      $('#gsText').textContent=N+' projetos criados no CapCut. Escolha lá quais postar.';$('#gsN').textContent=N+' de '+N;$('#gsBar').style.width='100%';
+    }
+    if(reduce){document.querySelectorAll('.cut').forEach(function(el){el.classList.add('ready')});done();return}
     gt=setInterval(function(){
-      if(k>=list.length){clearInterval(gt);$('#gTitle').textContent='Cortes prontos';$('#doneT').textContent=list.length+' projetos criados no CapCut';$('#done').hidden=false;return}
-      var row=$('#g'+k);p+=reduce?50:34;
-      row.querySelector('.g-bar i').style.width=Math.min(p,100)+'%';row.querySelector('.g-st').textContent=p<100?'Montando…':'Pronto';
-      if(p>=100){row.classList.add('ok');row.querySelector('.g-n').innerHTML=ic('check');k++;p=0}
-    },200);
+      if(k>=N){clearInterval(gt);done();return}
+      $('#c'+k).classList.add('ready');k++;
+      $('#gsN').textContent=k+' de '+N;$('#gsBar').style.width=(k/N*100)+'%';
+    },240);
   }
 
   var SCR=['choose','upload','types','work','adjust','gen'];

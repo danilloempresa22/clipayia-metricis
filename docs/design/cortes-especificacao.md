@@ -115,7 +115,7 @@ Passos: **Modelo, Vídeo, Tipos, Transcrição, Ajustes, Gerar.** Mesmo molde do
 3. **Tipos.** "Que tipo de corte você quer?": cinco cartões marcáveis (História, Polêmico, Emocional, Engraçado, Insight), todos marcados de saída, com "Limpar seleção". Pelo menos um tem que ficar marcado. É o único momento em que a pessoa escolhe algo sobre os cortes.
 4. **Transcrição.** Duas fases na mesma tela: 1) transcrever no computador, 2) achar os cortes (só o texto vai para a IA). O aviso do rodapé muda na fase 2. No fim: "Encontramos N cortes completos" (N já considera os tipos marcados).
 5. **Ajustes.** Só o acabamento: velocidade 1,13x, efeito de tremor e música (com "Trocar"). Sem volume da fala e **sem headline** (ela é trocada depois no CapCut).
-6. **Gerar.** Um projeto por corte, com progresso individual, o tipo e a duração, e no fim "N projetos criados no CapCut" com a instrução de escolher lá quais postar.
+6. **Gerar.** Sem barra por corte: vai direto para "Seus cortes", uma grade de todos os cortes numerados na ordem do podcast (cerca de 5 por linha), cada um com o **preview de vídeo real** (sem som, em loop, ~12 s; clicar abre o corte inteiro com som), só o nome do projeto embaixo (nada de etiqueta de tipo nem minuto de início). Uma linha de status global ("Criando os projetos no CapCut… k de N" e depois "N projetos criados no CapCut. Escolha lá quais postar."). Os previews são renders leves do ffmpeg, aproximados, feitos a partir do vídeo original com a mesma edição do projeto.
 
 ## 7. Plano e cota
 

@@ -107,6 +107,25 @@ def plano(pcs, info, canvas, mod, px=0.0, py=0.0):
     return out, base, (W, H)
 
 
+# ---------------- a edicao de um corte (o projeto e o preview usam a MESMA) ----------------
+def edicao(video, ini, fim, mod=None, pessoa=None):
+    """pedacos do corte seco, posicao da pessoa e zoom de cada pedaco: {info, pcs, zooms, base, cob, px, py}.
+    monta() grava isso no CapCut; previa.py desenha a partir disso. Mesma conta, mesmos numeros."""
+    mod = mod or modelo()
+    info = audio.probe_video(video)
+    if not 0 <= ini < fim <= info["duracao"] + 0.05:
+        raise capcut.ErroProjeto(f"Intervalo fora do vídeo: {ini:.1f}–{fim:.1f} s (o vídeo tem {info['duracao']:.1f} s).")
+    pcs = pedacos(video, ini, fim)
+    if not pcs:
+        raise capcut.ErroProjeto("Não achei fala nesse trecho do vídeo.")
+    if pessoa is None:
+        px, py, _ = rosto.posicao_2d(video, ini, fim)
+    else:
+        px, py = pessoa
+    zooms, base, cob = plano(pcs, info, tuple(mod["canvas_interno"]), mod, px, py)
+    return {"info": info, "pcs": pcs, "zooms": zooms, "base": base, "cob": cob, "px": px, "py": py}
+
+
 # ---------------- montagem ----------------
 def _kfs(modelo_kf, t0, t1, ini, fim):
     """keyframes lineares (t em us NA ORIGEM do pedaco) das 4 propriedades, no formato do template"""
@@ -125,15 +144,14 @@ def _kfs(modelo_kf, t0, t1, ini, fim):
     return out
 
 
-def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None, efeito=True):
+def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None, efeito=True, ed=None):
     """video: caminho do original. ini/fim: s no original. cache: pasta 'User Data/Cache' do CapCut (efeito e fonte).
     musica: {path, nome, dur} ou None. pessoa: (px, py) ou None = detecta. efeito=False tira o estroboscopio de
-    tremor. Devolve um dict pra grava()."""
+    tremor. ed: a edicao() ja calculada (o preview calculou a mesma). Devolve um dict pra grava()."""
     mod = mod or modelo()
     video = Path(video)
-    info = audio.probe_video(video)
-    if not 0 <= ini < fim <= info["duracao"] + 0.05:
-        raise capcut.ErroProjeto(f"Intervalo fora do vídeo: {ini:.1f}–{fim:.1f} s (o vídeo tem {info['duracao']:.1f} s).")
+    ed = ed or edicao(video, ini, fim, mod, pessoa)
+    info = ed["info"]
     t = carrega_template(mod["template"])
     d, meta, stub, cfg = t["draft"], t["meta"], t["stub"], t["cfg"]
     efeitos = (Path(cache) / "effect") if cache else None
@@ -148,14 +166,7 @@ def monta(video, ini, fim, cache=None, musica=None, mod=None, pessoa=None, efeit
     vids = {v["id"]: v for v in c["materials"]["videos"]}
     seg0 = next((s for s in segs0 if s.get("common_keyframes") and not vids[s["material_id"]].get("object_locked")), segs0[0])
     idx = capcut.indice_materiais(c["materials"])
-    pcs = pedacos(video, ini, fim)
-    if not pcs:
-        raise capcut.ErroProjeto("Não achei fala nesse trecho do vídeo.")
-    if pessoa is None:
-        px, py, _ = rosto.posicao_2d(video, ini, fim)
-    else:
-        px, py = pessoa
-    zooms, base, cob = plano(pcs, info, canvas_i, mod, px, py)
+    pcs, zooms, base, cob, px, py = ed["pcs"], ed["zooms"], ed["base"], ed["cob"], ed["px"], ed["py"]
     q = 1e6 / audio.FPS
     novos, alvo = [], 0
     for (a, b, _), z in zip(pcs, zooms):

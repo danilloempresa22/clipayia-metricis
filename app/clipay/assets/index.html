@@ -426,22 +426,56 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
 .ct-sw[aria-checked="true"]{background:var(--accent)!important}
 .ct-sw[aria-checked="true"]::after{transform:translateX(18px);background:var(--accent-ink)}
 .ct-sw:disabled{opacity:.35;cursor:not-allowed}
-/* passo 6: gerar */
-.ct-gen{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.ct-g{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--hair)}
-.ct-g-n{width:30px;height:30px;border-radius:50%;background:var(--raise);display:grid;place-items:center;font-size:12.5px;font-weight:600;color:var(--text-2)}
-.ct-g.ok .ct-g-n{background:var(--status);color:#06210d}
-.ct-g.falhou .ct-g-n{background:var(--erro-fundo);color:var(--erro)}
-.ct-g-n .i{width:15px!important;height:15px!important;stroke-width:2.8!important}
-.ct-g-nome{margin:0;font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ct-g-meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
-.ct-g-bar{height:5px;border-radius:99px;background:var(--hair-2);margin-top:8px;overflow:hidden}
-.ct-g-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s linear}
-.ct-g-st{font-size:var(--fs-note);color:var(--text-3);font-variant-numeric:tabular-nums;text-align:right}
-.ct-g-erro{margin:6px 0 0;font-size:var(--fs-note);color:var(--erro)}
-.ct-pronto{display:flex;align-items:center;gap:16px;padding:20px 22px;border-color:var(--accent-line)!important;background:linear-gradient(180deg,rgba(179,247,6,.07),var(--surface))!important}
-.ct-pronto .wz-ok{width:36px;height:36px}
-.ct-pronto .wz-ok .i{width:20px;height:20px}
+/* passo 6: seus cortes (grade de previews de verdade; referencia: cortes-novo-fluxo.html) */
+.ct-gs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 18px;border-radius:18px;background:var(--surface);border:1px solid var(--hair);position:relative;overflow:hidden}
+.ct-gs-ico{width:22px;height:22px;border-radius:50%;border:2px solid var(--hair-2);border-top-color:var(--accent);animation:ct-gira .9s linear infinite}
+.ct-gs.ok .ct-gs-ico{animation:none;border:0;background:var(--status);display:grid;place-items:center;color:#06210d}
+.ct-gs.ok .ct-gs-ico .i{width:14px!important;height:14px!important;stroke-width:2.8!important}
+.ct-gs.ok{border-color:var(--accent-line);background:linear-gradient(180deg,rgba(179,247,6,.07),var(--surface))}
+.ct-gs.falhou .ct-gs-ico{animation:none;border:0;background:var(--erro-fundo);display:grid;place-items:center;color:var(--erro)}
+.ct-gs p{margin:0;font-size:14px;color:var(--text-2)}
+.ct-gs.ok p{color:var(--text)}
+.ct-gs-n{font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.ct-gs-bar{position:absolute;left:0;right:0;bottom:0;height:2px}
+.ct-gs-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
+.ct-gs.ok .ct-gs-bar{opacity:0}
+@keyframes ct-gira{to{transform:rotate(360deg)}}
+.ct-cuts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px 14px}
+.ct-cut{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ct-cut-v{position:relative;display:block;width:100%;aspect-ratio:9/16;border-radius:16px!important;overflow:hidden;background:#000!important;padding:0!important;container-type:inline-size;
+  box-shadow:0 0 0 1px var(--hair),0 18px 30px -18px rgba(0,0,0,.8);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;cursor:pointer}
+.ct-cut-v:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 0 0 1px var(--accent-line),0 22px 36px -16px rgba(0,0,0,.9)}
+.ct-cut-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s}
+.ct-cut.pronto .ct-cut-v video{opacity:1}
+.ct-sk{position:absolute;inset:0;background:linear-gradient(110deg,#121214 30%,#1f1f23 50%,#121214 70%);background-size:220% 100%;animation:ct-brilho 1.2s linear infinite;
+  display:grid;place-items:center;transition:opacity .45s}
+.ct-sk span{font-size:10.5cqw;color:var(--text-3);font-weight:500}
+@keyframes ct-brilho{to{background-position:-120% 0}}
+.ct-cut.pronto .ct-sk{opacity:0}
+.ct-cut.falhou .ct-sk{animation:none}
+.ct-dur{position:absolute;right:6px;bottom:6px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+  color:#fff;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
+.ct-cut.pronto .ct-dur{opacity:1}
+.ct-cut-n{margin:0;padding:0 2px;font-size:12px;font-weight:600;letter-spacing:-.01em;line-height:1.35;color:var(--text-2);display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.ct-cut-erro{position:absolute;left:8px;right:8px;bottom:8px;padding:8px 10px;border-radius:12px;background:rgba(50,20,22,.92);color:var(--erro);font-size:11.5px;line-height:1.35;text-align:left}
+.ct-cut-erro p{margin:0 0 6px}
+.ct-cut-erro button{background:none!important;color:#fff!important;padding:0!important;font-size:12px;font-weight:600!important;text-decoration:underline}
+.ct-nota-prev{margin:-6px 0 0;font-size:var(--fs-note);color:var(--text-3)}
+.ct-player{width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:18px;border-radius:24px;border:1px solid var(--hair-2);background:var(--surface);color:var(--text)}
+.ct-player::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(6px)}
+.ct-player-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.ct-player-top h2{margin:0;font-size:14.5px;font-weight:600;line-height:1.35}
+.ct-player-tela{position:relative;aspect-ratio:9/16;max-height:calc(100vh - 170px);margin:0 auto;border-radius:16px;overflow:hidden;background:#000}
+.ct-player-tela video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.ct-player-carrega{position:absolute;inset:0;display:grid;place-content:center;gap:10px;text-align:center;color:var(--text-2);font-size:13.5px;padding:20px}
+.ct-player-carrega[hidden],.ct-cut-erro[hidden]{display:none}
+.ct-player-carrega .wz-barra{width:180px;margin:0 auto}
+.ct-player .ct-nota-prev{margin:10px 0 0;text-align:center}
+@media (max-width:1100px){.ct-cuts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:860px){.ct-cuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.ct-cuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.ct-sk,.ct-gs-ico{animation:none}}
 /* sem acesso */
 .ct-trava{max-width:560px;padding:28px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
 .ct-trava .wz-solta-ico{width:48px;height:48px;border-radius:16px}
@@ -1235,21 +1269,34 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           </article>
         </section>
 
-        <!-- 6: gerar -->
+        <!-- 6: seus cortes (grade com o preview de verdade de cada corte; os projetos sao criados em segundo plano) -->
         <section id="ct-gerar" class="wz-tela oculto">
-          <header class="wz-cab"><h1 id="ct-g-titulo">Gerando os cortes</h1><p class="wz-lede">O Clipay.ia monta um projeto no CapCut para cada corte. Seu vídeo continua no seu computador.</p></header>
+          <header class="wz-cab"><h1>Seus cortes</h1><p class="wz-lede">Cada corte vira um projeto no CapCut. Seu vídeo continua no seu computador.</p></header>
           <div id="ct-g-erro" class="msg erro oculto" role="alert"></div>
-          <article class="wz-card ct-pronto oculto" id="ct-pronto">
-            <span class="wz-ok"><svg class="i"><use href="#i-ok"/></svg></span>
-            <div style="flex:1"><p class="ct-opt-t" id="ct-pronto-t">Pronto</p><p class="ct-opt-s">Abra o CapCut: estão todos na sua lista de projetos, com o nome do vídeo, o número e o tipo do corte. Escolha lá quais postar.</p></div>
-          </article>
+          <div class="ct-gs" id="ct-gs" aria-live="polite">
+            <span class="ct-gs-ico" id="ct-gs-ico"></span>
+            <p id="ct-gs-txt">Criando os projetos no CapCut…</p>
+            <span class="ct-gs-n" id="ct-gs-n"></span>
+            <div class="ct-gs-bar"><i id="ct-gs-bar"></i></div>
+          </div>
           <div class="linha" id="ct-g-botoes">
             <button class="wz-btn-texto oculto" id="ct-g-cancelar" type="button">Cancelar</button>
             <button class="wz-claro oculto" id="ct-g-tentar" type="button">Tentar de novo os que falharam</button>
             <button class="wz-primario oculto" id="ct-g-capcut" type="button">Abrir o CapCut</button>
             <button class="wz-claro oculto" id="ct-g-outro" type="button">Fazer outros cortes</button>
           </div>
-          <ol class="ct-gen" id="ct-gen"></ol>
+          <p class="ct-nota-prev">Prévia aproximada, feita no seu computador: o efeito de tremor e a fonte exata aparecem no CapCut. Clique num corte para ver inteiro, com som.</p>
+          <ol class="ct-cuts" id="ct-cuts"></ol>
+          <dialog class="ct-player" id="ct-player" aria-labelledby="ct-player-nome">
+            <div class="ct-player-top"><h2 id="ct-player-nome"></h2>
+              <button class="wz-icone" type="button" id="ct-player-fechar" aria-label="Fechar"><svg class="i"><use href="#i-x"/></svg></button></div>
+            <div class="ct-player-tela">
+              <video id="ct-player-video" controls playsinline preload="metadata"></video>
+              <div class="ct-player-carrega" id="ct-player-carrega"><span id="ct-player-txt">Montando a prévia do corte inteiro…</span>
+                <div class="wz-barra"><i id="ct-player-barra"></i></div></div>
+            </div>
+            <p class="ct-nota-prev">Prévia aproximada. Confira o começo e o fim antes de abrir no CapCut.</p>
+          </dialog>
         </section>
 
         <footer class="wz-acoes" id="ct-acoes">
@@ -2340,13 +2387,14 @@ function ctLeHms(t){                                   // "1:02:03", "2:03" ou "
 }
 function ctGuarda(){                                   // conveniencia: lembrar onde a pessoa estava (o trabalho fica no cache do app)
   try{ localStorage.setItem("clipay-cortes", JSON.stringify({video: CT.video, tipos: [...CT.tipos], manual: CT.manual,
-    usaManual: CT.usaManual, aj: CT.aj, tela: CT.tela, ap: CT.escolhaAp})); }catch(e){}
+    usaManual: CT.usaManual, aj: CT.aj, tela: CT.tela, ap: CT.escolhaAp, gerando: CT.gerando})); }catch(e){}
 }
 function ctLe(){
   try{ const g = JSON.parse(localStorage.getItem("clipay-cortes") || "null"); if(!g) return;
     CT.video = g.video || ""; if(Array.isArray(g.tipos)) CT.tipos = new Set(g.tipos.filter(t => CT_NOME[t]));
     CT.manual = Array.isArray(g.manual) ? g.manual : []; CT.usaManual = !!g.usaManual; CT.aj = Object.assign(CT.aj, g.aj || {});
-    CT.escolhaAp = g.ap || ""; CT.tela = CT_TELAS[g.tela] !== undefined && g.tela !== "gerar" ? g.tela : "modelo";
+    CT.escolhaAp = g.ap || ""; CT.gerando = g.gerando && Array.isArray(g.gerando.lista) ? g.gerando : null;
+    CT.tela = CT_TELAS[g.tela] !== undefined && (g.tela !== "gerar" || CT.gerando) ? g.tela : "modelo";
   }catch(e){}
 }
 
@@ -2355,6 +2403,7 @@ function ctMostra(tela){
   CT.tela = tela;
   ["trava", ...Object.keys(CT_TELAS)].forEach(t => $("ct-" + t).classList.toggle("oculto", t !== tela));
   if(tela === "modelo") ctPrevia(); else { const v = $("ct-pv-video"); if(!v.paused) v.pause(); }
+  if(tela !== "gerar") document.querySelectorAll("#ct-cuts video").forEach(x => { if(!x.paused) x.pause(); });
   if(tela === "video") ctDesenhaVideo();
   if(tela === "tipos") ctDesenhaTipos();
   if(tela === "analise") ctDesenhaAnalise();
@@ -2675,47 +2724,179 @@ $("ct-mus-trocar").onclick = async () => {
   }catch(e){ erro("ct-aj-erro", e.message); }
 };
 
-// ---------- 6: gerar (um projeto por corte, todos de uma vez; um que falha nao para os outros) ----------
-const CT_EST = {fila: "Na fila", montando: "Montando…", gravando: "Gravando no CapCut…", pronto: "Pronto", erro: "Falhou", cancelado: "Cancelado"};
-async function ctGera(so){
-  erro("ct-g-erro"); erro("ct-aj-erro");
-  const lista = ctLista();
-  try{
-    CT.ger = await api("cortes/gerar", {caminho: CT.video, cortes: lista, velocidade: CT.aj.velocidade, efeito: CT.aj.efeito, musica: !!CT.aj.musica,
-      so: so || null});
-  }catch(e){ if(CT.tela === "ajustes") return erro("ct-aj-erro", e.message); return erro("ct-g-erro", e.message); }
-  ctMostra("gerar"); ctDesenhaGerar(); ctAcompanhaGer();
+// ---------- 6: seus cortes (grade com o preview de cada corte; os projetos do CapCut em segundo plano) ----------
+// Tudo o que aparece vem do app: k de N = projetos prontos de verdade; cada cartao mostra o preview quando o arquivo
+// existe. Previews e projetos sao independentes: um que falha nao segura o outro.
+const ctDois = n => String(n).padStart(2, "0");
+const ctUrlPrev = (n, tipo) => "/api/video?previa=" + n + "&q=" + tipo + "&t=" + encodeURIComponent(TOKEN);
+let ctObs = null, ctVis = new Set(), ctPedido = null, ctFila = [], ctCarregando = false, ctPlayer = {n: null, volta: null, poll: null};
+function ctGera(){                                     // "Gerar N cortes" nos Ajustes
+  CT.gerando = {lista: ctLista(), aj: {velocidade: CT.aj.velocidade, efeito: CT.aj.efeito, musica: !!CT.aj.musica}};
+  CT.ger = null; CT.prev = null; ctGuarda(); ctMostra("gerar"); ctIniciaGerar();
+}
+async function ctIniciaGerar(so){
+  erro("ct-g-erro");
+  const g = CT.gerando; if(!g) return;
+  const corpo = {caminho: CT.video, cortes: g.lista, velocidade: g.aj.velocidade, efeito: g.aj.efeito, musica: g.aj.musica};
+  try{ CT.ger = await api("cortes/gerar", Object.assign({}, corpo, {so: so || null})); }catch(e){ erro("ct-g-erro", e.message); }
+  try{ CT.prev = await api("cortes/previas", corpo); }catch(e){ erro("ct-g-erro", e.message); }
+  if(!$("ct-cuts").children.length || $("ct-cuts").dataset.de !== ctChaveLista()) ctMontaGrade();
+  ctDesenhaGerar(); ctAcompanhaGer(); ctAcompanhaPrev(); ctPedeVisiveis();
+}
+function ctChaveLista(){ return (CT.gerando ? CT.gerando.lista : []).map(c => c.numero + ":" + c.ini + ":" + c.fim).join("|"); }
+function ctNome(n){ const l = ((CT.ger || {}).linhas || []).find(x => x.numero === n); return l ? l.nome : "Corte " + ctDois(n); }
+function ctMontaGrade(){
+  const ul = $("ct-cuts"); if(ctObs) ctObs.disconnect(); ctVis.clear(); ctFila = []; ctCarregando = false;
+  ul.dataset.de = ctChaveLista();
+  ul.innerHTML = (CT.gerando ? CT.gerando.lista : []).map(c => { const nome = esc(ctNome(c.numero));
+    return '<li class="ct-cut" data-n="' + c.numero + '"><div style="position:relative">' +
+      '<button class="ct-cut-v" type="button" aria-label="Ver o corte ' + ctDois(c.numero) + ' inteiro, com som: ' + nome + '">' +
+      '<video muted playsinline preload="none"' + (reduz ? "" : " loop") + '></video><span class="ct-sk"><span>' + ctDois(c.numero) + '</span></span>' +
+      '<span class="ct-dur"></span></button><div class="ct-cut-erro" hidden></div></div>' +
+      '<p class="ct-cut-n" title="' + nome + '">' + nome + '</p></li>'; }).join("");
+  ctObs = new IntersectionObserver(es => {             // so o que esta na tela renderiza primeiro e so isso toca
+    es.forEach(e => { const n = +e.target.dataset.n, v = e.target.querySelector("video");
+      if(e.isIntersecting){ ctVis.add(n); if(e.target.classList.contains("pronto") && !reduz) v.play().catch(() => {}); }
+      else { ctVis.delete(n); if(!v.paused) v.pause(); } });
+    clearTimeout(ctPedido); ctPedido = setTimeout(ctPedeVisiveis, 150);   // rolar rapido: so pede onde parou
+  }, {threshold: 0.15});
+  ul.querySelectorAll(".ct-cut").forEach(li => ctObs.observe(li));
+}
+function ctPedeVisiveis(){
+  if(CT.tela !== "gerar" || !CT.prev || CT.prev.cancelado) return;   // cancelou: so volta com "Tentar de novo"
+  const p = CT.prev.previas || {};
+  const ns = [...ctVis].filter(n => p[n] && ["nada"].includes(p[n].curto)).sort((a, b) => a - b);
+  if(ns.length) api("cortes/previas-pedir", {numeros: ns, tipo: "curto"}).then(r => { CT.prev = r; ctDesenhaPrevias(); }).catch(() => {});
 }
 function ctAcompanhaGer(){
   clearTimeout(CT.gpoll);
   const vez = async () => {
     try{ CT.ger = await api("cortes/gerar-estado"); }catch(e){ erro("ct-g-erro", e.message); CT.gpoll = setTimeout(vez, 2000); return; }
     if(CT.tela === "gerar") ctDesenhaGerar();
-    if(CT.ger.ativo && !CT.ger.parado) CT.gpoll = setTimeout(vez, 600);
+    if(CT.ger.ativo && !CT.ger.parado) CT.gpoll = setTimeout(vez, 700);
   };
   vez();
 }
-function ctDesenhaGerar(){
-  const g = CT.ger || {linhas: []}, ls = g.linhas || [], fim = !!g.parado;
-  $("ct-gen").innerHTML = ls.map(l => '<li class="ct-g' + (l.estado === "pronto" ? " ok" : l.estado === "erro" ? " falhou" : "") + '"><span class="ct-g-n">' +
-    (l.estado === "pronto" ? ic("check") : l.estado === "erro" ? ic("x") : l.numero) + '</span><div style="min-width:0"><p class="ct-g-nome">' + esc(l.nome) + '</p>' +
-    '<div class="ct-g-meta">' + (l.tipo ? '<span class="wz-etiqueta">' + CT_NOME[l.tipo] + '</span>' : "") + '<span class="wz-etiqueta">' + ctMinutos(l.duracao) + '</span>' +
-    (l.nome.endsWith(" - longo") ? '<span class="wz-etiqueta">longo</span>' : "") + '</div>' +
-    '<div class="ct-g-bar"><i style="width:' + Math.round(l.fracao * 100) + '%"></i></div>' + (l.erro ? '<p class="ct-g-erro">' + esc(l.erro) + '</p>' : "") +
-    '</div><span class="ct-g-st">' + CT_EST[l.estado] + '</span></li>').join("");
-  const ok = ls.filter(l => l.estado === "pronto").length, ruins = ls.filter(l => ["erro", "cancelado"].includes(l.estado)).length;
-  $("ct-g-titulo").textContent = !fim ? "Gerando os cortes" : ok ? "Cortes prontos" : "Nenhum corte foi gerado";
-  $("ct-pronto").classList.toggle("oculto", !fim || !ok);
-  $("ct-pronto-t").textContent = ok + (ok === 1 ? " projeto criado no CapCut" : " projetos criados no CapCut") + (ruins ? " · " + ruins + " não" : "");
-  $("ct-g-cancelar").classList.toggle("oculto", fim);
-  $("ct-g-tentar").classList.toggle("oculto", !fim || !ruins);
-  $("ct-g-capcut").classList.toggle("oculto", !fim || !ok);
-  $("ct-g-outro").classList.toggle("oculto", !fim);
+function ctAcompanhaPrev(){
+  clearTimeout(CT.ppoll);
+  const vez = async () => {
+    try{ CT.prev = await api("cortes/previas-estado"); }catch(e){ CT.ppoll = setTimeout(vez, 2000); return; }
+    if(CT.tela === "gerar") ctDesenhaPrevias();
+    const ps = Object.values(CT.prev.previas || {});
+    if(CT.tela === "gerar" && (ps.some(p => ["fila", "render"].includes(p.curto) || ["fila", "render"].includes(p.inteiro)) || ctVis.size && ps.some(p => p.curto === "nada")))
+      CT.ppoll = setTimeout(vez, 700);
+    else if(CT.tela === "gerar") CT.ppoll = setTimeout(vez, 3000);   // parado: confere de vez em quando (rolar pede o resto)
+  };
+  vez();
 }
-$("ct-g-cancelar").onclick = async () => { try{ await api("cortes/gerar-cancelar", {}); }catch(e){} };
-$("ct-g-tentar").onclick = () => ctGera((CT.ger.linhas || []).filter(l => ["erro", "cancelado"].includes(l.estado)).map(l => l.numero));
+function ctDesenhaPrevias(){
+  const p = (CT.prev || {}).previas || {};
+  document.querySelectorAll("#ct-cuts .ct-cut").forEach(li => {
+    const n = +li.dataset.n, e = p[n]; if(!e) return;
+    if(e.dur) li.querySelector(".ct-dur").textContent = seg(e.dur);
+    if(e.curto === "pronto" && !li.dataset.src && !ctFila.includes(n)){ ctFila.push(n); }
+    ctMarcaErro(li);
+  });
+  ctCarregaProximo();
+  if([...ctVis].some(n => p[n] && p[n].curto === "nada")){ clearTimeout(ctPedido); ctPedido = setTimeout(ctPedeVisiveis, 150); }
+}
+function ctCarregaProximo(){                           // um preview aparece depois do outro: o proximo so quando o anterior carregou
+  if(ctCarregando) return;
+  const n = ctFila.shift(); if(n === undefined) return;
+  const li = document.querySelector('.ct-cut[data-n="' + n + '"]'); if(!li){ return ctCarregaProximo(); }
+  const v = li.querySelector("video"); ctCarregando = true; li.dataset.src = "1";
+  const fim = () => { ctCarregando = false; ctCarregaProximo(); };
+  v.onloadeddata = () => { li.classList.add("pronto"); if(ctVis.has(n) && !reduz) v.play().catch(() => {}); fim(); };
+  v.onerror = () => { delete li.dataset.src; fim(); };
+  v.preload = "auto"; v.src = ctUrlPrev(n, "curto");
+}
+function ctMarcaErro(li){
+  const n = +li.dataset.n, e = ((CT.prev || {}).previas || {})[n] || {}, l = ((CT.ger || {}).linhas || []).find(x => x.numero === n) || {};
+  const msgs = [];
+  if(l.estado === "erro") msgs.push('<p>Projeto não criado: ' + esc(l.erro || "erro") + '</p><button type="button" data-tentar="projeto">Tentar de novo</button>');
+  if(l.estado === "cancelado") msgs.push('<p>Projeto cancelado.</p><button type="button" data-tentar="projeto">Tentar de novo</button>');
+  if(e.curto === "erro") msgs.push('<p>Prévia não saiu: ' + esc(e.erro || "erro") + '</p><button type="button" data-tentar="previa">Tentar de novo</button>');
+  else if((CT.prev || {}).cancelado && ["nada", "fila"].includes(e.curto)) msgs.push('<p>Prévia cancelada.</p><button type="button" data-tentar="previa">Tentar de novo</button>');
+  const box = li.querySelector(".ct-cut-erro"); box.hidden = !msgs.length; box.innerHTML = msgs.join("");
+  li.classList.toggle("falhou", !!msgs.length);
+}
+function ctDesenhaGerar(){
+  const g = CT.ger || {}, ls = g.linhas || [], N = ls.length || (CT.gerando ? CT.gerando.lista.length : 0);
+  const k = ls.filter(l => l.estado === "pronto").length, ruins = ls.filter(l => ["erro", "cancelado"].includes(l.estado)).length;
+  const fim = !!g.parado, gs = $("ct-gs");
+  gs.classList.toggle("ok", fim && k === N && N > 0); gs.classList.toggle("falhou", fim && k < N);
+  $("ct-gs-ico").innerHTML = fim ? ic(k === N ? "check" : "x") : "";
+  $("ct-gs-txt").textContent = !fim ? "Criando os projetos no CapCut…" : k === N ? N + (N === 1 ? " projeto criado" : " projetos criados") +
+    " no CapCut. Escolha lá quais postar." : k + " de " + N + " projetos criados no CapCut. Os que faltaram estão marcados no cartão.";
+  $("ct-gs-n").textContent = fim && k === N ? "" : k + " de " + N;
+  $("ct-gs-bar").style.width = (N ? k / N * 100 : 0) + "%";
+  const prevRuins = Object.values((CT.prev || {}).previas || {}).filter(p => p.curto === "erro" || (CT.prev.cancelado && p.curto !== "pronto")).length;
+  $("ct-g-cancelar").classList.toggle("oculto", fim);
+  $("ct-g-tentar").classList.toggle("oculto", !fim || !(ruins || prevRuins));
+  $("ct-g-capcut").classList.toggle("oculto", !fim || !k);
+  $("ct-g-outro").classList.toggle("oculto", !fim);
+  document.querySelectorAll("#ct-cuts .ct-cut").forEach(li => {      // o nome vem do app (o mesmo do projeto)
+    const nome = ctNome(+li.dataset.n), p = li.querySelector(".ct-cut-n");
+    if(p.textContent !== nome){ p.textContent = nome; p.title = nome; }
+    ctMarcaErro(li);
+  });
+}
+$("ct-cuts").addEventListener("click", e => {
+  const t = e.target.closest("[data-tentar]"), li = e.target.closest(".ct-cut"); if(!li) return;
+  const n = +li.dataset.n;
+  if(t){
+    if(t.dataset.tentar === "projeto") return ctIniciaGerar([n]);
+    return api("cortes/previas-pedir", {numeros: [n], tipo: "curto", de_novo: true}).then(r => { CT.prev = r; ctDesenhaPrevias(); ctAcompanhaPrev(); });
+  }
+  if(e.target.closest(".ct-cut-v")) ctAbrePlayer(n, e.target.closest(".ct-cut-v"));
+});
+$("ct-g-cancelar").onclick = async () => { try{ await api("cortes/gerar-cancelar", {}); }catch(e){} ctAcompanhaGer(); ctAcompanhaPrev(); };
+$("ct-g-tentar").onclick = () => {
+  const ns = ((CT.ger || {}).linhas || []).filter(l => ["erro", "cancelado"].includes(l.estado)).map(l => l.numero);
+  const cancelou = (CT.prev || {}).cancelado;
+  const ps = Object.entries((CT.prev || {}).previas || {}).filter(([n, p]) => p.curto === "erro" || cancelou && ctVis.has(+n) && p.curto !== "pronto").map(([n]) => +n);
+  if(ps.length) api("cortes/previas-pedir", {numeros: ps, tipo: "curto", de_novo: true}).then(r => { CT.prev = r; ctDesenhaPrevias(); ctAcompanhaPrev(); });
+  if(ns.length) ctIniciaGerar(ns);
+};
 $("ct-g-capcut").onclick = () => api("abrir-capcut", {});
-$("ct-g-outro").onclick = () => { CT.video = ""; CT.info = null; CT.cache = null; ctLimpa(); CT.ger = null; ctMostra("modelo"); };
+$("ct-g-outro").onclick = () => { ctFechaPlayer(); CT.video = ""; CT.info = null; CT.cache = null; ctLimpa(); CT.ger = null; CT.prev = null; CT.gerando = null;
+  $("ct-cuts").innerHTML = ""; ctMostra("modelo"); };
+
+// player do corte inteiro (com som): gerado na hora no app e guardado em cache
+function ctAbrePlayer(n, volta){
+  const d = $("ct-player"), v = $("ct-player-video");
+  ctPlayer = {n, volta, poll: null};
+  $("ct-player-nome").textContent = ctNome(n);
+  v.removeAttribute("src"); v.load(); $("ct-player-carrega").hidden = false;
+  $("ct-player-txt").textContent = "Montando a prévia do corte inteiro…"; $("ct-player-barra").style.width = "0";
+  document.querySelectorAll("#ct-cuts video").forEach(x => { if(!x.paused) x.pause(); });
+  d.showModal(); $("ct-player-fechar").focus();
+  const vez = async () => {
+    let r; try{ r = await api("cortes/previas-pedir", {numeros: [n], tipo: "inteiro", de_novo: true}); }catch(e){ $("ct-player-txt").textContent = e.message; return; }
+    if(ctPlayer.n !== n || !d.open) return;
+    const e = (r.previas || {})[n] || {};
+    if(e.inteiro === "pronto"){
+      $("ct-player-carrega").hidden = true; v.src = ctUrlPrev(n, "inteiro"); v.play().catch(() => {}); return;
+    }
+    if(e.inteiro === "erro"){ $("ct-player-txt").textContent = "A prévia não saiu: " + (e.erro || "erro"); return; }
+    $("ct-player-txt").textContent = e.inteiro === "fila" ? "Na fila: outra prévia está sendo montada…" : "Montando a prévia do corte inteiro… " + Math.round((e.fracao || 0) * 100) + "%";
+    $("ct-player-barra").style.width = Math.round((e.fracao || 0) * 100) + "%";
+    ctPlayer.poll = setTimeout(vez, 600);
+  };
+  vez();
+}
+function ctFechaPlayer(){
+  const d = $("ct-player"), v = $("ct-player-video");
+  clearTimeout(ctPlayer.poll); v.pause(); v.removeAttribute("src"); v.load();
+  if(d.open) d.close();
+}
+$("ct-player").addEventListener("close", () => {     // Esc ou fechar: volta pro mesmo cartao, na mesma posicao da grade
+  clearTimeout(ctPlayer.poll); const v = $("ct-player-video"); v.pause();
+  const b = ctPlayer.volta; ctPlayer = {n: null, volta: null, poll: null};
+  if(b) b.focus({preventScroll: true});
+  ctVis.forEach(n => { const li = document.querySelector('.ct-cut[data-n="' + n + '"]'); if(li && li.classList.contains("pronto") && !reduz) li.querySelector("video").play().catch(() => {}); });
+});
+$("ct-player-fechar").onclick = ctFechaPlayer;
 $("ct-ver-planos").onclick = () => api("abrir-site", {caminho: "/conta"});
 
 // ---------- abrir a secao ----------
@@ -2724,14 +2905,14 @@ function ctAbre(){
   if(!CT.aberta){                                     // 1a vez nesta aba: volta onde a pessoa estava (o trabalho esta no cache do app)
     CT.aberta = true; ctLe();
     if(CT.video){ const c = CT.video; CT.video = ""; ctPoeVideo(c); }
-    api("cortes/gerar-estado").then(g => { if(g.ativo && !g.parado){ CT.ger = g; ctMostra("gerar"); ctDesenhaGerar(); ctAcompanhaGer(); } }).catch(() => {});
     if(CT.tela === "analise" || CT.tela === "ajustes"){
       api("cortes/estado").then(e => { if(e.ativo && ctMesmo(e.caminho, CT.video)){ CT.est = e; ctAcompanha(); } else if(CT.video && !CT.usaManual) ctAnalisa(); })
         .catch(() => {});
     }
   }
-  if(CT.tela === "gerar" && !CT.ger) CT.tela = "ajustes";
+  if(CT.tela === "gerar" && !CT.gerando) CT.tela = "ajustes";
   ctMostra(CT.tela);
+  if(CT.tela === "gerar"){ if(!CT.ger) ctIniciaGerar(); else { ctAcompanhaGer(); ctAcompanhaPrev(); } }
   if(CT.tela === "analise" && CT.est && !CT.est.parado) ctAcompanha();
 }
 

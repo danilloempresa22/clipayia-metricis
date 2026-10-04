@@ -547,6 +547,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json(fluxo_cortes.estado())
             if u.path == "/api/cortes/gerar-estado":
                 return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/cortes/previas-estado":
+                return self._json(fluxo_cortes.estado_previas())
             if u.path == "/api/cortes/musica":
                 return self._json(musica_cortes())
             if u.path == "/api/cortes/resultado":         # frases e pausas prontas (Fase 3); null se ainda falta janela
@@ -573,7 +575,12 @@ class H(BaseHTTPRequestHandler):
         an = ANALISES.get(q.get("analise", [""])[0])
         ses = IPAD.get(q.get("sessao", [""])[0])
         qual = q.get("q", [""])[0]
-        if an and an.get("video"):
+        pv = q.get("previa", [""])[0]
+        if pv.isdigit() and qual in ("curto", "inteiro"):         # preview de um corte (tela Cortes, passo Gerar)
+            p = fluxo_cortes.arquivo_previa(int(pv), qual)
+            if not p or not p.exists():
+                self.send_response(404); self.end_headers(); return
+        elif an and an.get("video"):
             p = Path(an["video"])
         elif ses and qual in ("ipad", "pessoa"):
             p = Path(ses[qual]["previa"])
@@ -767,6 +774,27 @@ class H(BaseHTTPRequestHandler):
                 except fluxo_cortes.Erro as e:
                     return self._json({"erro": str(e)}, 400)
                 return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/cortes/previas":          # a lista da grade "Seus cortes" (previews no cache voltam na hora)
+                p = Path(c.get("caminho", ""))
+                if not p.is_file():
+                    return self._json({"erro": "Esse vídeo não está mais nesse lugar. Ele foi movido ou apagado?"}, 400)
+                mu = None
+                if c.get("musica"):
+                    mc = musica_cortes()
+                    if mc["existe"]: mu = {"path": mc["caminho"]}
+                try:
+                    _, cache = destino_cortes()
+                except capcut.ErroProjeto:
+                    cache = None
+                return self._json(fluxo_cortes.prepara_previas(str(p), c.get("cortes") or [], bool(c.get("velocidade", True)),
+                                                               mu, str(cache) if cache else None))
+            if u.path == "/api/cortes/previas-pedir":    # os cartoes que estao na tela agora vao pra frente da fila
+                ns = [int(n) for n in c.get("numeros") or [] if str(n).isdigit()]
+                tipo = c.get("tipo") if c.get("tipo") in ("curto", "inteiro") else "curto"
+                return self._json(fluxo_cortes.pede_previas(ns, tipo, bool(c.get("de_novo"))))
+            if u.path == "/api/cortes/previas-cancelar":
+                fluxo_cortes.cancela_previas()
+                return self._json(fluxo_cortes.estado_previas())
             if u.path == "/api/cortes/gerar-cancelar":
                 fluxo_cortes.cancela_geracao()
                 return self._json(fluxo_cortes.estado_geracao())
