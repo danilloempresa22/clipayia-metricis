@@ -1,0 +1,45 @@
+{
+ "_origem": "Corte basico: medido no projeto feito a mao 'cortes ale pod cast' (docs/design/referencia-cortes) e na secao 4 de docs/design/cortes-especificacao.md",
+ "id": "basico",
+ "nome": "Corte básico",
+ "template": "template",
+ "canvas_externo": [1080, 1920],
+ "canvas_interno": [1920, 1920],
+ "fps": 30,
+ "zoom": {
+  "folga_base": 0.025,
+  "_folga_base": "escala base = a menor que cobre o quadrado (16:9 -> 1/0,5625 = 1,778) + 2,5% de folga = 1,823",
+  "intensidade": 1.0,
+  "_fatores": "as tabelas ESTATICO/EMPURRAO de reels.py, aplicadas sobre a escala base (na referencia: 1,158 a 1,206)",
+  "margem_borda": 0.0005
+ },
+ "composto": {
+  "velocidade": 1.13,
+  "escala": 1.0,
+  "x": 0.0,
+  "y": -0.1281179138321995,
+  "volume_fala": 1.0
+ },
+ "efeito": {
+  "nome": "Estroboscópio de tremor",
+  "id": "7395467839634803974",
+  "parametros": {"effects_adjust_intensity": 0.2, "effects_adjust_background_animation": 0.5,
+                 "effects_adjust_luminance": 0.2, "effects_adjust_speed": 0.3}
+ },
+ "headline": {
+  "texto": "SUA HEADLINE AQUI\nSOBRE O SEU CORTE",
+  "fonte_id": "7545362071773367568",
+  "escala": 0.6336584032206616,
+  "x": 0.0,
+  "y": 0.5113378684807256
+ },
+ "musica": {
+  "volume": 0.05300425738096237,
+  "_volume": "cerca de -25,5 dB, do comeco ao fim do corte, sem fade e sem abaixar na fala"
+ },
+ "duracao": {
+  "minimo_s": 30,
+  "teto_s": 240,
+  "_duracao": "para as proximas fases (a IA acha o assunto inteiro; nunca trunca pelo teto). A Fase 1 usa o intervalo digitado."
+ }
+}

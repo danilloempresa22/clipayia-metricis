@@ -1,0 +1,18 @@
+{
+ "audio_path": "",
+ "cover_height": 320,
+ "cover_path": "draft_cover.jpg",
+ "cover_width": 320,
+ "create_time": 1791124209,
+ "draft_json_file": "draft_content.json",
+ "id": "9FD24326-178F-4e13-B50E-352733FAD986",
+ "import_time_ms": 1791124209865,
+ "is_from_multi_timeline": false,
+ "is_from_sub_draft": true,
+ "name": "Clipe composto1",
+ "project_id": "9FD24326-178F-4e13-B50E-352733FAD986",
+ "rough_cut_duration": 34933333,
+ "rough_cut_start": 0,
+ "source": "timeline",
+ "type": "video"
+}

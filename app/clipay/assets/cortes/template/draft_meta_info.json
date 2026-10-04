@@ -1,0 +1,195 @@
+{
+ "cloud_draft_cover": false,
+ "cloud_draft_sync": false,
+ "cloud_package_completed_time": "",
+ "draft_cloud_capcut_purchase_info": "",
+ "draft_cloud_last_action_download": false,
+ "draft_cloud_package_type": "",
+ "draft_cloud_purchase_info": "",
+ "draft_cloud_template_id": "",
+ "draft_cloud_tutorial_info": "",
+ "draft_cloud_videocut_purchase_info": "",
+ "draft_cover": "draft_cover.jpg",
+ "draft_deeplink_url": "",
+ "draft_enterprise_info": {
+  "draft_enterprise_extra": "",
+  "draft_enterprise_id": "",
+  "draft_enterprise_name": "",
+  "enterprise_material": []
+ },
+ "draft_fold_path": "",
+ "draft_has_unfinished_aigc_video_effect": false,
+ "draft_id": "4A7DEFD5-3120-4534-A599-68A8F9FA5D58",
+ "draft_is_ae_produce": false,
+ "draft_is_ai_packaging_used": false,
+ "draft_is_ai_shorts": false,
+ "draft_is_ai_translate": false,
+ "draft_is_article_video_draft": false,
+ "draft_is_cloud_temp_draft": false,
+ "draft_is_from_deeplink": "false",
+ "draft_is_infinite_canvas_draft": false,
+ "draft_is_invisible": false,
+ "draft_is_pippit_draft": false,
+ "draft_is_web_article_video": false,
+ "draft_materials": [
+  {
+   "type": 0,
+   "value": [
+    {
+     "ai_group_type": "",
+     "create_time": 1791123589,
+     "duration": 33333,
+     "enter_from": 0,
+     "extra_info": "",
+     "file_Path": "",
+     "height": 0,
+     "id": "cd484075-d92a-4bc9-b45c-d093d2f9e71b",
+     "import_time": 1791123589,
+     "import_time_ms": 1791123589586448,
+     "item_source": 1,
+     "material_color_tag": "",
+     "md5": "",
+     "metetype": "none",
+     "roughcut_time_range": {
+      "duration": 33333,
+      "start": 0
+     },
+     "sub_time_range": {
+      "duration": -1,
+      "start": -1
+     },
+     "type": 0,
+     "width": 0
+    },
+    {
+     "ai_group_type": "",
+     "create_time": 1791123512,
+     "duration": 4198933000,
+     "enter_from": 0,
+     "extra_info": "Qual foi o momento - Ale EP6.mp4",
+     "file_Path": "{VIDEO}",
+     "height": 1440,
+     "id": "ea54ef78-2a21-4f9e-b9d6-bfc9db9a6996",
+     "import_time": 1791123714,
+     "import_time_ms": 1791123713645742,
+     "item_source": 1,
+     "material_color_tag": "",
+     "md5": "",
+     "metetype": "video",
+     "roughcut_time_range": {
+      "duration": 4198933000,
+      "start": 0
+     },
+     "sub_time_range": {
+      "duration": -1,
+      "start": -1
+     },
+     "type": 0,
+     "width": 2560
+    }
+   ]
+  },
+  {
+   "type": 1,
+   "value": [
+    {
+     "ai_group_type": "",
+     "create_time": 0,
+     "duration": 148478000,
+     "enter_from": 0,
+     "extra_info": "Extraído20261004-1",
+     "file_Path": "{MUSICA}",
+     "height": 0,
+     "id": "39E7603C-639C-4a82-91DD-8C139FCD9318",
+     "import_time": 1791124358,
+     "import_time_ms": -1,
+     "item_source": 1,
+     "material_color_tag": "",
+     "md5": "",
+     "metetype": "none",
+     "roughcut_time_range": {
+      "duration": -1,
+      "start": -1
+     },
+     "sub_time_range": {
+      "duration": -1,
+      "start": -1
+     },
+     "type": 1,
+     "width": 0
+    }
+   ]
+  },
+  {
+   "type": 2,
+   "value": []
+  },
+  {
+   "type": 3,
+   "value": []
+  },
+  {
+   "type": 6,
+   "value": []
+  },
+  {
+   "type": 7,
+   "value": []
+  },
+  {
+   "type": 18,
+   "value": [
+    {
+     "ai_group_type": "",
+     "create_time": 1791124209,
+     "duration": 34933333,
+     "enter_from": 0,
+     "extra_info": "Clipe composto1",
+     "file_Path": "./subdraft/9FD24326-178F-4e13-B50E-352733FAD986/sub_draft_config.json",
+     "height": 0,
+     "id": "3451A443-30C7-49eb-8F6E-2F40FA9FC2BB",
+     "import_time": 1791124209,
+     "import_time_ms": 1791124209865,
+     "item_source": 1,
+     "material_color_tag": "",
+     "md5": "",
+     "metetype": "combination",
+     "roughcut_time_range": {
+      "duration": 34933333,
+      "start": 0
+     },
+     "sub_time_range": {
+      "duration": -1,
+      "start": -1
+     },
+     "type": 18,
+     "width": 0
+    }
+   ]
+  }
+ ],
+ "draft_materials_copied_info": [],
+ "draft_name": "cortes ale pod cast",
+ "draft_need_rename_folder": false,
+ "draft_new_version": "",
+ "draft_removable_storage_device": "",
+ "draft_root_path": "",
+ "draft_segment_extra_info": [],
+ "draft_timeline_materials_size_": 10079547431,
+ "draft_type": "",
+ "draft_web_article_video_enter_from": "",
+ "pippit_avatar_url": "",
+ "pippit_extra_info": "",
+ "pippit_id": "",
+ "pippit_user_name": "",
+ "tm_draft_cloud_completed": "",
+ "tm_draft_cloud_entry_id": -1,
+ "tm_draft_cloud_modified": 0,
+ "tm_draft_cloud_parent_entry_id": -1,
+ "tm_draft_cloud_space_id": -1,
+ "tm_draft_cloud_user_id": -1,
+ "tm_draft_create": 1791123589770513,
+ "tm_draft_modified": 1791124440161038,
+ "tm_draft_removed": 0,
+ "tm_duration": 30900000
+}
