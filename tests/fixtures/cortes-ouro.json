@@ -1,0 +1,21 @@
+{
+ "_como_usar": "Cortes marcados a mao pelo Danillo (tempos no video original, h:mm:ss, podem estar 1-2 s imprecisos). A comparacao e' POR FRASE: um corte da IA acerta um corte bom quando comeco e fim caem a no maximo 1 frase de distancia. Para acrescentar outro podcast, adicione um item em 'videos'.",
+ "videos": [
+  {
+   "nome": "Momento",
+   "arquivo": "C:\\Users\\USUARIO\\Downloads\\Qual foi o momento - Ale EP6.mp4",
+   "duracao": "1:09:59",
+   "bons": [
+    {"inicio": "0:04:54", "fim": "0:06:59", "tipos": ["historia", "polemico"]},
+    {"inicio": "0:17:19", "fim": "0:17:45", "tipos": ["polemico"]},
+    {"inicio": "0:30:12", "fim": "0:30:58", "tipos": ["insight"]},
+    {"inicio": "0:37:18", "fim": "0:37:43", "tipos": ["insight"]},
+    {"inicio": "0:38:20", "fim": "0:39:31", "tipos": ["insight"]}
+   ],
+   "ruins": [
+    {"inicio": "0:01:05", "fim": "0:01:39", "motivo": "Abertura do episodio: chamando as pessoas para assistir. Tem uma frase boa no comeco, mas nao e' corte."},
+    {"inicio": "0:37:43", "fim": "0:38:16", "motivo": "O apresentador fala uma sacada e depois pergunta ao convidado. O corte bom e' a resposta, logo depois (38:20 a 39:31)."}
+   ]
+  }
+ ]
+}

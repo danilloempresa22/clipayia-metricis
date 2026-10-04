@@ -1,6 +1,6 @@
 # Seção Cortes do Clipay.ia: especificação
 
-Nova seção da barra lateral (Início, Edição, **Cortes**, Projetos, Tutorial). É um plano separado da Edição: é o **plano Basic**. A pessoa envia um vídeo longo (podcast de 1 a 3 horas), diz que **tipos** de corte quer (história, polêmico, emocional, engraçado, conselho), e o Clipay.ia transcreve, acha os melhores momentos e entrega **todos** como cortes completos, já editados, cada um em um projeto do CapCut. **A pessoa não escolhe cortes um por um no Clipay.ia**: ela escolhe o que postar depois, direto na lista do CapCut.
+Nova seção da barra lateral (Início, Edição, **Cortes**, Projetos, Tutorial). É um plano separado da Edição: é o **plano Basic**. A pessoa envia um vídeo longo (podcast de 1 a 3 horas), diz que **tipos** de corte quer (história, polêmico, emocional, engraçado, insight), e o Clipay.ia transcreve, acha os melhores momentos e entrega **todos** como cortes completos, já editados, cada um em um projeto do CapCut. **A pessoa não escolhe cortes um por um no Clipay.ia**: ela escolhe o que postar depois, direto na lista do CapCut.
 
 Referência visual interativa: `docs/design/cortes-novo-fluxo.html`.
 Referência da edição: o projeto `docs/design/referencia-cortes/` (cópia do projeto "cortes ale pod cast") e os dois quadros ao lado dele.
@@ -11,15 +11,24 @@ A unidade do corte é **um assunto**, não uma duração. O corte começa onde o
 
 Consequências para o projeto:
 
-- Não existe duração fixa. O resultado varia. Alvo comum: de 1 a 4 minutos. Mínimo: 30 segundos. Teto padrão: 4 minutos, ajustável na tela Ajustes (a decidir, ver seção 10).
+- Não existe duração fixa. O resultado varia. Alvo comum: de 1 a 4 minutos. Mínimo: 20 segundos (os cortes bons que ele marcou vão de 25 s a 2 min). Teto padrão: 4 minutos, ajustável na tela Ajustes (a decidir, ver seção 10).
 - **Nunca truncar** um assunto para caber no teto. Se o assunto inteiro passa do teto, o corte aparece marcado como "Longo" e o usuário decide (aceitar, ou ajustar o fim para uma frase anterior que ainda feche uma ideia). A IA pode sugerir um sub-trecho que também seja completo, mas nunca um que termine no meio.
 - O corte **não inclui a frase de transição** ("mudando de assunto…", "voltando ao episódio…"). Termina na última frase que pertence ao assunto.
-- O começo é a frase que introduz o assunto. Em podcast a história muitas vezes nasce de uma pergunta do apresentador ("e como foi isso?"). Se a pergunta é curta (até uns 15 s) e sem ela o corte não se entende, ela entra.
+- O começo é a frase **do convidado** em que o assunto começa. A pergunta do apresentador **não entra**: o corte abre já na resposta (ver a seção 1.1).
 - Um começo ruim é o que depende do que veio antes: abre com "então", "mas", "e aí", "isso", "ele" sem dizer quem. A IA deve escolher o começo onde dá para entender sem contexto.
+
+### 1.1 O foco é o convidado, não o apresentador
+
+Em podcast há o **apresentador** (quem convida e pergunta) e o **convidado**. O corte é feito da fala do convidado. Regras, vindas dos exemplos reais do Danillo:
+
+- **Pergunta do apresentador não vira corte e não abre corte.** Mesmo que o apresentador comece com uma sacada boa antes de perguntar, o trecho não serve (exemplo: 37:43 a 38:16 do "Momento": o apresentador fala um insight e depois pergunta ao Alê; o corte bom é o que vem depois, a resposta, 38:20 a 39:31).
+- O corte **começa na primeira frase do convidado** que abre o assunto e **termina na última frase do convidado** daquele assunto. Falas curtas do apresentador no meio ("hum", "sim", "é verdade", até uns 3 segundos) podem ficar dentro, mas a soma da fala do apresentador num corte tem que ser pequena (limite configurável, começando em 15% da duração). Uma nova pergunta do apresentador **encerra** o corte.
+- **Abertura e encerramento do episódio não são corte**, mesmo que tenham uma frase boa: o apresentador cumprimentando, falando para as pessoas assistirem, apresentando o convidado, pedindo para curtir e se inscrever, anunciando patrocínio. (Exemplo: 01:05 a 01:39 do "Momento": o começo da fala é bom, mas é só a abertura.)
+- Isso exige saber **quem está falando**. Ver a seção 3.1 (identificação de vozes).
 
 ## 2. O que é um "melhor momento"
 
-Os tipos (cada um é uma opção na tela Tipos): **História** (com começo, meio e fim), **Polêmico**, **Emocional** (triste, perda, virada), **Engraçado** e **Conselho** (uma ordem ou promessa clara). Cada momento recebe:
+Os tipos (cada um é uma opção na tela Tipos): **História** (com começo, meio e fim), **Polêmico**, **Emocional** (triste, perda, virada), **Engraçado** e **Insight** (a pessoa ensina algo, um conhecimento ou uma sacada). Cada momento recebe:
 
 - uma ou duas categorias das acima (a primeira é a principal; o filtro da tela Tipos casa com qualquer uma delas),
 - força de 0 a 100,
@@ -37,6 +46,7 @@ Reaproveita o Whisper local e o plano de `prompt-transcricao-rapida.md` (janelas
 - `audio.pcm()` hoje carrega o áudio inteiro na memória. Em 3 horas a 16 kHz isso passa de 340 MB (int16) ou 690 MB (float32). Ler e processar **por janelas** (por exemplo 10 minutos) ou gravar um WAV temporário e usar `numpy.memmap`.
 - A transcrição precisa **sobreviver ao app fechar**: gravar o resultado por janela em disco (cache por caminho, tamanho e data do arquivo) e retomar de onde parou.
 - Barra de progresso real e botão cancelar. A pessoa pode usar o resto do app enquanto roda.
+- **Quem fala.** Cada frase recebe um locutor (`A`, `B`…) por **diarização local** (separar as vozes no próprio computador, sem enviar áudio), e o app decide qual voz é o **apresentador**: por padrão, a que mais faz perguntas e tem as falas mais curtas. O resultado é mostrado e pode ser trocado pela pessoa (na Fase 4, no fim da transcrição). Todo locutor que não é o apresentador conta como convidado.
 - Frases com **início e fim em segundos** (nível de frase, não só pedaços de 6 a 15 s como `transcricao.frases` faz hoje). A IA trabalha com frases numeradas.
 - Os limites do corte são **ajustados no áudio**: a frase escolhida como começo ou fim é puxada para a pausa mais próxima (≥ 250 ms) usando a régua de silêncio que já existe, para nunca cortar no meio de uma palavra. Folga de 0,3 s depois do fim.
 
@@ -44,10 +54,10 @@ Reaproveita o Whisper local e o plano de `prompt-transcricao-rapida.md` (janelas
 
 Mesma arquitetura da headline (ver `prompt-ajustes-headline-cortes.md`): uma Edge Function do Supabase (`achar-cortes`) recebe a sessão e a transcrição, confere plano e cota, chama o modelo e devolve JSON. A chave nunca fica no executável.
 
-1. **Passo 1: segmentar por assunto.** A transcrição vai em janelas de cerca de 15 minutos com 2 minutos de sobreposição, cada frase com id e tempo (`412 | 1:12:40 | Cara, um dia eu levei um tiro…`). O modelo devolve a lista de assuntos: id da primeira frase, id da última, título curto, categoria. As janelas são costuradas no código (assunto que cruza a borda vira um só).
+1. **Passo 1: segmentar por assunto.** A transcrição vai em janelas de cerca de 15 minutos com 2 minutos de sobreposição, cada frase com id, tempo e **locutor** (`412 | 1:12:40 | CONVIDADO | Cara, um dia eu levei um tiro…`). O modelo devolve a lista de assuntos: id da primeira frase, id da última, título curto, categoria. As janelas são costuradas no código (assunto que cruza a borda vira um só).
 2. **Passo 2: dar nota.** Para cada assunto, o modelo dá força e motivo. Pode ser na mesma chamada do passo 1, se o modelo escolhido aguentar.
 3. **Entrega tudo, sem top-N.** A ferramenta gera o **máximo de cortes que conseguir**: todo assunto completo que passar de um piso de força (padrão 50 de 100, configurável, só para não gerar lixo) e do mínimo de duração. Não existe limite de quantidade escolhido pelo usuário. O filtro por tipo é aplicado **no código**, depois, sobre a lista completa.
-4. **Validação no código, sem confiar no modelo:** ids existem e estão em ordem; sem sobreposição (se dois cortes se cruzam, fica o de maior força); duração mínima e teto; o começo e o fim exibidos vêm da transcrição real; o fim não é uma frase de transição.
+4. **Validação no código, sem confiar no modelo:** ids existem e estão em ordem; sem sobreposição (se dois cortes se cruzam, fica o de maior força); duração mínima e teto; o começo e o fim exibidos vêm da transcrição real; o fim não é uma frase de transição; **o primeiro e o último falante do corte são o convidado**; a fala do apresentador dentro do corte fica abaixo do limite; nada de abertura, encerramento, chamada para curtir e se inscrever ou patrocínio.
 5. **Cache:** por (usuário, hash da transcrição, versão das regras). Mudar o teto de duração ou os tipos reaproveita os assuntos já achados e só refaz a seleção, sem nova cobrança.
 
 Custo: 3 horas ficam em torno de 30 a 35 mil palavras, algo como 50 mil tokens de entrada. Com um modelo pequeno isso é centavos por vídeo, mas o Claude Code **deve me dizer o modelo escolhido e o custo estimado por vídeo antes de contratar qualquer provedor**.
@@ -102,7 +112,7 @@ Passos: **Modelo, Vídeo, Tipos, Transcrição, Ajustes, Gerar.** Mesmo molde do
 
 1. **Modelo.** Lista com "Corte básico" (pré-selecionado) e um cartão "Mais modelos de corte, em breve". À direita, prévia 9:16 (quadrado no meio, headline em cima, linha do tempo com os cortes secos). Vídeo real depois.
 2. **Vídeo.** Um arquivo longo. "Escolher vídeo" não copia o arquivo.
-3. **Tipos.** "Que tipo de corte você quer?": cinco cartões marcáveis (História, Polêmico, Emocional, Engraçado, Conselho), todos marcados de saída, com "Limpar seleção". Pelo menos um tem que ficar marcado. É o único momento em que a pessoa escolhe algo sobre os cortes.
+3. **Tipos.** "Que tipo de corte você quer?": cinco cartões marcáveis (História, Polêmico, Emocional, Engraçado, Insight), todos marcados de saída, com "Limpar seleção". Pelo menos um tem que ficar marcado. É o único momento em que a pessoa escolhe algo sobre os cortes.
 4. **Transcrição.** Duas fases na mesma tela: 1) transcrever no computador, 2) achar os cortes (só o texto vai para a IA). O aviso do rodapé muda na fase 2. No fim: "Encontramos N cortes completos" (N já considera os tipos marcados).
 5. **Ajustes.** Só o acabamento: velocidade 1,13x, efeito de tremor e música (com "Trocar"). Sem volume da fala e **sem headline** (ela é trocada depois no CapCut).
 6. **Gerar.** Um projeto por corte, com progresso individual, o tipo e a duração, e no fim "N projetos criados no CapCut" com a instrução de escolher lá quais postar.
@@ -120,6 +130,7 @@ O Corte básico é o primeiro. Para os próximos entrarem sem reescrever o app, 
 - **Montador sem IA** (primeiro de tudo): dado um vídeo e um intervalo de início e fim digitados, gera o corte. Reproduzir a amostra (de 900,5 s a 943,4 s) e comparar com o projeto de referência: 13 pedaços colados, velocidade, zoom e posições dentro dos limites, headline, música, efeito. Abrir no CapCut: sem "Mídia perdida", com som.
 - **Caso do tiro** (corte completo): uma transcrição de teste em que alguém começa uma história, a conta inteira e muda de assunto. O corte tem que começar na abertura, terminar no desfecho e **não incluir** a frase de transição nem pegar só o começo.
 - Nenhum corte termina no meio de uma frase nem de uma palavra; nenhum se sobrepõe a outro.
+- **Convidado:** o conjunto de referência traz um caso em que o apresentador faz uma sacada e depois pergunta (37:43 a 38:16 do "Momento"), e a abertura do episódio (01:05 a 01:39). Nenhum dos dois pode virar corte, e a resposta logo depois (38:20 a 39:31) tem que virar.
 - Sem top-N: num podcast de 1 hora saem todos os assuntos completos acima do piso. Mudar os tipos na tela Tipos filtra a lista sem nova análise.
 - Conjunto de teste de verdade: ele marca de 5 a 10 cortes bons em podcasts reais (início e fim). O app deve cair a no máximo 1 frase de distância dos marcados e **nunca terminar antes do desfecho**.
 - Vídeo de 3 horas: memória estável (sem carregar o áudio inteiro), transcrição retomável depois de fechar o app, cancelar funciona.

@@ -7,9 +7,12 @@
  "janela_s": 600,
  "sobreposicao_s": 120,
  "paralelo": 1,
- "minimo_s": 30,
+ "minimo_s": 20,
  "teto_s": 240,
  "piso_forca": 50,
- "versao_regras": 2,
+ "max_apresentador": 0.15,
+ "interjeicao_s": 3.0,
+ "abertura_max_s": 600,
+ "versao_regras": 3,
  "tempo_limite_s": 600
 }
