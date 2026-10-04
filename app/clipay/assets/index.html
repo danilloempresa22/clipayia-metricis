@@ -361,15 +361,9 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
 .barra-prog{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:14px 0 8px}
 .barra-prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
 .frases{max-height:340px;overflow:auto;border:1px solid var(--linha);border-radius:10px;background:var(--bg)}
-.fr{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--linha);cursor:pointer;align-items:flex-start}
-.fr:last-child{border:0}.fr:hover{background:var(--card)}
+.fr{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--linha);align-items:flex-start;user-select:text}   /* so leitura */
+.fr:last-child{border:0}
 .fr .t{color:var(--mudo);font-size:12px;min-width:74px;padding-top:2px;font-variant-numeric:tabular-nums}
-.fr.rem{opacity:.45}.fr.rem .x{text-decoration:line-through}
-.fr .tag{margin-left:auto;font-size:11px;color:var(--erro);white-space:nowrap;padding-top:2px}
-.lados{display:flex;gap:10px}
-.lados button{flex:1;background:var(--bg);border:1px solid var(--linha);color:var(--mudo)}
-.lados button:hover:not(:disabled){background:var(--card2)}
-.lados button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-tinta)}
 .nums{display:flex;gap:28px;flex-wrap:wrap}
 .nums div{font-size:13px;color:var(--mudo)}
 .nums b{display:block;font-size:24px;color:var(--txt);font-variant-numeric:tabular-nums}
@@ -737,7 +731,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
         </section>
 
         <div id="tela-revisao" class="wz-tela oculto pilha">
-          <header class="wz-cab"><h1>Headline e cortes</h1><p class="wz-lede">Escreva a frase do topo, confira o lado do zoom e tire as frases que não quer.</p><p class="wz-meta" id="rev-arq"></p></header>
+          <header class="wz-cab"><h1>Headline</h1><p class="wz-lede">Escreva a frase do topo do vídeo. A transcrição abaixo ajuda a escolher.</p><p class="wz-meta" id="rev-arq"></p></header>
           <div id="rev-erro" class="msg erro oculto"></div>
           <div class="card"><div class="nums">
             <div><b id="n-antes">–</b>original</div><div><b class="ok" id="n-depois">–</b>depois dos cortes</div><div><b id="n-ped">–</b>pedaços</div></div></div>
@@ -747,13 +741,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
               <input type="text" id="headline" maxlength="90" placeholder="Ex.: VOCÊ ESTÁ EDITANDO ERRADO"></div>
           </div>
           <div class="card">
-            <h2>Lado do zoom</h2>
-            <label id="lado-dica">Para onde o zoom deve ir (o lado onde a pessoa aparece)</label>
-            <div class="lados" id="lados"><button data-l="esquerda">Esquerda</button><button data-l="centro" class="on">Centro</button><button data-l="direita">Direita</button></div>
-          </div>
-          <div class="card">
-            <h2>Transcrição <span id="n-rem" style="color:var(--mudo);font-weight:400;font-size:13px"></span></h2>
-            <label>Clique numa frase para removê-la do vídeo (repetição, desvio de assunto). Clique de novo para manter.</label>
+            <h2>Transcrição</h2>
             <div class="frases" id="frases"></div>
           </div>
         </div>
@@ -1048,7 +1036,7 @@ const $ = id => document.getElementById(id);
 const telasEdicao = ["inativa","escolher","envio","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao",
   "rotina-cortes","rotina-relogio","rotina-headline","rotina-musica","gerar","pronto"];
 let modo = "cortes", gancho = null, musica = "";
-let sessao = null, analise = null, removidas = new Set(), lado = "centro", site = "", ocupado = false;
+let sessao = null, analise = null, site = "", ocupado = false;
 
 function seg(s){ s = Math.round(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
 function duracao(s){ s = Math.round(s); if(s < 60) return s + " s"; const h = Math.floor(s/3600), m = Math.floor(s%3600/60);
@@ -1281,34 +1269,23 @@ async function analisar(caminho){
 
 // ---------------- edicao: revisao ----------------
 function abreRevisao(){
-  removidas = new Set(); lado = analise.rosto || "centro";
   $("rev-arq").textContent = analise.nome + " · " + analise.largura + "×" + analise.altura;
   $("n-antes").textContent = seg(analise.duracao); $("n-depois").textContent = seg(analise.depois); $("n-ped").textContent = analise.pedacos;
   W.nomePadrao = analise.nome.replace(/\.[^.]+$/, "") + " - corte";
   $("headline").value = "";
-  document.querySelectorAll("#lados button").forEach(b => b.classList.toggle("on", b.dataset.l === lado));
-  $("lado-dica").textContent = analise.rosto_confiavel
-    ? "Detectamos que você aparece à " + lado + ". Se estiver errado, corrija com um clique."
-    : "Não consegui detectar seu rosto com certeza. Escolha o lado onde a pessoa aparece.";
-  const box = $("frases"); box.innerHTML = "";
+  const box = $("frases"); box.innerHTML = "";          // so leitura: ajuda a escrever a headline (nada sai do video)
   if(!analise.frases.length) box.innerHTML = '<div class="fr"><span class="x" style="color:var(--mudo)">Nenhuma fala transcrita.</span></div>';
-  analise.frases.forEach((f, i) => {
+  analise.frases.forEach(f => {
     const d = document.createElement("div"); d.className = "fr";
-    d.innerHTML = '<span class="t">'+seg(f[0])+' – '+seg(f[1])+'</span><span class="x"></span><span class="tag"></span>';
+    d.innerHTML = '<span class="t">'+seg(f[0])+' – '+seg(f[1])+'</span><span class="x"></span>';
     d.querySelector(".x").textContent = f[2];
-    d.onclick = () => { removidas.has(i) ? removidas.delete(i) : removidas.add(i);
-      d.classList.toggle("rem", removidas.has(i)); d.querySelector(".tag").textContent = removidas.has(i) ? "será removida" : "";
-      $("n-rem").textContent = removidas.size ? "· "+removidas.size+" removida(s)" : ""; };
     box.appendChild(d);
   });
-  $("n-rem").textContent = ""; erro("rev-erro"); ocupado = true; mostra("revisao");
+  erro("rev-erro"); ocupado = true; mostra("revisao");
 }
-$("lados").onclick = e => { const b = e.target.closest("button"); if(!b) return; lado = b.dataset.l;
-  document.querySelectorAll("#lados button").forEach(x => x.classList.toggle("on", x === b)); };
 // o que vai pro "gerar" de cada modelo (mesmos campos de antes; o nome vem da tela Gerar)
 const CORPO = {
-  cortes: nome => ({analise: analise.analise, headline: $("headline").value, rosto: lado,
-    remover: [...removidas].map(i => [analise.frases[i][0], analise.frases[i][1]]), nome}),
+  cortes: nome => ({analise: analise.analise, headline: $("headline").value, nome}),
   legenda: nome => {
     if(!$("lg-texto").value.trim()) throw new Error("O texto da legenda está vazio. Volte à revisão.");
     return {analise: analise.analise, texto: $("lg-texto").value, inicio: gancho === null ? null : analise.palavras[gancho][0],

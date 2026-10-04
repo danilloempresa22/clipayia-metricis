@@ -94,19 +94,23 @@ def plano(itens, inicio=None, fim=None, progresso=None):
 
 
 # ---------------- zoom ----------------
-ESTATICO = [(1.190, -0.056), (1.226, 0.091), (1.251, 0.0), (1.226, 0.0), (1.228, 0.161), (1.150, 0.131)]
-EMPURRAO = [(1.203, 0.0), (1.251, 0.111), (1.264, 0.127)]
+ESTATICO = [1.190, 1.226, 1.251, 1.226, 1.228, 1.150]      # so a escala: o unico deslocamento e' o da pessoa
+EMPURRAO = [1.203, 1.251, 1.264]
 INTERVALO = [3, 2, 4, 4, 3, 3, 4]
+FOLGA_BORDA = 0.02                   # nunca encosta no limite (borda preta)
 
 
-def x_do_rosto(s, x_ref, rosto):
-    if rosto == "esquerda": return (s - 1) - 0.005
-    if rosto == "direita": return -((s - 1) - 0.005)
-    return max(-(s - 1) + 0.02, min((s - 1) - 0.02, x_ref))
+def x_centro(s, posicao):
+    """deslocamento que traz a pessoa (posicao -1..1 no quadro) pro meio da tela num zoom de escala s.
+    Unidade do CapCut: 1 = meia largura da tela. Na escala s a pessoa aparece em s*posicao, entao x = -s*posicao
+    (pessoa a direita -> x negativo). Limitado a +-(s-1-folga): o video nunca descobre a borda."""
+    lim = max(0.0, (s - 1) - FOLGA_BORDA)
+    return round(max(-lim, min(lim, -posicao * s)), 6)
 
 
-def plano_zoom(pecas, rosto="centro", intensidade=1.0):
-    """intensidade: 1.0 = tabelas aprovadas; 0 = sem zoom; escala o quanto cada zoom passa de 1.0"""
+def plano_zoom(pecas, posicao=0.0, intensidade=1.0):
+    """zoom sempre centrado na pessoa (posicao: rosto.posicao_horizontal; 0 = centro ou nao detectado).
+    intensidade: 1.0 = tabelas aprovadas; 0 = sem zoom; escala o quanto cada zoom passa de 1.0"""
     if intensidade <= 0: return [None] * len(pecas)
     z = [None] * len(pecas); prox = 0; nz = 0; ie = 0; iv = 0; ult = -9
     for i, (dur, forca) in enumerate(pecas):
@@ -114,11 +118,11 @@ def plano_zoom(pecas, rosto="centro", intensidade=1.0):
         if not (i >= prox or forca): continue
         if nz == 0 and dur < 1.5: continue
         if (nz % 3 == 0 or forca) and dur >= 1.5:
-            s, x = EMPURRAO[(nz // 3) % len(EMPURRAO)]; tipo = "empurra"
+            s = EMPURRAO[(nz // 3) % len(EMPURRAO)]; tipo = "empurra"
         else:
-            s, x = ESTATICO[ie % len(ESTATICO)]; ie += 1; tipo = "fixo"
-        s, x = 1 + (s - 1) * intensidade, x * intensidade
-        z[i] = (tipo, s, x_do_rosto(s, x, rosto))
+            s = ESTATICO[ie % len(ESTATICO)]; ie += 1; tipo = "fixo"
+        s = 1 + (s - 1) * intensidade
+        z[i] = (tipo, s, x_centro(s, posicao))
         nz += 1; ult = i; prox = i + INTERVALO[iv % len(INTERVALO)]; iv += 1
     return z
 
@@ -173,14 +177,14 @@ def headline(mats, tpl, texto, total):
     return {"id": capcut.uid(), "type": "text", "segments": [sg], "flag": 0, "attribute": 0, "name": "", "is_default_name": True}
 
 
-def montar(draft, pl, texto, tpl, rosto="centro", intensidade=1.0):
+def montar(draft, pl, texto, tpl, posicao=0.0, intensidade=1.0):
     novo = copy.deepcopy(draft); mats = novo["materials"]
     idx = capcut.indice_materiais(mats)
     vt = capcut.trilha_principal(novo)
     segs = sorted(vt["segments"], key=lambda s: s["target_timerange"]["start"])
     assert len(segs) == len(pl)
     lista = [(s, p) for s, pp in zip(segs, pl) for p in pp["keep"]]
-    zooms = plano_zoom([(p[1] - p[0], p[2]) for _, p in lista], rosto, intensidade)
+    zooms = plano_zoom([(p[1] - p[0], p[2]) for _, p in lista], posicao, intensidade)
     novos, cur = [], 0
     for (s, p), z in zip(lista, zooms):
         ns = capcut.clona_segmento(s, idx, mats)

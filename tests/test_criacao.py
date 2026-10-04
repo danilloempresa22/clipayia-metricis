@@ -1,4 +1,4 @@
-"""Criacao de projeto CapCut do zero a partir de video bruto (o coracao do produto)."""
+﻿"""Criacao de projeto CapCut do zero a partir de video bruto (o coracao do produto)."""
 import json, os
 from pathlib import Path
 import pytest
@@ -48,7 +48,7 @@ def test_moldes_nao_vazam_ids_da_maquina_original():
 
 
 def test_processa_video_reels_ponta_a_ponta(video_vertical, raiz_capcut):
-    r = processa.processa_video(raiz_capcut, video_vertical, "reels", {"headline": "VOCE PRECISA VER ISSO ANTES DE POSTAR", "rosto": "esquerda"})
+    r = processa.processa_video(raiz_capcut, video_vertical, "reels", {"headline": "VOCE PRECISA VER ISSO ANTES DE POSTAR"})
     assert r["depois"] < r["antes"]                       # cortou os silencios
     assert r["pedacos"] >= 2 and r["headline"].count("\n") == 1
     d, pasta = le(raiz_capcut, r["nome"])

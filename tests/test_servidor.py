@@ -69,16 +69,16 @@ def test_fluxo_completo_analisa_revisa_gera(app, video_vertical, raiz_capcut):
     assert c == 200
     j = espera(r["id"]); assert "erro" not in j, j
     a = j["resultado"]
-    assert a["rosto"] == "centro" and a["rosto_confiavel"] is False               # video sintetico: sem rosto
+    assert "rosto" not in a                                                       # sem escolha de lado: zoom centrado sozinho
     assert a["frases"][0][2] == "primeira fala" and a["depois"] < a["duracao"] and (a["largura"], a["altura"]) == (540, 960)
 
-    # gera removendo a 2a frase (4,5-7,5 s) e escolhendo o lado
-    c, r = chama("/api/gerar", {"analise": a["analise"], "headline": "TESTE DE HEADLINE BEM GRANDE AQUI", "rosto": "direita",
+    # a transcricao e' so leitura: um "remover" antigo no pedido e' ignorado
+    c, r = chama("/api/gerar", {"analise": a["analise"], "headline": "TESTE DE HEADLINE BEM GRANDE AQUI",
                                 "remover": [a["frases"][1][:2]], "nome": "Projeto do teste"})
     assert c == 200
     j = espera(r["id"]); assert "erro" not in j, j
     res = j["resultado"]
-    assert res["nome"] == "Projeto do teste" and res["depois"] < a["depois"]      # removeu a fala a mais
+    assert res["nome"] == "Projeto do teste" and abs(res["depois"] - a["depois"]) < 0.05    # nada saiu do video
     d = json.loads((Path(raiz_capcut) / "Projeto do teste" / "draft_content.json").read_text(encoding="utf-8"))
     assert any(t["type"] == "text" for t in d["tracks"])
     assert estado["usos"] == 1                                                    # contou 1 processamento

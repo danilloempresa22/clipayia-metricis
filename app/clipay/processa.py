@@ -40,7 +40,9 @@ def analisa_legenda(raiz, video_path, opcoes=None, avisa=None):
     keep, mantidas = legenda.cortes(pal, info["duracao"])
     if not mantidas:
         raise capcut.ErroProjeto("Não encontrei fala nesse vídeo.")
-    return {"video": video, "info": info, "draft": draft, "meta": meta, "palavras": pal, "keep": keep, "mantidas": mantidas}
+    avisa("Achando onde você aparece (pro zoom ficar centrado)", 0.97)
+    return {"video": video, "info": info, "draft": draft, "meta": meta, "palavras": pal, "keep": keep, "mantidas": mantidas,
+            "posicao": posicao_da_pessoa(video, info)}
 
 
 def monta_legenda(raiz, an, opcoes=None, avisa=None):
@@ -83,7 +85,8 @@ def monta_legenda(raiz, an, opcoes=None, avisa=None):
             raise capcut.ErroProjeto(f"Não consegui usar a música: {e}")
     avisa("Montando os clipes compostos", 0.4)
     base, meta = copy.deepcopy(an["draft"]), copy.deepcopy(an["meta"])
-    raiz_d, compostos = composto.monta(base, meta, keep, segs, {"zoom": zoom, "velocidade": op.get("velocidade"), "musica": mus},
+    raiz_d, compostos = composto.monta(base, meta, keep, segs, {"zoom": zoom, "velocidade": op.get("velocidade"), "musica": mus,
+                                                                 "posicao": an.get("posicao", 0.0)},
                                        capcut.cache_efeitos(raiz))
     erros = composto.verifica(raiz_d)
     if erros:
@@ -212,7 +215,9 @@ def analisa_ipad(raiz, videos, offset, opcoes=None, avisa=None, palavras_prontas
     keeps = {k: ipad.keep_de(x, pal, k) for k in ipad.CORTES}         # a transcricao protege as palavras
     e, v = audio.analisa(x)                                          # trocas de zoom: trecho longo divide numa micropausa
     zooms = {k: reels.divide_longos(e, v, [kp[:2] for kp in keeps[k]]) for k in keeps}
-    return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keeps": keeps, "zooms": zooms, "palavras": pal}
+    avisa("Achando onde a pessoa aparece (pro zoom ficar centrado)", 0.98)
+    return {"ipad": ip, "pessoa": pe, "offset": float(offset), "janela": jan, "keeps": keeps, "zooms": zooms, "palavras": pal,
+            "posicao": posicao_da_pessoa(pe["video"], pe["info"])}
 
 
 def monta_ipad(raiz, an, opcoes=None, avisa=None):
@@ -251,7 +256,7 @@ def monta_ipad(raiz, an, opcoes=None, avisa=None):
 
 
 def processa(raiz, pasta, modo, opcoes=None, avisa=None):
-    """modo: 'vlog' | 'reels'. opcoes: rosto, headline, inicio, fim, transcrever, modelo, mp3, nome.
+    """modo: 'vlog' | 'reels'. opcoes: headline, inicio, fim, transcrever, modelo, mp3, nome.
     avisa(etapa, fracao 0-1). Devolve resumo (dict).
 
     FLUXO ANTIGO: processa um projeto CapCut existente."""
@@ -288,18 +293,22 @@ def analisa_video(raiz, video_path, opcoes=None, avisa=None):
     avisa = avisa or (lambda *a: None)
     video, info, draft, meta = _prepara_video(raiz, video_path, avisa)
     an = _analisa(raiz, draft, meta, None, "reels", op, avisa)
-    avisa("Vendo de que lado você aparece", 0.95)
-    try:
-        lado, confiavel = rosto.lado_do_rosto(video, info["duracao"])
-    except Exception:                               # detector e' so sugestao: nunca derruba a analise
-        lado, confiavel = "centro", False
-    an.update({"video": video, "info": info, "rosto": lado, "rosto_confiavel": confiavel})
+    avisa("Achando onde você aparece (pro zoom ficar centrado)", 0.95)
+    an.update({"video": video, "info": info, "posicao": posicao_da_pessoa(video, info)})
     return an
 
 
+def posicao_da_pessoa(video, info):
+    """posicao horizontal da pessoa (-1..1) pro zoom ficar centrado nela. Falhou ou pouca confianca: 0 (centro)."""
+    try:
+        pos, confiavel = rosto.posicao_horizontal(video, info["duracao"])
+    except Exception:                               # detector nunca derruba a analise
+        return 0.0
+    return pos if confiavel else 0.0
+
+
 def monta_video(raiz, an, opcoes=None, avisa=None):
-    """2a metade: aplica headline, cortes extras (op['remover'] = [[ini, fim], ...] em s do video), lado do
-    rosto e grava o projeto NOVO no CapCut."""
+    """2a metade: aplica a headline e grava o projeto NOVO no CapCut (zoom centrado na pessoa)."""
     op = dict(opcoes or {})
     avisa = avisa or (lambda *a: None)
     with tempfile.TemporaryDirectory() as tmp:
@@ -357,14 +366,12 @@ def _analisa(raiz, draft, meta, pasta, modo, op, avisa):
 def _monta(raiz, an, nome_base, modo, op, avisa, capa):
     draft, meta, pl, frases = an["draft"], an["meta"], an["pl"], an["frases"]
     pl = [dict(p, keep=[list(k) for k in p["keep"]]) for p in pl]          # nao mexe na analise guardada
-    if op.get("remover") and pl:
-        pl[0]["keep"] = audio.tira(pl[0]["keep"], op["remover"])
     if modo == "vlog":
         novo, erros = vlog.montar(draft, pl); zooms = []
     elif modo == "reels":
         texto = reels.quebra_2_linhas(op["headline"]) if op.get("headline") else "EDITAR\nHEADLINE"
         tpl = reels.carrega_tpl(capcut.cache_efeitos(raiz))
-        novo, zooms, erros = reels.montar(draft, pl, texto, tpl, op.get("rosto", "centro"))
+        novo, zooms, erros = reels.montar(draft, pl, texto, tpl, an.get("posicao", 0.0))
     else:
         raise ValueError("modo inválido")
     if erros:

@@ -102,7 +102,10 @@ def test_zoom_troca_de_um_quadro_pro_outro():
     sub = [[0.0, 2.0, False], [2.0, 4.0, False], [5.0, 8.0, False]]
     pts = ipad.pontos_zoom(sub, [None, ("fixo", 1.2, 0.1), ("empurra", 1.3, 0.0)], 0, 8.0, clip)
     q = audio.quadro_us(ipad.QUADRO)
-    assert (audio.quadro_us(2.0) - q, 1.0, 0.0) in pts and (audio.quadro_us(2.0), 1.2, 0.1) in pts   # 1 quadro de troca
+    assert (audio.quadro_us(2.0) - q, 1.0, 0.0) in pts and (audio.quadro_us(2.0), 1.2, 0.0) in pts   # 1 quadro de troca
+    # pessoa a direita (0,1): o zoom desloca pra esquerda pra centrar (x = -escala*posicao), nunca o lado da tabela
+    pts = ipad.pontos_zoom(sub, [None, ("fixo", 1.2, 0.1), ("empurra", 1.3, 0.0)], 0, 8.0, clip, posicao=0.1)
+    assert (audio.quadro_us(2.0), 1.2, -0.12) in pts
     assert (audio.quadro_us(5.0), 1.0, 0.0) in pts and pts[-1][1] == pytest.approx(1.3)             # empurra: de 1 a 1,3
     assert ipad.pontos_zoom(sub, [None] * 3, 0, 8.0, clip) == []
 

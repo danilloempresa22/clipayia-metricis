@@ -1,4 +1,4 @@
-"""Sugere de que lado da tela a pessoa aparece (pro zoom ir pro lado certo). Tudo local, sem custo.
+"""Onde a pessoa esta na horizontal (pro zoom ficar sempre centrado nela). Tudo local, sem custo.
 Amostra alguns quadros com o ffmpeg e acha rostos com o detector Haar que ja vem no OpenCV."""
 import subprocess
 from pathlib import Path
@@ -27,13 +27,18 @@ def _detector(cv2):
     return det
 
 
-def lado_do_rosto(video, duracao):
-    """('esquerda'|'centro'|'direita', confiavel). confiavel=False quando nao achou rosto (cai em 'centro')."""
+MIN_ACHADOS = 3                      # rosto em menos quadros que isso pode ser falso positivo
+ESPALHO_MAX = 0.20                   # rostos espalhados demais (mais de uma pessoa, falso positivo): nao confia
+
+
+def posicao_horizontal(video, duracao):
+    """(posicao, confiavel). posicao = centro do rosto em relacao ao centro do quadro, de -1 (borda esquerda) a
+    1 (borda direita): mediana dos quadros amostrados. Sem rosto ou pouca confianca: (0.0, False) e segue."""
     try:
         import cv2
         det = _detector(cv2)
     except Exception:
-        return "centro", False
+        return 0.0, False
     xs = []
     for k in range(AMOSTRAS):
         b = _quadro(video, duracao * (k + 1) / (AMOSTRAS + 1))
@@ -46,8 +51,10 @@ def lado_do_rosto(video, duracao):
         faces = det.detectMultiScale(img, scaleFactor=1.1, minNeighbors=6, minSize=(w // 12, w // 12))
         if len(faces):
             x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])          # o maior rosto do quadro
-            xs.append((x + fw / 2) / w)
-    if len(xs) < 2:                                                        # 1 achado so pode ser falso positivo
-        return "centro", False
+            xs.append((x + fw / 2) / w * 2 - 1)                          # 0..w -> -1..1
+    if len(xs) < MIN_ACHADOS:
+        return 0.0, False
     m = median(xs)
-    return ("esquerda" if m < 0.40 else "direita" if m > 0.60 else "centro"), True
+    if median(abs(v - m) for v in xs) > ESPALHO_MAX:
+        return 0.0, False
+    return round(float(m), 4), True

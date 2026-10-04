@@ -8,7 +8,7 @@ REGRA QUE JA DEU "Midia perdida": a entrada de TODO composto mora em materials.d
 Composto guarda so o placeholder (materials.videos, extra_type_option 2) e o segmento que aponta pro id da raiz."""
 import copy, json, shutil, time
 from pathlib import Path
-from . import audio, capcut, legenda
+from . import audio, capcut, legenda, reels
 
 TOKEN = "##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##"     # macro do CapCut, nao e' id de projeto
 MOLDE = json.loads((Path(__file__).resolve().parent / "assets" / "moldes" / "legenda.json").read_text(encoding="utf-8"))
@@ -176,8 +176,9 @@ def monta(base, meta, keep, segs_leg, op, cache):
     dco = e_corpo["draft"]
     s_cortes, _, _ = seg_composto(MOLDE["dentro_corpo"]["cortes"], e_cortes, dco["materials"], total, canvas)
     if op.get("zoom"):
-        z = float(op["zoom"])
-        s_cortes["clip"] = dict(s_cortes["clip"], scale={"x": z, "y": z}, transform={"x": 0.0, "y": 0.0})
+        z = float(op["zoom"])                                 # zoom fixo do enquadramento, centrado na pessoa
+        s_cortes["clip"] = dict(s_cortes["clip"], scale={"x": z, "y": z},
+                                transform={"x": reels.x_centro(z, float(op.get("posicao") or 0.0)), "y": 0.0})
     else:
         s_cortes["clip"] = dict(s_cortes["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
     # a legenda leva o efeito das edicoes aprovadas (Estroboscopio de tremor, mesmos parametros do molde)

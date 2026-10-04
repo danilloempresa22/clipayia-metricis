@@ -255,8 +255,7 @@ def trabalho_analisa(caminho, modelo, modo="cortes"):
         return {"analise": aid, "nome": an["video"].name, "duracao": an["pl"][0]["dur"],
                 "depois": sum(k[1] - k[0] for k in keep), "pedacos": len(keep),
                 "frases": [[round(a, 2), round(b, 2), t] for a, b, t in an["frases"].get(0, [])],
-                "largura": an["info"]["largura"], "altura": an["info"]["altura"],
-                "rosto": an.get("rosto", "centro"), "rosto_confiavel": an.get("rosto_confiavel", False)}
+                "largura": an["info"]["largura"], "altura": an["info"]["altura"]}
     return fn
 
 
@@ -329,11 +328,7 @@ def trabalho_gera(c):
             r = processa.monta_legenda(raiz, an, op, avisa)
             _conta_uso(r)
             return r
-        rem = [[float(a), float(b)] for a, b in (c.get("remover") or []) if float(b) > float(a)]
-        op = {"headline": (c.get("headline") or "").strip(), "rosto": c.get("rosto", "centro"),
-              "remover": rem, "nome": (c.get("nome") or "").strip() or None}
-        if op["rosto"] not in ("esquerda", "centro", "direita"):
-            op["rosto"] = "centro"
+        op = {"headline": (c.get("headline") or "").strip(), "nome": (c.get("nome") or "").strip() or None}
         r = processa.monta_video(raiz, an, op, avisa)
         _conta_uso(r)
         return r

@@ -176,7 +176,7 @@ def _kf(prop, pts):
          "right_control": {"x": 0.0, "y": 0.0}, "values": [float(v)], "string_value": "", "graphID": ""} for t, v in pts]}
 
 
-def pontos_zoom(sub, zooms, sp_us, comum, clip0):
+def pontos_zoom(sub, zooms, sp_us, comum, clip0, posicao=0.0):
     """zoom da pessoa como keyframes de UM segmento so: [(tempo na origem em us, escala, x)], ja enxuto.
     Mesmo punch-in do Cortes + Headline: 'fixo' segura a escala o trecho todo, 'empurra' vai de 1 ate a escala.
     A troca acontece de um quadro pro outro (keyframe no ultimo quadro do trecho e no primeiro do seguinte).
@@ -189,7 +189,7 @@ def pontos_zoom(sub, zooms, sp_us, comum, clip0):
         v0 = v1 = (base_s, base_x)
         if z:
             tipo, sc, dx = z
-            v1 = (base_s * sc, base_x + dx)
+            v1 = (base_s * sc, reels.x_centro(base_s * sc, posicao))     # zoom centrado na pessoa (escala total)
             v0 = (base_s, base_x) if tipo == "empurra" else v1
         pts.append((S, *v0))
         if E > S: pts.append((E, *v1))
@@ -336,12 +336,12 @@ def monta(raiz, an, op):
                   transform={"x": float(pes.get("x", 0.0)), "y": float(pes.get("y", 0.0))})
     sub = (an.get("zooms") or {}).get(op.get("cortes") or "seco") or [[a, b, False] for a, b, *_ in keep]
     intens = float(op.get("intensidade", 1.0)) if op.get("zoom", True) else 0.0
-    zooms = reels.plano_zoom([(b - a, forca) for a, b, forca in sub], "centro", intens)
+    zooms = reels.plano_zoom([(b - a, forca) for a, b, forca in sub], an.get("posicao", 0.0), intens)
     ps = capcut.clona_segmento(orig, idx, dc["materials"])          # a pessoa INTEIRA num segmento so
     ps["source_timerange"] = {"start": us(sp), "duration": total_c}
     ps["target_timerange"] = {"start": 0, "duration": total_c}
     ps["clip"] = copy.deepcopy(clip_p)
-    pts = pontos_zoom(sub, zooms, us(sp), comum, clip_p)
+    pts = pontos_zoom(sub, zooms, us(sp), comum, clip_p, an.get("posicao", 0.0))
     # os 4 juntos, como o CapCut grava: sem o PositionY ele assume y = 0 e a pessoa subia pra tras do iPad
     ps["common_keyframes"] = ([_kf("KFTypePositionX", [(t, x) for t, _, x in pts]),
                                _kf("KFTypePositionY", [(t, clip_p["transform"]["y"]) for t, _, _ in pts]),
