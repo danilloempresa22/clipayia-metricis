@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -199,6 +199,44 @@ def rotina_em_segundo_plano(caminhos, modelo="preciso"):
     RT_BG["job"] = job
     job["thread"].start()
     return job
+
+
+CT_BG = {"job": None}                # Cortes: transcricao do video longo em segundo plano (longo.py)
+
+
+def cortes_transcreve(caminho, modelo="preciso"):
+    """comeca (ou continua, pelo cache) a transcricao do video longo. Mesmo video ja rodando: devolve o mesmo trabalho."""
+    ant = CT_BG["job"]
+    if ant and ant["caminho"] == caminho and not ant["fim"]:
+        return ant
+    if ant and not ant["fim"]:
+        ant["cancelar"].set(); ant["thread"].join()
+    job = {"caminho": caminho, "modelo": modelo, "cancelar": threading.Event(), "etapa": "Na fila", "progresso": {},
+           "erro": None, "fim": False}
+
+    def roda():
+        try:
+            longo.transcreve(caminho, lambda threads=None, paralelo=1: processa._whisper(
+                modelo, lambda e, f=None: job.update(etapa=e), 0, 0, threads, paralelo), modelo,
+                progresso=lambda e: job.update(progresso=e, etapa="Transcrevendo"), cancelado=job["cancelar"].is_set)
+            job["etapa"] = "Transcrição pronta"
+        except longo.Cancelado:
+            job["erro"] = "cancelado"; job["etapa"] = "Cancelado"
+        except Exception as e:                       # noqa: BLE001 — aparece na tela; o cache guarda o que ja foi feito
+            traceback.print_exc(); job["erro"] = str(e); job["etapa"] = "Erro na transcrição"
+        finally:
+            job["fim"] = True
+    job["thread"] = threading.Thread(target=roda, daemon=True)
+    CT_BG["job"] = job
+    job["thread"].start()
+    return job
+
+
+def estado_cortes():
+    j = CT_BG["job"]
+    if not j:
+        return {"ativo": False}
+    return {"ativo": True, "caminho": j["caminho"], "etapa": j["etapa"], "fim": j["fim"], "erro": j["erro"], **j["progresso"]}
 
 
 def estado_rotina():
@@ -516,6 +554,13 @@ class H(BaseHTTPRequestHandler):
                                    "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel()})
             if u.path == "/api/rotina/estado":
                 return self._json(estado_rotina())
+            if u.path == "/api/cortes/estado":
+                return self._json(estado_cortes())
+            if u.path == "/api/cortes/resultado":         # frases e pausas prontas (Fase 3); null se ainda falta janela
+                p = Path(q.get("caminho", [""])[0])
+                if not p.is_file():
+                    return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
+                return self._json({"resultado": longo.resultado(str(p), q.get("modelo", ["preciso"])[0])})
             if u.path == "/api/ipad/legenda":             # andamento da transcricao em segundo plano
                 ses = IPAD.get(q.get("sessao", [""])[0]) or {}
                 est = ses.get("legenda") or {}
@@ -666,6 +711,17 @@ class H(BaseHTTPRequestHandler):
                 conta.exige_ativa()
                 rotina_em_segundo_plano([str(p) for p in ps], c.get("modelo", "preciso"))
                 return self._json(estado_rotina())
+            if u.path == "/api/cortes/transcrever":       # video longo: comeca ou continua de onde parou
+                p = Path(c.get("caminho", ""))
+                if not p.is_file() or p.suffix.lower() not in EXT_VIDEO:
+                    return self._json({"erro": "Arquivo de vídeo não encontrado."}, 400)
+                conta.exige_ativa()
+                cortes_transcreve(str(p), c.get("modelo", "preciso"))
+                return self._json(estado_cortes())
+            if u.path == "/api/cortes/cancelar":
+                j = CT_BG["job"]
+                if j: j["cancelar"].set()
+                return self._json(estado_cortes())
             if u.path == "/api/rotina/cancelar":
                 j = RT_BG["job"]
                 if j: j["cancelar"].set()

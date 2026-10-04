@@ -1,0 +1,15 @@
+{
+ "_origem": "Configuracao da busca de cortes (Fase 3). BETA: IA local e gratuita pelo Ollama (nada sai do computador). Na versao paga isto vira a Edge Function achar-cortes e estes valores passam para o banco.",
+ "provedor": "ollama",
+ "modelo": "gemma3:12b",
+ "url": "http://127.0.0.1:11434",
+ "num_ctx": 16384,
+ "janela_s": 600,
+ "sobreposicao_s": 120,
+ "paralelo": 1,
+ "minimo_s": 30,
+ "teto_s": 240,
+ "piso_forca": 50,
+ "versao_regras": 2,
+ "tempo_limite_s": 600
+}
