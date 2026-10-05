@@ -136,6 +136,8 @@ ESTATICOS = {("/assets/img", ".png"): "image/png",          # (pasta, extensao) 
              ("/assets/fonts", ".woff2"): "font/woff2",     # funciona sem internet (nada de CDN)
              ("/assets", ".css"): "text/css; charset=utf-8",
              ("/assets/previews", ".mp4"): "video/mp4",     # previa de cada modelo na tela de escolher (o usuario entrega)
+             ("/assets/previews/inicio", ".png"): "image/png",   # imagem de cada modelo no palco do Inicio (o usuario entrega)
+             ("/assets/previews/inicio", ".webp"): "image/webp",
              ("/assets/previews", ".jpg"): "image/jpeg"}
 
 
@@ -220,6 +222,52 @@ def destino_cortes():
         raise capcut.ErroProjeto("Não achei a pasta de projetos do CapCut. Informe o caminho na Edição.")
     teste = os.environ.get("CLIPAY_CORTES_DESTINO")
     return (Path(teste) if teste else Path(raiz)), Path(raiz).parent.parent / "Cache"
+
+
+# ---------------- INICIO: o video escolhido na caixa da tela inicial ----------------
+def video_do_inicio(caminho, precisa_audio=True):
+    """confere o arquivo antes de abrir o assistente: existe, e' video, tem som (quando o modelo depende da fala).
+    Mensagens curtas e claras (nada de erro tecnico do Windows)."""
+    p = Path(caminho or "")
+    if not caminho or not p.is_file():
+        return {"erro": "Esse vídeo não está mais nesse lugar. Ele foi movido ou apagado?"}
+    if p.suffix.lower() not in EXT_VIDEO:
+        return {"erro": "Esse arquivo não é um vídeo. Escolha um MP4, MOV, MKV, M4V, AVI ou WEBM."}
+    try:
+        info = audio.probe_video(str(p))
+    except (RuntimeError, OSError):
+        return {"erro": "Não consegui ler esse arquivo como vídeo. Ele pode estar incompleto ou corrompido."}
+    if precisa_audio and not info["tem_audio"]:
+        return {"erro": "Esse vídeo não tem som. Este modelo precisa da fala para editar."}
+    return {"caminho": str(p), "nome": p.name, "tamanho": p.stat().st_size, "duracao": info["duracao"]}
+
+
+def localiza(nome, tamanho):
+    """o navegador nao diz onde esta o arquivo arrastado, so o nome e o tamanho: procura nas pastas de sempre
+    (Downloads, Area de Trabalho, Videos, Documentos, OneDrive) um arquivo com o mesmo nome e o mesmo tamanho.
+    Achou: usa o original (nada e' copiado). Nao achou: None (a tela copia em blocos, como a Edicao ja faz)."""
+    if not nome or Path(nome).name != nome:
+        return None
+    casa = Path.home(); inicio = time.time()
+    raizes = [casa / d for d in ("Downloads", "Desktop", "Videos", "Documents", "Área de Trabalho")]
+    od = Path(os.environ.get("OneDrive") or casa / "OneDrive")
+    raizes += [od / d for d in ("Desktop", "Área de Trabalho", "Videos", "Vídeos", "Documents", "Documentos")] + [od]
+    vistos = set()
+    for r in raizes:
+        if not r.is_dir() or r in vistos: continue
+        vistos.add(r)
+        base = len(r.parts)
+        for pasta, subs, arqs in os.walk(r):
+            if time.time() - inicio > 4: return None
+            if len(Path(pasta).parts) - base >= 3: subs[:] = []
+            subs[:] = [d for d in subs if not d.startswith(".") and d not in ("node_modules", "AppData")]
+            if nome in arqs:
+                f = Path(pasta) / nome
+                try:
+                    if f.stat().st_size == int(tamanho): return str(f)
+                except (OSError, ValueError):
+                    pass
+    return None
 
 
 def musica_cortes():
@@ -547,6 +595,12 @@ class H(BaseHTTPRequestHandler):
                 return self._json(fluxo_cortes.estado())
             if u.path == "/api/cortes/gerar-estado":
                 return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/cortes/recentes":         # faixa do Inicio: so os projetos de Cortes, mais novos primeiro
+                try:
+                    raiz, _ = destino_cortes()
+                except capcut.ErroProjeto:
+                    return self._json({"recentes": []})
+                return self._json({"recentes": fluxo_cortes.recentes(raiz)})
             if u.path == "/api/cortes/previas-estado":
                 return self._json(fluxo_cortes.estado_previas())
             if u.path == "/api/cortes/musica":
@@ -576,7 +630,11 @@ class H(BaseHTTPRequestHandler):
         ses = IPAD.get(q.get("sessao", [""])[0])
         qual = q.get("q", [""])[0]
         pv = q.get("previa", [""])[0]
-        if pv.isdigit() and qual in ("curto", "inteiro"):         # preview de um corte (tela Cortes, passo Gerar)
+        if q.get("pv", [""])[0]:                                  # miniatura da faixa "Seus cortes recentes" do Inicio
+            p = fluxo_cortes.arquivo_previa_por_chave(q.get("pv", [""])[0])
+            if not p:
+                self.send_response(404); self.end_headers(); return
+        elif pv.isdigit() and qual in ("curto", "inteiro"):       # preview de um corte (tela Cortes, passo Gerar)
             p = fluxo_cortes.arquivo_previa(int(pv), qual)
             if not p or not p.exists():
                 self.send_response(404); self.end_headers(); return
@@ -711,6 +769,10 @@ class H(BaseHTTPRequestHandler):
                 conta.exige_ativa()
                 rotina_em_segundo_plano([str(p) for p in ps], c.get("modelo", "preciso"))
                 return self._json(estado_rotina())
+            if u.path == "/api/inicio/video":             # a caixa do Inicio: confere o video antes de abrir o assistente
+                return self._json(video_do_inicio(c.get("caminho"), bool(c.get("precisa_audio", True))))
+            if u.path == "/api/inicio/localizar":         # arrastou o arquivo: acha o original (sem copiar)
+                return self._json({"caminho": localiza(c.get("nome"), c.get("tamanho", -1))})
             if u.path == "/api/cortes/info":              # cartao do video: ja foi processado neste computador?
                 p = Path(c.get("caminho", ""))
                 if not p.is_file():

@@ -220,6 +220,10 @@ def gera(caminho, lista_cortes, raiz, cache=None, musica=None, velocidade=True, 
                     audio.capa(caminho, capa, c["ini"] + 0.5)
                     l["projeto"] = cortes.grava(raiz, l["nome"], r, capa=capa)
                     l.update(estado="pronto", fracao=1.0)
+                    try:                             # o historico do Inicio nunca derruba um projeto ja criado
+                        anota_recente(l, c, caminho, (r.get("draft") or {}).get("duration", 0) / 1e6, mod["composto"]["velocidade"])
+                    except Exception:                # noqa: BLE001
+                        traceback.print_exc()
                 except Exception as e:               # noqa: BLE001 — um corte que falha nao derruba os outros
                     traceback.print_exc(); l.update(estado="erro", erro=_motivo(e, caminho), fracao=0.0)
                 _salva(job)
@@ -227,6 +231,74 @@ def gera(caminho, lista_cortes, raiz, cache=None, musica=None, velocidade=True, 
             job["tempo"] = round(time.perf_counter() - job["t0"], 1); job["parado"] = True; _salva(job)
     job["thread"] = threading.Thread(target=roda, daemon=True); job["thread"].start()
     return job
+
+
+# ---------------- historico dos projetos de Cortes (faixa "Seus cortes recentes" do Inicio) ----------------
+def _arq_recentes():
+    return transcricao.pasta_dados() / "historico_cortes.json"
+
+
+def _le_recentes():
+    try:
+        return json.loads(_arq_recentes().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def anota_recente(l, c, caminho, duracao, vel):
+    """cada projeto de Cortes criado neste computador (so Cortes: a Edicao tem o historico dela)"""
+    from datetime import datetime, timezone
+    try:
+        k = previa.chave(caminho, c["ini"], c["fim"], cortes.modelo(), "curto", vel, "")
+    except OSError:
+        k = None
+    item = {"projeto": l["projeto"], "nome": l["nome"], "numero": l["numero"], "duracao": round(duracao, 1),
+            "data": datetime.now(timezone.utc).isoformat(timespec="seconds"), "previa": k}
+    with _TRAVA_REC:
+        h = [x for x in (_le_recentes() or []) if x.get("projeto") != item["projeto"]]
+        h.insert(0, item)
+        f = _arq_recentes(); tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(h[:200], ensure_ascii=False), encoding="utf-8"); tmp.replace(f)
+
+
+_TRAVA_REC = threading.Lock()
+
+
+def recentes(raiz, n=12):
+    """os ultimos projetos de Cortes que ainda existem na pasta do CapCut, mais novos primeiro. Na 1a vez, o
+    historico comeca pela ultima geracao gravada (sem a previa: dela nao se sabe o trecho)."""
+    from datetime import datetime, timezone
+    h = _le_recentes()
+    if h is None:
+        try:
+            g = json.loads(_arq_geracao().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            g = {"linhas": []}
+        h = []
+        for l in g.get("linhas", []):
+            pasta = Path(raiz) / (l.get("projeto") or "")
+            if l.get("estado") == "pronto" and l.get("projeto") and pasta.exists():
+                h.append({"projeto": l["projeto"], "nome": l["nome"], "numero": l["numero"], "duracao": None,
+                          "data": datetime.fromtimestamp(pasta.stat().st_mtime, timezone.utc).isoformat(timespec="seconds"),
+                          "previa": None})
+        h.sort(key=lambda x: x["data"], reverse=True)
+    out = []
+    for x in h:
+        if not (Path(raiz) / x["projeto"]).exists():
+            continue                                 # apagado no CapCut: sai da faixa
+        tem = bool(x.get("previa")) and (previa.pasta() / f"{x['previa']}_curto.mp4").exists()
+        out.append(dict(x, tem_previa=tem))
+        if len(out) >= n: break
+    return out
+
+
+def arquivo_previa_por_chave(k):
+    """o preview curto do cache pela chave (faixa do Inicio). Chave = 40 hex, nada de caminho vindo de fora."""
+    import re
+    if not re.fullmatch(r"[0-9a-f]{40}", k or ""):
+        return None
+    f = previa.pasta() / f"{k}_curto.mp4"
+    return f if f.exists() else None
 
 
 def estado_geracao():
