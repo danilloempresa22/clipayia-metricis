@@ -39,7 +39,7 @@ def test_sem_cta(video_vertical, midia, tmp_path):
     assert r["draft"]["duration"] == D and r["png"] is None and react.verifica(r) == []
     vols = [s["volume"] for t in r["draft"]["tracks"][:2] for s in t["segments"]]
     assert vols == [1.0, 0.0]                                    # receita com som, react mudo
-    assert "SUA HEADLINE AQUI" in r["draft"]["materials"]["texts"][0]["content"]
+    assert json.loads(r["draft"]["materials"]["texts"][0]["content"])["text"] == "Coloque a headline do seu vídeo aqui"
     nomes = {v["material_name"] for v in r["draft"]["materials"]["videos"]}
     assert nomes == {"vertical.mp4", "react.mp4"}                # sem foto congelada nem CTA sobrando
     assert [g["value"] for g in r["meta"]["draft_materials"] if g["type"] == 6] == [[]]
@@ -171,6 +171,10 @@ def test_ouro_patricio():
     difs = _difs(r["draft"], ref)
     assert sorted(difs) == sorted([".materials.texts[0].content"] + [f".{k}.{c}" for k in ("platform", "last_modified_platform")
                                                                        for c in ("device_id", "hard_disk_id", "mac_address")])
+    # as pecas do modelo de texto mantem o nome do pacote (texto e barra vermelha): senao o CapCut refaz o modelo
+    # do zero, com 3 s e o texto padrao, e a headline some
+    nomes = lambda x: (x["materials"]["texts"][0]["name"], x["materials"]["text_templates"][0]["non_text_info_resources"][0]["name"])
+    assert nomes(r["draft"]) == nomes(ref)
     a, b = (json.loads(x["materials"]["texts"][0]["content"]) for x in (r["draft"], ref))
     a["text"] = b["text"] = ""; a["styles"][0]["range"] = b["styles"][0]["range"] = None
     assert a == b                                                # estilo da headline identico

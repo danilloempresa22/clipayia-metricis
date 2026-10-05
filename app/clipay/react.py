@@ -9,7 +9,7 @@ lugar dos caminhos): so muda o que varia (materiais, tempos, enquadramento, ids)
                     Com CTA: no mesmo intervalo entra o video do CTA (com som, sem filtro) e o react fica parado:
                     depois do CTA ele volta exatamente de onde parou.
   trilha 3 (texto)  headline no modelo "Title EN Simple News", o video todo (a pessoa troca o texto no CapCut)."""
-import copy, hashlib, json, math, re, subprocess, time
+import copy, hashlib, json, math, re, subprocess, time, uuid
 from pathlib import Path
 from . import audio, capcut, composto, cortes, palavras
 
@@ -23,7 +23,7 @@ COBRE_ATE = 1250                        # px: o video de cima tem que chegar ate
 JANELA = (0.40, 0.70)                   # onde procurar a pausa pra congelar (fracao da duracao)
 IDEAL = 0.55
 PAUSA_MIN = 0.4                         # s
-HEADLINE = "SUA HEADLINE AQUI"
+HEADLINE = "Coloque a headline do seu vídeo aqui"
 FONTE = "CreatoDisplay-Bold.otf"
 _FIM_FRASE = re.compile(r"[.!?…]+[\"'”’)»]*$")
 _CACHE_REF = re.compile(r"\{CACHE\}/(effect|artistEffect)/(\d+)/([0-9a-f]+)(/[^\"\\]*)?")
@@ -196,10 +196,29 @@ def inicios_react(react_us, duracoes_us, variar=False, inicio=INICIO_REACT):
 
 
 # ---------------- montar ----------------
+def nomes_do_modelo(d):
+    """ids que vem do PACOTE do modelo de texto (content.json dele: o texto e a barra vermelha). Nao podem mudar:
+    com outro nome o CapCut nao acha as pecas, refaz o modelo do zero (3 s e o texto padrao) e a headline some."""
+    out = {t["name"] for t in d["materials"].get("texts", []) if capcut._UUID.fullmatch(t.get("name") or "")}
+    for tt in d["materials"].get("text_templates", []):
+        out |= {r["name"] for r in tt.get("non_text_info_resources", []) if capcut._UUID.fullmatch(r.get("name") or "")}
+    return {x.upper() for x in out}
+
+
 def _molde():
     SEP = "\n␞\n"
     t = SEP.join((PASTA / f).read_text(encoding="utf-8") for f in ("draft_content.json", "draft_meta_info.json"))
-    d, m = (json.loads(x) for x in cortes._novos_ids(t).split(SEP))
+    fixos = nomes_do_modelo(json.loads(t.split(SEP)[0])) | {cortes.GUID_TOKEN}
+    mapa = {}
+
+    def troca(mt):
+        s = mt.group(0); k = s.lower()
+        if s.upper() in fixos:
+            return s
+        if k not in mapa:
+            mapa[k] = str(uuid.uuid4())
+        return mapa[k] if s == s.lower() else mapa[k].upper()
+    d, m = (json.loads(x) for x in capcut._UUID.sub(troca, t).split(SEP))
     return d, m
 
 
