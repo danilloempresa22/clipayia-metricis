@@ -163,12 +163,18 @@ def ponto_congelar(video, dur_s, falas=None, trechos=None, x=None):
     return {"t": ideal, "boa": False, "pausa_curta": False, "motivo": "sem pausa boa"}
 
 
-def transcreve(video, w):
-    """palavras do video de cima (pra saber onde termina cada frase), em cache por arquivo"""
+def arquivo_transcricao(video):
+    """onde fica a transcricao do video: %APPDATA%/Clipay/cache_react/<sha1 do caminho, tamanho e data>.json"""
     from . import transcricao
     p = Path(video); st = p.stat()
     k = hashlib.sha1(f"{p.resolve()}|{st.st_size}|{st.st_mtime_ns}|react-v1".encode()).hexdigest()
-    arq = transcricao.pasta_dados() / "cache_react" / f"{k}.json"
+    return transcricao.pasta_dados() / "cache_react" / f"{k}.json"
+
+
+def transcreve(video, w):
+    """palavras do video de cima, com tempo, em cache por arquivo. Uma passada so: serve pra achar a pausa do CTA
+    (onde termina cada frase) e pra transcricao que a pessoa le na tela"""
+    arq = arquivo_transcricao(video)
     if arq.exists():
         return json.loads(arq.read_text(encoding="utf-8"))
     x = audio.pcm(video)
@@ -262,10 +268,12 @@ def nome_congelado(receita, p_us):
     return f"{hashlib.md5(str(receita).encode()).hexdigest()}_{p_us}-sdr709.png"
 
 
-def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cache=None, falas=None, infos=None):
+def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cache=None, falas=None, infos=None,
+          cta_pos="meio"):
     """receita: o video de cima. react: o video do apresentador. enq: {corte, zoom, posicao} da tela.
-    cta: caminho do video do CTA ou None. inicio_us: onde o react comeca (inicios_react). congelar: s, ou None =
-    acha a pausa. cache: pasta 'User Data/Cache' do CapCut. Devolve um dict pra grava()."""
+    cta: caminho do video do CTA ou None. cta_pos: "meio" (congela numa pausa e o video continua depois) ou "final"
+    (o video toca inteiro; depois dele, o ultimo quadro parado com o CTA embaixo). inicio_us: onde o react comeca
+    (inicios_react). congelar: s, ou None = acha a pausa. cache: pasta 'User Data/Cache' do CapCut."""
     receita, react = Path(receita), Path(react)
     infos = infos or {}
     ir = infos.get("receita") or info(receita)
@@ -289,7 +297,11 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
 
     # --- tempos (us, grade de 30 fps). Com CTA: o de cima congela em P pelo tempo do CTA
     cong = None
-    if cta:
+    final = bool(cta) and cta_pos == "final"
+    if final:                                         # sem pausa: congela no ultimo quadro, depois do video inteiro
+        C = ic["dur_us"]; P = D - us(1 / FPS); total = D + C
+        cong = {"t": P / 1e6, "boa": True, "motivo": "no final", "us": P, "final": True}
+    elif cta:
         cong = {"t": float(congelar), "boa": True, "motivo": "escolhido"} if congelar is not None else \
             ponto_congelar(receita, D / 1e6, falas)
         P = min(max(us(cong["t"]), us(1 / FPS)), D - us(1 / FPS))
@@ -324,9 +336,13 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
     for s in (k1, k3): clip(s, fk)
     for s in (c1, c3): video(s, receita, ir)
     for s in (k1, k3): video(s, react, ik)
-    if cta:
+    if final:                                         # [video inteiro | ultimo quadro]  /  [react | CTA]
+        seg(c1, (0, D), (0, D)); seg(foto, (0, C), (D, C))
+        seg(k1, (r0, D), (0, D)); seg(kcta, (0, C), (D, C))
+    elif cta:
         seg(c1, (0, P), (0, P)); seg(foto, (0, C), (P, T2 - P)); seg(c3, (P, D - P), (T2, total - T2))
         seg(k1, (r0, P), (0, P)); seg(kcta, (0, C), (P, T2 - P)); seg(k3, (r0 + P, D - P), (T2, total - T2))
+    if cta:
         clip(kcta, enquadra_faixa(ic["largura"], ic["altura"], kcta["clip"]))
         video(kcta, cta, ic)
         png = nome_congelado(caminho(receita), P)
@@ -335,14 +351,17 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
         mf["freeze"].update({"source_material_id": c1["material_id"], "source_material_path": caminho(receita), "timestamp": P})
     else:
         seg(c1, (0, D), (0, D)); seg(k1, (r0, D), (0, D))
+        png = None
+    if final or not cta:                              # o que sobra do molde (3o trecho; e, sem CTA, a foto e o CTA)
+        sai = (c3, k3) if final else (foto, c3, kcta, k3)
         tira = set()
-        for s in (foto, c3, kcta, k3):
+        for s in sai:
             tira |= {s["material_id"], *s["extra_material_refs"]}
-        cima["segments"], baixo["segments"] = [c1], [k1]
+        cima["segments"] = [x for x in cima["segments"] if all(x is not y for y in sai)]
+        baixo["segments"] = [x for x in baixo["segments"] if all(x is not y for y in sai)]
         for k, v in M.items():
             if isinstance(v, list):
                 M[k] = [x for x in v if not (isinstance(x, dict) and x.get("id") in tira)]
-        png = None
 
     # --- headline: o texto de exemplo, o video todo
     st = txt["segments"][0]
@@ -431,10 +450,13 @@ def verifica(r, pasta=None):
     return sorted(set(erros))
 
 
-def quadro(video, t_us, destino):
-    """o quadro do video em t (PNG, tamanho original) — o "Congelar" do CapCut"""
-    r = subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{t_us / 1e6:.6f}", "-i", str(video),
-                        "-frames:v", "1", "-update", "1", str(destino)], capture_output=True, **audio._sem_janela())
+def quadro(video, t_us, destino, ultimo=False):
+    """o quadro do video em t (PNG, tamanho original) — o "Congelar" do CapCut. ultimo: o ultimo quadro do arquivo
+    (le so o ultimo meio segundo, inverte e grava um PNG so: perto do fim o -ss as vezes nao devolve quadro, e gravar
+    um PNG por quadro levava 16 s num video de 60 fps)"""
+    pos = (["-sseof", "-0.5", "-i", str(video), "-vf", "reverse", "-frames:v", "1"] if ultimo else
+           ["-ss", f"{t_us / 1e6:.6f}", "-i", str(video), "-frames:v", "1", "-update", "1"])
+    r = subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", *pos, str(destino)], capture_output=True, **audio._sem_janela())
     if r.returncode != 0 or not Path(destino).exists():
         raise ErroReact(f"Não consegui tirar o quadro congelado de {Path(video).name}.")
 
@@ -449,7 +471,7 @@ def grava(raiz, r, nome=None, capa=None):
 
     def extras(pasta):
         if r["png"]:
-            quadro(r["receita"], r["congelar"]["us"], Path(pasta) / r["png"])
+            quadro(r["receita"], r["congelar"]["us"], Path(pasta) / r["png"], bool(r["congelar"].get("final")))
         e2 = verifica(r, pasta)
         if e2:
             raise ErroReact("Projeto não gravado: " + "; ".join(e2))

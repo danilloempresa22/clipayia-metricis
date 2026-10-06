@@ -178,3 +178,21 @@ def test_ouro_patricio():
     a, b = (json.loads(x["materials"]["texts"][0]["content"]) for x in (r["draft"], ref))
     a["text"] = b["text"] = ""; a["styles"][0]["range"] = b["styles"][0]["range"] = None
     assert a == b                                                # estilo da headline identico
+
+
+def test_cta_no_final(video_vertical, midia, tmp_path):
+    """CTA no final: o video toca inteiro, depois o ultimo quadro parado com o CTA embaixo. Sem procurar pausa."""
+    raiz = tmp_path / "capcut"; raiz.mkdir()
+    r = react.monta(video_vertical, midia["react"], cta=midia["cta"], cta_pos="final")
+    D, C = react.duracao_us(video_vertical), react.duracao_us(midia["cta"])
+    (c1, foto), (k1, kc), (t,) = _segs(r)
+    assert c1 == (0, D, 0, D) and foto == (0, C, D, C)
+    assert k1 == (1_400_000, D, 0, D) and kc == (0, C, D, C)            # o CTA logo depois do react
+    assert t[3] == D + C == r["draft"]["duration"] and react.verifica(r) == []
+    assert r["congelar"]["motivo"] == "no final" and r["congelar"]["us"] == D - react.us(1 / 30)
+    assert [s["volume"] for s in r["draft"]["tracks"][1]["segments"]] == [0.0, 1.0]
+    nomes = [v["material_name"] for v in r["draft"]["materials"]["videos"]]
+    assert sorted(nomes) == sorted(["vertical.mp4", "Congelar", "react.mp4", "cta.mp4"])     # nada do 3o trecho
+    nome = react.grava(raiz, r)
+    png = raiz / nome / r["png"]
+    assert png.exists() and png.stat().st_size > 0 and react.verifica(r, raiz / nome) == []

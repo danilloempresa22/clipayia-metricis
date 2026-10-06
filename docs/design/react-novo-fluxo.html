@@ -517,6 +517,54 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
 @media (max-width:1100px){.frame{grid-template-columns:1fr;justify-items:center}.fctl{width:100%}.adj{grid-template-columns:1fr}.qty{grid-template-columns:1fr}}
 .step.passed i{background:var(--accent)}
 .step.passed{color:var(--text-2)}
+
+/* saved react */
+.saved{display:flex;flex-direction:column;gap:12px}
+.file .chip{flex:none}
+.saved-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn-text{padding:10px 6px;font-size:13.5px;font-weight:600;color:var(--text-2);border-radius:10px}
+.btn-text:hover{color:var(--text)}
+.btn-text:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.saveopt{margin-top:6px;border-top:0;padding:14px 4px 0}
+/* play */
+.play{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);transition:transform .15s}
+.play:hover{transform:scale(1.06)}
+.play:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.play .i{width:16px;height:16px;fill:currentColor;stroke:currentColor}
+.rc{will-change:contents}
+/* cta position */
+.q2{margin:14px 0 8px;font-size:13px;font-weight:600;color:var(--text-2)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.segb{text-align:left;padding:12px 14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--hair);transition:border-color .16s,box-shadow .16s}
+.segb b{display:block;font-size:14px}.segb span{display:block;margin-top:2px;font-size:12px;color:var(--text-2);line-height:1.35}
+.segb:hover{border-color:var(--hair-2)}
+.segb[aria-checked="true"]{border-color:var(--accent-line);box-shadow:0 0 0 1px var(--accent-line)}
+.segb:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* transcrição nos cartões */
+.cut-a{display:flex;align-items:center;min-height:30px;padding:0 2px}
+.tr-st{font-size:12px;color:var(--text-3);display:none}
+.tr-btn{display:none;align-items:center;gap:6px;padding:6px 11px;border-radius:99px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px solid var(--hair-2);color:var(--text)}
+.tr-btn .i{width:14px;height:14px}
+.tr-btn:hover{border-color:var(--accent-line);color:var(--accent)}
+.tr-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cut.ready .tr-st{display:block}
+.cut.ready.trd .tr-st{display:none}
+.cut.ready.trd .tr-btn{display:inline-flex}
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px}
+.modal[hidden]{display:none}
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(4px)}
+.modal-c{position:relative;width:min(640px,100%);max-height:min(720px,90vh);display:flex;flex-direction:column;gap:6px;padding:22px;border-radius:22px;background:var(--surface);border:1px solid var(--hair-2);box-shadow:0 40px 90px -30px #000}
+.modal-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.modal-h h2{margin:0;font-size:19px;letter-spacing:-.02em}
+.modal-h p{margin:4px 0 0;font-size:12.5px;color:var(--text-3)}
+.opt--flat{border-top:0;padding:8px 0}
+.tr-body{flex:1;min-height:180px;overflow:auto;padding:14px 16px;border-radius:14px;background:var(--bg,#0a0a0b);border:1px solid var(--hair);font-size:14px;line-height:1.65;color:var(--text)}
+.tr-body:focus-visible{outline:2px solid var(--accent)}
+.tr-body p{margin:0 0 10px}.tr-body time{display:inline-block;min-width:42px;margin-right:8px;font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
+.modal-f{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.modal-f .btn-light{display:inline-flex;align-items:center;gap:8px}
+@media (max-width:560px){.seg{grid-template-columns:1fr}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -540,6 +588,11 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   <symbol id="i-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/></symbol>
+  <symbol id="i-tri" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 19h16"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M5 11h14M5 16h9"/></symbol>
   <symbol id="i-cuts" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M3 9v6M21 9v6"/></symbol>
 </svg>
 <div class="app">
@@ -646,8 +699,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
       <div class="fstage">
         <div class="fphone" id="fphone"></div>
         <div class="scrub">
+          <button class="play" id="play" type="button" aria-label="Reproduzir"><svg class="i"><use href="#i-play"/></svg></button>
           <span id="tNow">0:00</span>
-          <input type="range" id="scr" min="0" max="100" value="0" aria-label="Momento do vídeo">
+          <input type="range" id="scr" min="0" max="100" step="any" value="0" aria-label="Momento do vídeo">
           <span id="tEnd">1:27</span>
         </div>
       </div>
@@ -670,8 +724,8 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
     </header>
     <div class="adj">
       <article class="card finish">
-        <h2 class="card-h">CTA no meio do vídeo</h2>
-        <div class="opt"><div><p class="opt-t">Adicionar um CTA</p><p class="opt-s">O vídeo de cima congela numa pausa da fala, o seu CTA aparece embaixo e depois o vídeo continua.</p></div><button class="sw" type="button" role="switch" aria-checked="false" id="swCta" aria-label="Adicionar um CTA"></button></div>
+        <h2 class="card-h">CTA no vídeo</h2>
+        <div class="opt"><div><p class="opt-t">Adicionar um CTA</p><p class="opt-s">O vídeo de cima congela, o seu CTA aparece embaixo e, se for no meio, o vídeo continua depois.</p></div><button class="sw" type="button" role="switch" aria-checked="false" id="swCta" aria-label="Adicionar um CTA"></button></div>
         <div id="ctaBox" hidden></div>
       </article>
       <article class="card finish">
@@ -696,6 +750,16 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
     </div>
     <ol class="cuts" id="cuts"></ol>
   </section>
+
+  <div class="modal" id="trModal" hidden>
+    <div class="modal-bg" data-close></div>
+    <div class="modal-c" role="dialog" aria-modal="true" aria-labelledby="trT">
+      <header class="modal-h"><div><h2 id="trT">Transcrição</h2><p id="trN"></p></div><button class="icon-btn" type="button" data-close aria-label="Fechar"><svg class="i"><use href="#i-x"/></svg></button></header>
+      <div class="opt opt--flat"><div><p class="opt-t">Mostrar tempos</p></div><button class="sw" type="button" role="switch" aria-checked="false" id="swTimes" aria-label="Mostrar tempos"></button></div>
+      <div class="tr-body" id="trBody" tabindex="0"></div>
+      <footer class="modal-f"><button class="btn-light" type="button" id="trCopy"><svg class="i"><use href="#i-copy"/></svg><span>Copiar texto</span></button><button class="btn-light" type="button" id="trDl"><svg class="i"><use href="#i-down"/></svg><span>Baixar .txt</span></button></footer>
+    </div>
+  </div>
 
   <footer class="actions">
     <button class="btn-ghost" id="back" type="button"><svg class="i"><use href="#i-left"/></svg>Voltar</button>
@@ -723,7 +787,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   var two=function(n){return String(n).padStart(2,'0')};
   var mmss=function(s){s=Math.round(s);return Math.floor(s/60)+':'+two(s%60)};
   var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var st={step:0,react:false,qty:null,vids:[],sel:0,all:true,shared:{y:24,z:100},per:{},zone:true,cta:false,ctaFile:false,vary:true,seen:{}};
+  var st={step:0,react:false,qty:null,vids:[],sel:0,all:true,shared:{y:24,z:100},per:{},zone:true,cta:false,ctaFile:false,ctaPos:'mid',vary:true,seen:{},savedReact:false,other:false,playing:false};
 
   /* composição */
   function comp(o){
@@ -742,15 +806,29 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   }
 
   /* 2: react */
+  var RFILE='<span class="file-ico">'+ic('film')+'</span><div class="file-main"><p class="file-name">Patricio reagindo.MOV</p><p class="file-meta">1,9 GB · 2:34 · 3840×2160 · áudio não usado</p></div>';
   function react(){
-    $('#rBody').innerHTML=st.react
-      ?'<div class="file"><span class="file-ico">'+ic('film')+'</span><div class="file-main"><p class="file-name">Patricio reagindo.MOV</p><p class="file-meta">1,9 GB · 2:34 · 3840×2160 · áudio não usado</p></div><span class="ok-badge">'+ic('check')+'</span><button class="icon-btn" data-rm aria-label="Remover vídeo">'+ic('x')+'</button></div>'
-      :'<div class="drop" id="drop"><span class="drop-ico">'+ic('upload')+'</span><p class="drop-t"><strong>Arraste o vídeo de react aqui</strong> ou escolha no computador</p><button class="btn-light" type="button" data-pick>Escolher vídeo</button></div><p class="tip">O arquivo não é copiado: o Clipay.ia lê direto de onde ele está.</p>';
+    var h;
+    if(st.react){
+      h='<div class="file">'+RFILE+'<span class="ok-badge">'+ic('check')+'</span><button class="icon-btn" data-rm aria-label="Remover vídeo">'+ic('x')+'</button></div>'
+       +'<div class="opt saveopt"><div><p class="opt-t">Usar sempre este react</p><p class="opt-s">Fica salvo no app. Nas próximas vezes ele já vem escolhido, é só continuar.</p></div><button class="sw" type="button" role="switch" aria-checked="'+st.savedReact+'" id="swSave" aria-label="Usar sempre este react"></button></div>';
+    }else if(st.savedReact&&!st.other){
+      h='<div class="saved"><div class="file">'+RFILE+'<span class="chip chip--lime">Salvo</span></div>'
+       +'<div class="saved-act"><button class="btn-light" type="button" data-use>Usar este react</button><button class="btn-text" type="button" data-other>Escolher outro vídeo</button><button class="btn-text" type="button" data-forget>Esquecer este react</button></div></div>';
+    }else{
+      h='<div class="drop" id="drop"><span class="drop-ico">'+ic('upload')+'</span><p class="drop-t"><strong>Arraste o vídeo de react aqui</strong> ou escolha no computador</p><button class="btn-light" type="button" data-pick>Escolher vídeo</button></div><p class="tip">O arquivo não é copiado: o Clipay.ia lê direto de onde ele está.</p>';
+    }
+    $('#rBody').innerHTML=h;
     $('#qtyBox').hidden=!st.react;
     document.querySelectorAll('.qopt').forEach(function(b){b.setAttribute('aria-checked',String(b.dataset.q===st.qty))});
   }
   $('#rBody').addEventListener('click',function(e){
-    if(e.target.closest('[data-pick]'))st.react=true;else if(e.target.closest('[data-rm]')){st.react=false;st.qty=null}else return;
+    if(e.target.closest('[data-pick]')||e.target.closest('[data-use]')){st.react=true;st.other=false}
+    else if(e.target.closest('[data-rm]')){st.react=false;st.qty=null;st.other=false}
+    else if(e.target.closest('#swSave')){st.savedReact=!st.savedReact}
+    else if(e.target.closest('[data-other]')){st.other=true}
+    else if(e.target.closest('[data-forget]')){st.savedReact=false}
+    else return;
     react();actions();
   });
   document.querySelector('.qty').addEventListener('click',function(e){var b=e.target.closest('.qopt');if(!b)return;
@@ -783,27 +861,44 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
 
   /* 4: enquadrar */
   function cur(){var s=st.all?st.shared:(st.per[st.sel]||(st.per[st.sel]={y:st.shared.y,z:st.shared.z}));return s}
+  function build(){var v=st.vids[st.sel],s=cur();$('#fphone').innerHTML=comp({y:s.y,z:s.z,px:0,c:v.c,zone:st.zone});paint()}
   function frame(){
+    play(false);
     var many=st.vids.length>1;
     $('#vtabs').hidden=!many;$('#allRow').hidden=!many;
     $('#vtabs').innerHTML=st.vids.map(function(v,i){return '<button class="vt" role="tab" type="button" aria-selected="'+(i===st.sel)+'" data-i="'+i+'"><span class="vt-th" style="--c1:'+v.c[0]+';--c2:'+v.c[1]+'"></span><span><b>'+v.n+'</b><small>'+mmss(v.d)+'</small></span>'+(st.seen[i]?'<span class="ok">'+ic('check')+'</span>':'')+'</button>'}).join('');
     var v=st.vids[st.sel],s=cur();st.seen[st.sel]=true;
-    $('#fy').value=s.y;$('#fz').value=s.z;
+    $('#fy').value=s.y;$('#fz').value=s.z;$('#scr').value=0;
     $('#tEnd').textContent=mmss(v.d);
-    paint();
+    build();
   }
+  /* paint só mexe nas variáveis de CSS: nada é refeito ao arrastar, por isso não trava */
   function paint(){
-    var v=st.vids[st.sel],s=cur(),t=+$('#scr').value/100;
+    var v=st.vids[st.sel],s=cur(),t=+$('#scr').value/100,rc=$('#fphone .rc');
     $('#fyO').textContent=s.y+'% cortado em cima';$('#fzO').textContent=s.z+'%';
     $('#tNow').textContent=mmss(v.d*t);
-    var px=Math.round((t-.5)*30);
-    $('#fphone').innerHTML=comp({y:s.y,z:s.z,px:px,c:v.c,zone:st.zone});
-    document.querySelectorAll('.vt').forEach(function(b,i){var sel=i===st.sel;b.setAttribute('aria-selected',String(sel))});
+    if(!rc)return;
+    rc.style.setProperty('--y',s.y);rc.style.setProperty('--z',s.z/100);rc.style.setProperty('--px',Math.round((t-.5)*30)+'%');
   }
+  var raf=0,last=0;
+  function play(on){
+    st.playing=on;cancelAnimationFrame(raf);
+    $('#play').innerHTML=ic(on?'pause':'tri');$('#play').setAttribute('aria-label',on?'Pausar':'Reproduzir');
+    if(!on)return;
+    var sc=$('#scr');if(+sc.value>=100)sc.value=0;last=performance.now();
+    raf=requestAnimationFrame(function tick(now){
+      var v=st.vids[st.sel],dt=(now-last)/1000;last=now;
+      sc.value=Math.min(100,+sc.value+dt/v.d*100*6); /* protótipo: 6x mais rápido só para mostrar o movimento */
+      paint();
+      if(+sc.value>=100){play(false);return}
+      raf=requestAnimationFrame(tick);
+    });
+  }
+  $('#play').addEventListener('click',function(){play(!st.playing)});
   $('#vtabs').addEventListener('click',function(e){var b=e.target.closest('.vt');if(!b)return;st.sel=+b.dataset.i;frame()});
   ['fy','fz'].forEach(function(id){$('#'+id).addEventListener('input',function(){var s=cur();s.y=+$('#fy').value;s.z=+$('#fz').value;paint()})});
-  $('#scr').addEventListener('input',paint);
-  $('#swZone').addEventListener('click',function(){st.zone=!st.zone;this.setAttribute('aria-checked',String(st.zone));paint()});
+  $('#scr').addEventListener('input',function(){if(st.playing)play(false);paint()});
+  $('#swZone').addEventListener('click',function(){st.zone=!st.zone;this.setAttribute('aria-checked',String(st.zone));build()});
   $('#swAll').addEventListener('click',function(){st.all=!st.all;this.setAttribute('aria-checked',String(st.all));if(!st.all){st.per={};}frame()});
   $('#fReset').addEventListener('click',function(){var s=cur();s.y=24;s.z=100;frame()});
 
@@ -813,14 +908,18 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
     $('#swCta').setAttribute('aria-checked',String(st.cta));
     var b=$('#ctaBox');b.hidden=!st.cta;
     if(!st.cta){return}
-    b.innerHTML=(st.ctaFile
+    var end=st.ctaPos==='end';
+    var pos='<p class="q2" id="posQ">Onde entra o CTA</p><div class="seg" role="radiogroup" aria-labelledby="posQ">'
+      +'<button class="segb" type="button" role="radio" aria-checked="'+!end+'" data-pos="mid"><b>No meio</b><span>Congela numa pausa da fala, perto do meio</span></button>'
+      +'<button class="segb" type="button" role="radio" aria-checked="'+end+'" data-pos="end"><b>No final</b><span>Entra depois que o vídeo termina</span></button></div>';
+    b.innerHTML=pos+(st.ctaFile
       ?'<div class="file"><span class="file-ico">'+ic('film')+'</span><div class="file-main"><p class="file-name">CTA +100 RECEITAS.mp4</p><p class="file-meta">0:07 · 1920×1080 · com som</p></div><span class="ok-badge">'+ic('check')+'</span><button class="icon-btn" data-rmcta aria-label="Remover CTA">'+ic('x')+'</button></div>'
-       +'<div>'+st.vids.map(function(v,i){var p=pauseFor(v,i);return '<div class="tlrow"><div class="n"><span>'+v.n+'</span><small>congela aos '+mmss(p)+'</small></div><div class="tbar"><u style="left:40%;width:30%"></u><i style="left:'+(p/v.d*100)+'%"></i></div></div>'}).join('')+'</div>'
-       +'<p class="tl-note">O app procura uma pausa entre frases perto do meio de cada vídeo, para não cortar uma fala. O vídeo congela, o CTA aparece embaixo por 0:07 e depois continua de onde parou.</p>'
+       +'<div>'+st.vids.map(function(v,i){var p=end?v.d:pauseFor(v,i);return '<div class="tlrow"><div class="n"><span>'+v.n+'</span><small>'+(end?'CTA entra aos '+mmss(p):'congela aos '+mmss(p))+'</small></div><div class="tbar">'+(end?'':'<u style="left:40%;width:30%"></u>')+'<i style="left:'+(end?99:p/v.d*100)+'%"></i></div></div>'}).join('')+'</div>'
+       +'<p class="tl-note">'+(end?'O vídeo de cima toca inteiro, fica parado no último quadro e o seu CTA entra embaixo por 0:07. Não precisa procurar pausa.':'O app procura uma pausa entre frases perto do meio de cada vídeo, para não cortar uma fala. O vídeo congela, o CTA aparece embaixo por 0:07 e depois continua de onde parou.')+'</p>'
       :'<div class="drop drop--sm" id="drop"><p class="drop-t"><strong>Escolha o vídeo do CTA</strong></p><button class="btn-light" type="button" data-pickcta>Escolher CTA</button></div>');
   }
   $('#swCta').addEventListener('click',function(){st.cta=!st.cta;adjust();actions()});
-  $('#ctaBox').addEventListener('click',function(e){if(e.target.closest('[data-pickcta]'))st.ctaFile=true;else if(e.target.closest('[data-rmcta]'))st.ctaFile=false;else return;adjust();actions()});
+  $('#ctaBox').addEventListener('click',function(e){var pb=e.target.closest('[data-pos]');if(pb){st.ctaPos=pb.dataset.pos;adjust();return}if(e.target.closest('[data-pickcta]'))st.ctaFile=true;else if(e.target.closest('[data-rmcta]'))st.ctaFile=false;else return;adjust();actions()});
   $('#swVary').addEventListener('click',function(){st.vary=!st.vary;this.setAttribute('aria-checked',String(st.vary))});
 
   /* 6: gerar */
@@ -832,16 +931,37 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
     $('#gsText').textContent='Criando os projetos no CapCut…';$('#gsN').textContent='0 de '+N;$('#gsBar').style.width='0';
     $('#cuts').innerHTML=st.vids.map(function(v,k){
       var s=st.all?st.shared:(st.per[k]||st.shared),nm=v.n+' - react',dur=v.d+(st.cta&&st.ctaFile?CTA_D:0);
-      return '<li class="cut" id="c'+k+'"><div class="cut-v" style="background:#000">'+comp({y:s.y,z:s.z,px:(k%3-1)*6,c:v.c,cap:false})+'<span class="dur">'+mmss(dur)+'</span><div class="sk"><span>'+two(k+1)+'</span></div></div><div class="cut-b"><span class="cut-n" title="'+nm+'">'+nm+'</span></div></li>';
+      return '<li class="cut" id="c'+k+'"><div class="cut-v" style="background:#000">'+comp({y:s.y,z:s.z,px:(k%3-1)*6,c:v.c,cap:false})+'<span class="dur">'+mmss(dur)+'</span><div class="sk"><span>'+two(k+1)+'</span></div></div><div class="cut-b"><span class="cut-n" title="'+nm+'">'+nm+'</span></div><div class="cut-a"><span class="tr-st">Transcrevendo…</span><button class="tr-btn" type="button" data-tr="'+k+'">'+ic('text')+'Transcrição</button></div></li>';
     }).join('');
     var k=0;
     function done(){gs.classList.add('ok');$('#gsIco').innerHTML=ic('check');$('#gsText').textContent=(N>1?N+' projetos criados':'1 projeto criado')+' no CapCut. Troque a headline lá.';$('#gsN').textContent=N+' de '+N;$('#gsBar').style.width='100%'}
-    if(reduce){document.querySelectorAll('.cut').forEach(function(el){el.classList.add('ready')});done();return}
-    gt=setInterval(function(){if(k>=N){clearInterval(gt);done();return}$('#c'+k).classList.add('ready');k++;$('#gsN').textContent=k+' de '+N;$('#gsBar').style.width=(k/N*100)+'%'},320);
+    if(reduce){document.querySelectorAll('.cut').forEach(function(el){el.classList.add('ready','trd')});done();return}
+    gt=setInterval(function(){if(k>=N){clearInterval(gt);done();return}(function(j){var c=$('#c'+j);c.classList.add('ready');setTimeout(function(){c.classList.add('trd')},900+j*250)})(k);k++;$('#gsN').textContent=k+' de '+N;$('#gsBar').style.width=(k/N*100)+'%'},320);
   }
+
+  /* transcrição */
+  var LINES=['Hoje eu vou te ensinar a fazer {n}, e é muito mais fácil do que parece.','Primeiro, separe todos os ingredientes na bancada.','Misture bem até a massa ficar lisinha, sem grumos.','Agora é só levar para assar e esperar dourar.','Olha só como fica por dentro, bem macio.','Se você gostou, salva esse vídeo para fazer depois.','E me conta nos comentários qual receita você quer ver na próxima.'];
+  var trOpener=null,trCur=0;
+  function trLines(k){var v=st.vids[k];return LINES.map(function(l,i){return {t:v.d*i/LINES.length,s:l.replace('{n}',v.n.toLowerCase())}})}
+  function trRender(){
+    var times=$('#swTimes').getAttribute('aria-checked')==='true';
+    $('#trBody').innerHTML=trLines(trCur).map(function(l){return '<p>'+(times?'<time>'+mmss(l.t)+'</time>':'')+l.s+'</p>'}).join('');
+  }
+  function trText(){var times=$('#swTimes').getAttribute('aria-checked')==='true';return trLines(trCur).map(function(l){return (times?'['+mmss(l.t)+'] ':'')+l.s}).join('\n')}
+  function trOpen(k,btn){trCur=k;trOpener=btn;$('#trN').textContent=st.vids[k].n+' - react';trRender();$('#trModal').hidden=false;$('#trBody').focus()}
+  function trClose(){$('#trModal').hidden=true;if(trOpener)trOpener.focus()}
+  $('#cuts').addEventListener('click',function(e){var b=e.target.closest('[data-tr]');if(b)trOpen(+b.dataset.tr,b)});
+  $('#trModal').addEventListener('click',function(e){if(e.target.closest('[data-close]'))trClose()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('#trModal').hidden)trClose()});
+  $('#swTimes').addEventListener('click',function(){this.setAttribute('aria-checked',String(this.getAttribute('aria-checked')!=='true'));trRender()});
+  function flash(btn,t){var s=btn.querySelector('span'),o=s.textContent;s.textContent=t;setTimeout(function(){s.textContent=o},1600)}
+  $('#trCopy').addEventListener('click',function(){var b=this,t=trText();
+    try{navigator.clipboard.writeText(t).then(function(){flash(b,'Copiado')},function(){flash(b,'Não deu para copiar')})}catch(_){flash(b,'Não deu para copiar')}});
+  $('#trDl').addEventListener('click',function(){try{var u=URL.createObjectURL(new Blob([trText()],{type:'text/plain'})),l=document.createElement('a');l.href=u;l.download=st.vids[trCur].n+' - transcricao.txt';document.body.appendChild(l);l.click();l.remove();setTimeout(function(){URL.revokeObjectURL(u)},500)}catch(_){}});
 
   var SCR=['choose','react','vids','frame','adjust','gen'];
   function show(){
+    play(false);
     SCR.forEach(function(s,i){$('#s-'+s).hidden=i!==st.step});
     progress();
     if(st.step===1)react();

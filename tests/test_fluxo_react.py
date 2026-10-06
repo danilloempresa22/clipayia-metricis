@@ -175,3 +175,59 @@ def test_fechou_entre_gravar_e_anotar_nao_duplica(video_vertical, midia, dados):
     assert [l["projeto"] for l in e["linhas"]] == ["f0 - react", "f1 - react"]
     assert sorted(p.name for p in raiz.iterdir() if p.is_dir()) == ["f0 - react", "f1 - react"]
     assert (raiz / "f1 - react" / "draft_content.json").exists()
+
+
+def _espera_transc(t=30):
+    fim = time.time() + t
+    while time.time() < fim:
+        ls = fluxo_react.estado_geracao()["linhas"]
+        if all(l.get("transc") in ("pronta", "erro") for l in ls if l["estado"] == "pronto"): return ls
+        time.sleep(0.1)
+    raise TimeoutError
+
+
+def test_transcricao_falhando_o_projeto_sai_mesmo_assim(video_vertical, midia, dados, monkeypatch):
+    raiz = dados / "capcut"; raiz.mkdir()
+    def quebra(v, w): raise RuntimeError("o transcritor caiu")
+    monkeypatch.setattr(react, "transcreve", quebra)
+    fluxo_react.gera(str(midia["react"]), [{"video": str(video_vertical)}], raiz, carrega_whisper=lambda: object())
+    _espera(); l = _espera_transc()[0]
+    assert l["estado"] == "pronto" and (raiz / l["projeto"]).is_dir()          # o projeto nao depende da transcricao
+    assert l["transc"] == "erro" and "transcritor caiu" in l["transc_erro"]
+    # tentar de novo (agora funciona): fica pronta e a tela le as frases com tempo
+    monkeypatch.setattr(react, "transcreve", lambda v, w: [{"t": "Oi,", "a": 0.2, "b": 0.5}, {"t": "tudo", "a": 0.6, "b": 0.9},
+                                                          {"t": "bem?", "a": 1.0, "b": 1.3}, {"t": "Bora.", "a": 3.0, "b": 3.4}])
+    arq = react.arquivo_transcricao(video_vertical); arq.parent.mkdir(parents=True, exist_ok=True)
+    fluxo_react.transcreve_de_novo(1, lambda: object())
+    assert _espera_transc()[0]["transc"] == "pronta"
+    arq.write_text(json.dumps(react.transcreve(video_vertical, None)), encoding="utf-8")
+    t = fluxo_react.transcricao_de(str(video_vertical))
+    assert [f["t"] for f in t["frases"]] == ["Oi, tudo bem?", "Bora."] and t["frases"][1]["a"] == 3.0
+    assert fluxo_react.texto_txt(str(video_vertical), tempos=True) == "[0:00] Oi, tudo bem?\n[0:03] Bora.\n"
+    assert fluxo_react.texto_txt(str(video_vertical)) == "Oi, tudo bem? Bora.\n"
+
+
+def test_gera_cta_no_final_sem_procurar_pausa(video_vertical, midia, dados, monkeypatch):
+    raiz = dados / "capcut"; raiz.mkdir()
+    monkeypatch.setattr(react, "ponto_congelar", lambda *a, **k: (_ for _ in ()).throw(AssertionError("procurou pausa")))
+    fluxo_react.gera(str(midia["react"]), [{"video": str(video_vertical), "congelar": 4.0}], raiz, cta=str(midia["cta"]), cta_pos="final")
+    l = _espera()["linhas"][0]
+    assert l["estado"] == "pronto" and l["congelar"]["motivo"] == "no final"
+    d = json.loads((raiz / l["projeto"] / "draft_content.json").read_text(encoding="utf-8"))
+    D = react.duracao_us(video_vertical)
+    assert [s["target_timerange"]["start"] for s in d["tracks"][0]["segments"]] == [0, D]   # o video inteiro, depois o quadro
+    assert l["duracao"] == pytest.approx(13, abs=0.1)
+    # a posicao do CTA faz parte da geracao: meio e final sao projetos diferentes
+    assert fluxo_react._chave("r", [{"video": "v"}], "c", True, raiz, "meio") != fluxo_react._chave("r", [{"video": "v"}], "c", True, raiz, "final")
+
+
+def test_versao_leve_em_cache(video_vertical, dados):
+    k = fluxo_react.pede_leve(str(video_vertical), 0, None)
+    fim = time.time() + 60
+    while fluxo_react.estado_leve([k])["itens"][k]["estado"] not in ("pronta", "erro") and time.time() < fim:
+        time.sleep(0.1)
+    assert fluxo_react.estado_leve([k])["itens"][k]["estado"] == "pronta"
+    f = fluxo_react.arquivo_leve(k); i = audio.probe_video(str(f))
+    assert i["largura"] == 540 and not i["tem_audio"] and i["fps"] == 30
+    assert fluxo_react.pede_leve(str(video_vertical), 0, None) == k                 # a segunda vez: o mesmo arquivo
+    assert fluxo_react.arquivo_leve("../../segredo") is None

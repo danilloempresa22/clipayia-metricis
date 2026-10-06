@@ -158,6 +158,41 @@ def escolhe_arquivo(tipo="video", titulo=None):
         r.destroy()
 
 
+def salva_txt(nome, texto):
+    """janela "Salvar como" do Windows (ja em Downloads, com o nome sugerido): a janela do app nao baixa arquivo"""
+    import tkinter as tk
+    from tkinter import filedialog
+    r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
+    try:
+        c = filedialog.asksaveasfilename(title="Salvar a transcrição", parent=r, initialdir=str(Path.home() / "Downloads"),
+                                         initialfile=nome, defaultextension=".txt", filetypes=[("Texto", "*.txt")])
+    finally:
+        r.destroy()
+    if c:
+        Path(c).write_text(texto, encoding="utf-8")
+    return c or ""
+
+
+# ---------------- REACT: o react salvo ("Usar sempre este react"): so o caminho e os dados, nunca o video ----------------
+def react_salvo():
+    r = le_cfg().get("react_salvo")
+    if not r or not r.get("caminho"):
+        return {"salvo": None}
+    return {"salvo": dict(r, existe=Path(r["caminho"]).is_file())}
+
+
+def salva_react(caminho):
+    cfg = le_cfg()
+    if not caminho:
+        cfg.pop("react_salvo", None); grava_cfg(cfg); return {"salvo": None}
+    i = fluxo_react.confere(caminho, "react")
+    if i.get("erro"):
+        raise fluxo_react.Erro(i["erro"])
+    cfg["react_salvo"] = {k: i[k] for k in ("caminho", "nome", "tamanho", "duracao", "largura", "altura")}
+    grava_cfg(cfg)
+    return react_salvo()
+
+
 def abre_capcut():
     for base in (os.environ.get("LOCALAPPDATA", ""),):
         exe = Path(base) / "CapCut" / "Apps" / "CapCut.exe"
@@ -604,6 +639,13 @@ class H(BaseHTTPRequestHandler):
                 return self._json(fluxo_react.estado_pausas())
             if u.path == "/api/react/gerar-estado":
                 return self._json(fluxo_react.estado_geracao())
+            if u.path == "/api/react/salvo":
+                return self._json(react_salvo())
+            if u.path == "/api/react/leve-estado":
+                return self._json(fluxo_react.estado_leve())
+            if u.path == "/api/react/transcricao":       # o texto e as frases com tempo (so le o que ja foi feito)
+                t = fluxo_react.transcricao_de(q.get("video", [""])[0])
+                return self._json(t or {"pendente": True})
             if u.path == "/api/cortes/recentes":         # faixa do Inicio: so os projetos de Cortes, mais novos primeiro
                 try:
                     raiz, _ = destino_cortes()
@@ -666,6 +708,10 @@ class H(BaseHTTPRequestHandler):
             p = Path(an["video"])
         elif ses and qual in ("ipad", "pessoa"):
             p = Path(ses[qual]["previa"])
+        elif q.get("rxl", [""])[0]:                              # versao leve pro play do React (Enquadrar)
+            p = fluxo_react.arquivo_leve(q.get("rxl", [""])[0])
+            if not p:
+                self.send_response(404); self.end_headers(); return
         else:
             self.send_response(403); self.end_headers(); return
         tam = p.stat().st_size
@@ -886,6 +932,30 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/react/pausas":             # com CTA: onde cada video congela (em segundo plano)
                 vs = [str(v) for v in c.get("videos") or [] if Path(str(v)).is_file()]   # a mesma escrita da tela (e' a chave)
                 return self._json(fluxo_react.pede_pausas(vs, lambda: carrega_whisper("preciso")()))
+            if u.path == "/api/react/salvo":              # "Usar sempre este react" (caminho vazio: esquecer)
+                try:
+                    return self._json(salva_react(c.get("caminho")))
+                except fluxo_react.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+            if u.path == "/api/react/leve":               # versoes leves pro play do Enquadrar (em segundo plano)
+                ks = {}
+                for it in c.get("itens") or []:
+                    if Path(str(it.get("caminho", ""))).is_file():
+                        ks[it["caminho"]] = fluxo_react.pede_leve(it["caminho"], it.get("ini", 0), it.get("dur"),
+                                                                  bool(it.get("faixa")), bool(it.get("primeiro")))
+                return self._json({"chaves": ks, **fluxo_react.estado_leve()})
+            if u.path == "/api/react/transcrever":        # "Tentar de novo" so na transcricao
+                try:
+                    return self._json(fluxo_react.transcreve_de_novo(int(c.get("numero", 0)), lambda: carrega_whisper("preciso")()))
+                except fluxo_react.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+            if u.path == "/api/react/salvar-txt":         # "Baixar .txt": janela Salvar como
+                try:
+                    txt = fluxo_react.texto_txt(c.get("video", ""), bool(c.get("tempos")))
+                except fluxo_react.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+                nome = Path(c.get("video", "")).stem + " - transcricao.txt"
+                return self._json({"caminho": salva_txt(nome, txt)})
             if u.path == "/api/react/gerar":              # um projeto por video de cima
                 conta.exige_ativa()
                 if not fluxo_react.acesso():
@@ -895,7 +965,7 @@ class H(BaseHTTPRequestHandler):
                     so = c.get("so")
                     fluxo_react.gera(c.get("react", ""), c.get("itens") or [], raiz, c.get("cta") or None,
                                      bool(c.get("variar", True)), cache, lambda: carrega_whisper("preciso")(),
-                                     set(so) if so else None)
+                                     set(so) if so else None, "final" if c.get("cta_pos") == "final" else "meio")
                 except (fluxo_react.Erro, capcut.ErroProjeto) as e:
                     return self._json({"erro": str(e)}, 400)
                 return self._json(fluxo_react.estado_geracao())

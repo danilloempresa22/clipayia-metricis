@@ -4,6 +4,9 @@
   pausas       onde cada video de cima congela (a mesma busca do motor), um por vez, em segundo plano
   gera         um projeto do CapCut por video, ate 3 ao mesmo tempo; a geracao fica gravada em disco: fechar o app no
                meio e pedir de novo continua sem duplicar projeto
+  transcricao  cada video de cima e' transcrito depois que o projeto sai (uma fila, um por vez); falhou, o projeto
+               fica do mesmo jeito e o cartao oferece "Tentar de novo"
+  leve         versao leve (540x960, H.264, sem audio) de cada video pro play do Enquadrar, em segundo plano e em cache
 Os videos nunca sao copiados nem carregados inteiros: o ffmpeg le direto de onde estao."""
 import hashlib, json, shutil, subprocess, threading, time, traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -160,10 +163,11 @@ def _arq_geracao():
     return transcricao.pasta_dados() / "geracao_react.json"
 
 
-def _chave(react_p, itens, cta, variar, raiz):
+def _chave(react_p, itens, cta, variar, raiz, cta_pos="meio"):
     """o que define a geracao. O ponto de congelar fica de fora: e' o motor que acha (o mesmo, sempre); se o app fechou
     antes da busca terminar, na volta ele ja vem pronto e a geracao tem que ser reconhecida como a mesma"""
     corpo = [str(Path(react_p).resolve()), str(Path(cta).resolve()) if cta else None, bool(variar), str(raiz),
+             cta_pos if cta else None,
              [(str(Path(i["video"]).resolve()), json.dumps(i.get("enquadramento") or {}, sort_keys=True)) for i in itens]]
     return hashlib.sha1(json.dumps(corpo).encode()).hexdigest()
 
@@ -214,13 +218,15 @@ def _feitos_antes(chave, raiz):
     return feitos
 
 
-def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whisper=None, so=None):
+def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whisper=None, so=None, cta_pos="meio"):
     """um projeto por video de cima, em segundo plano, ate PARALELO ao mesmo tempo. itens = [{"video",
-    "enquadramento"?, "congelar"?}] (congelar: o ponto que a tela ja mostrou; sem ele, o motor acha). so: numeros a
-    refazer (os que falharam). A mesma geracao pedida de novo: devolve a que esta rodando, ou continua o que falta."""
+    "enquadramento"?, "congelar"?}] (congelar: o ponto que a tela ja mostrou; sem ele, o motor acha). cta_pos: "meio"
+    ou "final". so: numeros a refazer (os que falharam). A mesma geracao pedida de novo: devolve a que esta rodando,
+    ou continua o que falta. Cada projeto pronto entra na fila de transcricao."""
+    cta_pos = "final" if cta_pos == "final" else "meio"
     if not itens:
         raise Erro("Nenhum vídeo para gerar.")
-    chave = _chave(react_p, itens, cta, variar, raiz)
+    chave = _chave(react_p, itens, cta, variar, raiz, cta_pos)
     ant = GERACAO["job"]
     if ant and not ant["parado"]:
         if ant["chave"] == chave and so is None:
@@ -253,6 +259,9 @@ def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whispe
            "chave": chave}
     GERACAO["job"] = job; _salva(job)
     infos = {"react": ik, "cta": ic}
+    for l in linhas:                                  # reabriu: o projeto ja estava pronto, a transcricao talvez nao
+        if l["estado"] == "pronto" and l.get("transc") != "pronta":
+            pede_transcricao(job, l["numero"], carrega_whisper)
 
     def um(l):
         if l["estado"] == "pronto": return
@@ -270,16 +279,17 @@ def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whispe
             if l["inicio_react"] is None:
                 raise Erro(f"O react é mais curto que este vídeo ({ik['dur_us'] / 1e6:.0f} s contra "
                            f"{ir['dur_us'] / 1e6:.0f} s). Use um react mais longo.")
-            cong = it.get("congelar")
+            cong = it.get("congelar") if cta_pos == "meio" else None
             falas = None
-            if cta and cong is None and carrega_whisper:
-                with _TRAVA_WHISPER:
-                    if PAUSAS["whisper"] is None: PAUSAS["whisper"] = carrega_whisper()
-                    falas = react.transcreve(v, PAUSAS["whisper"])
+            if cta and cta_pos == "meio" and cong is None and carrega_whisper:
+                try:                                  # a mesma passada serve pra pausa e pra transcricao da pessoa
+                    falas = _transcreve(v, carrega_whisper)
+                except Exception:                     # noqa: BLE001 — sem transcricao, a pausa sai so pela fala
+                    traceback.print_exc()
                 if job["cancelar"].is_set():
                     l["estado"] = "cancelado"; _salva(job); return
             r = react.monta(v, react_p, it.get("enquadramento"), cta, react.us(l["inicio_react"]), cong, cache, falas,
-                            dict(infos, receita=ir))
+                            dict(infos, receita=ir), cta_pos)
             tmp = transcricao.pasta_dados() / "temp"; tmp.mkdir(parents=True, exist_ok=True)
             capa = tmp / f"capa_react_{l['numero']}.jpg"
             if not audio.capa(v, capa): capa = None
@@ -291,6 +301,8 @@ def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whispe
             traceback.print_exc()
             l.update(estado="erro", erro=SUMIU if not v.exists() else _curto(e))
         _salva(job)
+        if l["estado"] == "pronto":
+            pede_transcricao(job, l["numero"], carrega_whisper)
 
     def roda():
         try:
@@ -314,3 +326,176 @@ def estado_geracao():
 def cancela_geracao():
     j = GERACAO["job"]
     if j: j["cancelar"].set()
+
+
+# ---------------- transcricao de cada video (depois do projeto; falhar nao mexe no projeto) ----------------
+TRANSC = {"fila": [], "thread": None}
+_TRAVA_TRANSC = threading.Lock()
+FIM_FRASE = ".!?…"
+
+
+def _transcreve(video, carrega_whisper):
+    """a transcricao do video (o motor de sempre, uma por vez); em cache: a segunda vez volta na hora"""
+    with _TRAVA_WHISPER:
+        arq = react.arquivo_transcricao(video)
+        if not arq.exists():
+            if not carrega_whisper:
+                raise Erro("O transcritor não está disponível.")
+            if PAUSAS["whisper"] is None:
+                PAUSAS["whisper"] = carrega_whisper()
+        return react.transcreve(video, PAUSAS["whisper"])
+
+
+def pede_transcricao(job, numero, carrega_whisper):
+    l = next(x for x in job["linhas"] if x["numero"] == numero)
+    l.update(transc="fila", transc_erro=None)
+    with _TRAVA_TRANSC:
+        TRANSC["fila"].append((job, numero, carrega_whisper))
+        th = TRANSC["thread"]
+        if th is None or not th.is_alive():
+            TRANSC["thread"] = threading.Thread(target=_trabalha_transc, daemon=True); TRANSC["thread"].start()
+
+
+def _trabalha_transc():
+    while True:
+        with _TRAVA_TRANSC:
+            if not TRANSC["fila"]:
+                TRANSC["thread"] = None; return
+            job, numero, cw = TRANSC["fila"].pop(0)
+        l = next(x for x in job["linhas"] if x["numero"] == numero)
+        v = Path(l["video"]); l["transc"] = "transcrevendo"; t0 = time.perf_counter()
+        try:
+            if not v.is_file():
+                raise Erro("O vídeo não está mais nesse lugar.")
+            _transcreve(v, cw)
+            l.update(transc="pronta", transc_s=round(time.perf_counter() - t0, 1))
+        except Exception as e:                        # noqa: BLE001 — o projeto ja esta pronto; so a transcricao falhou
+            traceback.print_exc()
+            motivo = ("O vídeo não está mais nesse lugar." if not v.exists() else
+                      "Não consegui ler ou gravar os arquivos da transcrição." if isinstance(e, OSError) else _curto(e))
+            l.update(transc="erro", transc_erro=motivo)
+        _salva(job)
+
+
+def transcreve_de_novo(numero, carrega_whisper):
+    j = GERACAO["job"]
+    if not j or not any(l["numero"] == numero and l["estado"] == "pronto" for l in j["linhas"]):
+        raise Erro("Esse projeto não está pronto.")
+    pede_transcricao(j, numero, carrega_whisper)
+    return estado_geracao()
+
+
+def frases(palavras_):
+    """as palavras do transcritor viram frases com tempo: fecha no ponto final, numa pausa longa ou numa frase longa"""
+    out, cur = [], []
+    for i, w in enumerate(palavras_):
+        cur.append(w)
+        prox = palavras_[i + 1] if i + 1 < len(palavras_) else None
+        if prox is None or w["t"].rstrip("\"'”’)»").endswith(tuple(FIM_FRASE)) or prox["a"] - w["b"] >= 0.8 or len(cur) >= 28:
+            out.append({"a": round(cur[0]["a"], 2), "b": round(cur[-1]["b"], 2), "t": " ".join(x["t"] for x in cur)})
+            cur = []
+    return out
+
+
+def transcricao_de(video):
+    """o que a janela "Transcricao" mostra: so le o que ja foi transcrito (nao transcreve)"""
+    try:
+        arq = react.arquivo_transcricao(video)
+    except OSError:
+        return None
+    if not arq.exists():
+        return None
+    fr = frases(json.loads(arq.read_text(encoding="utf-8")))
+    return {"frases": fr, "texto": " ".join(f["t"] for f in fr), "arquivo": str(arq)}
+
+
+def texto_txt(video, tempos=False):
+    t = transcricao_de(video)
+    if not t:
+        raise Erro("A transcrição desse vídeo ainda não está pronta.")
+    if not tempos:
+        return t["texto"] + "\n"
+    m = lambda s: f"{int(s // 60)}:{int(s % 60):02d}"
+    return "".join(f"[{m(f['a'])}] {f['t']}\n" for f in t["frases"])
+
+
+# ---------------- versao leve pro play do Enquadrar ----------------
+LEVE = {"itens": {}, "fila": [], "thread": None}
+_TRAVA_LEVE = threading.Lock()
+
+
+def _chave_leve(caminho, ini, dur, faixa):
+    p = Path(caminho); st = p.stat()
+    return hashlib.sha1(f"{p.resolve()}|{st.st_size}|{st.st_mtime_ns}|{ini:.2f}|{dur:.2f}|{faixa}|leve-v2".encode()).hexdigest()
+
+
+def arquivo_leve(k):
+    if not (isinstance(k, str) and len(k) == 40 and all(c in "0123456789abcdef" for c in k)):
+        return None
+    f = transcricao.pasta_dados() / "cache_react_leve" / f"{k}.mp4"
+    return f if f.exists() else None
+
+
+def pede_leve(caminho, ini=0.0, dur=None, faixa=False, primeiro=False):
+    """poe na fila a versao leve de [ini, ini+dur] do video (dur None = ate o fim); devolve a chave. faixa: o react
+    (so ocupa a faixa de baixo: 360 de altura basta). primeiro: passa na frente da fila (o que esta na tela)"""
+    ini = max(0.0, float(ini)); dur = None if dur is None else max(0.5, float(dur))
+    k = _chave_leve(caminho, ini, dur or -1, bool(faixa))
+    with _TRAVA_LEVE:
+        it = LEVE["itens"].get(k)
+        if arquivo_leve(k):
+            LEVE["itens"][k] = {"estado": "pronta", "caminho": str(caminho)}
+        elif not it or it["estado"] == "erro":
+            LEVE["itens"][k] = {"estado": "fila", "caminho": str(caminho)}
+            LEVE["fila"].insert(0 if primeiro else len(LEVE["fila"]), (k, str(caminho), ini, dur, bool(faixa)))
+        elif it["estado"] == "fila" and primeiro:
+            i = next((n for n, x in enumerate(LEVE["fila"]) if x[0] == k), None)
+            if i: LEVE["fila"].insert(0, LEVE["fila"].pop(i))
+            if LEVE["thread"] is None or not LEVE["thread"].is_alive():
+                LEVE["thread"] = threading.Thread(target=_trabalha_leve, daemon=True); LEVE["thread"].start()
+    if LEVE["thread"] is None or not LEVE["thread"].is_alive():
+        with _TRAVA_LEVE:
+            if LEVE["fila"]:
+                LEVE["thread"] = threading.Thread(target=_trabalha_leve, daemon=True); LEVE["thread"].start()
+    return k
+
+
+def _faz_leve(caminho, ini, dur, destino, faixa=False):
+    """H.264 sem audio, 30 fps, um quadro-chave por segundo (pular no tempo e' na hora). Vertical: 540 de largura;
+    horizontal: 540 de altura; o react (faixa): 360 de altura. Decodifica na placa de video quando da, senao no
+    processador. Medido: 4K HEVC de 88 s em ~29 s com 350 MB; receita 1080x1920 de 83 s em ~11 s com 150 MB
+    (3 threads pra ler: sem limite o 4K passa de 880 MB; o H.264 em 4 fatias, 2x mais rapido que em uma)."""
+    i = audio.probe_video(caminho); w, h = i["largura"], i["altura"]
+    esc = "scale=-2:360" if faixa else "scale=540:-2" if w <= h else "scale=-2:540"
+    corte = ["-ss", f"{ini:.3f}"] + (["-t", f"{dur:.3f}"] if dur else [])
+    tmp = destino.with_suffix(".tmp.mp4")
+    for placa in (["-hwaccel", "auto"], []):
+        r = subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", *placa, "-threads", "3", *corte, "-i", str(caminho),
+                            "-an", "-vf", f"{esc},fps=30,format=yuv420p", "-c:v", "libopenh264", "-threads", "4", "-slices", "4",
+                            "-b:v", "800k" if faixa else "1000k", "-g", "30", "-movflags", "+faststart", str(tmp)],
+                           capture_output=True, **audio._sem_janela())
+        if r.returncode == 0 and tmp.exists() and tmp.stat().st_size:
+            tmp.replace(destino); return
+    tmp.unlink(missing_ok=True)
+    raise Erro("Não consegui preparar a prévia desse vídeo.")
+
+
+def _trabalha_leve():
+    while True:
+        with _TRAVA_LEVE:
+            if not LEVE["fila"]:
+                LEVE["thread"] = None; return
+            k, c, ini, dur, faixa = LEVE["fila"].pop(0); LEVE["itens"][k]["estado"] = "fazendo"
+        t0 = time.perf_counter()
+        try:
+            d = transcricao.pasta_dados() / "cache_react_leve"; d.mkdir(parents=True, exist_ok=True)
+            _faz_leve(c, ini, dur, d / f"{k}.mp4", faixa)
+            LEVE["itens"][k].update(estado="pronta", segundos=round(time.perf_counter() - t0, 1))
+        except Exception as e:                        # noqa: BLE001 — sem a versao leve a previa fica nos quadros parados
+            traceback.print_exc()
+            LEVE["itens"][k].update(estado="erro", erro=_curto(e))
+
+
+def estado_leve(chaves=None):
+    its = LEVE["itens"]
+    return {"itens": {k: dict(its[k]) for k in (chaves or its) if k in its}}
