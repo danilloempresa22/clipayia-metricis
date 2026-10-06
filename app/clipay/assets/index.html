@@ -3344,13 +3344,20 @@ const IN_TEXTOS = {
     titulo: "Vlog de rotina com relógio",
     d: "Para o vlog de rotina: cortes, relógio com o horário de cada cena e headline logo no começo.",
     li: ["Relógio que pula entre os cortes", "Aceita dezenas de takes", "Headline no começo"]},
+  react: {ic: "video", go: "Continuar", audio: true, varios: true,
+    t: "Solte o vídeo de cima", h: "É o vídeo que você reage. Pode soltar vários.",
+    titulo: "Seu react em massa, pronto no CapCut",
+    d: "Um vídeo em cima, o seu react embaixo e uma headline no meio. Faça um vídeo ou vários de uma vez com o mesmo react.",
+    li: ["Mesmo react para todos os vídeos", "Você confere o enquadramento antes de gerar", "CTA opcional, no meio ou no final"]},
 };
+// quem aparece no Inicio, e em que ordem (a Legenda complexa fica so na Edicao): pra tirar ou por um modelo, e' esta linha
+const INICIO_MODELOS = ["cortes-basico", "cortes", "ipad", "react", "rotina"];
 const TUTORIAIS = [];                                  // os videos da secao Tutorial (ainda nenhum: a secao fica escondida)
-const IN = {modelo: "", video: null, img: {}};
-function inModelos(){
-  const ms = [{id: "cortes-basico", nome: "Cortes de podcast", novo: true, travado: !CT.acesso}];
-  Object.entries(MODELOS_WZ).forEach(([id, m]) => { if(IN_TEXTOS[id]) ms.push({id, nome: m.nome, travado: false}); });
-  return ms;
+const IN = {modelo: "", video: null, videos: [], img: {}};
+function inModelos(){                                  // nome, selo Novo e cadeado vem da configuracao de cada modelo
+  return INICIO_MODELOS.filter(id => id === "cortes-basico" || (MODELOS_WZ[id] && IN_TEXTOS[id])).map(id => id === "cortes-basico"
+    ? {id, nome: "Cortes de podcast", novo: true, travado: !CT.acesso}
+    : {id, nome: MODELOS_WZ[id].nome, novo: !!MODELOS_WZ[id].novo, travado: !!MODELOS_WZ[id].travado});
 }
 function inModelo(){ return inModelos().find(m => m.id === IN.modelo) || inModelos()[0]; }
 function carregaInicio(){
@@ -3387,7 +3394,8 @@ function inEscolhe(id){
   IN.modelo = id; try{ localStorage.setItem("clipay-inicio-modelo", id); }catch(e){}
   erro("in-erro-t"); $("in-erro").classList.add("oculto");
   inDesenha(true);
-  if(IN.video) inConfere(IN.video.caminho, IN.video.copia);   // outro modelo: confere de novo (ex.: sem som nao serve pra Legenda)
+  if(IN.videos.length > 1 && !IN_TEXTOS[id].varios) IN.videos = IN.videos.slice(0, 1);   // so o React aceita varios
+  if(IN.video) inConfereVarios(IN.videos.map(v => ({caminho: v.caminho, copia: v.copia})));   // outro modelo: confere de novo
 }
 $("in-chips").addEventListener("click", e => { const b = e.target.closest(".in-chip"); if(!b) return; inEscolhe(b.dataset.modelo);
   document.querySelector('.in-chip[data-modelo="' + IN.modelo + '"]').focus(); });
@@ -3404,44 +3412,63 @@ $("in-tut-todos").onclick = () => pagina("tutorial");
 // ---------- a caixa: escolher ou arrastar o video (o original fica onde esta) ----------
 function inErro(msg){ $("in-erro-t").textContent = msg || ""; $("in-erro").classList.toggle("oculto", !msg); }
 function inDesenhaVideo(){
-  const v = IN.video;
+  const v = IN.video, vs = IN.videos, n = vs.length, copia = vs.some(x => x.copia);
   $("in-vazio").classList.toggle("oculto", !!v); $("in-arq").classList.toggle("oculto", !v);
-  if(v){
+  if(v && n > 1){                                     // React: varios videos de cima
+    $("in-arq-nome").textContent = n + " vídeos"; $("in-arq-nome").title = vs.map(x => x.caminho).join("\n");
+    $("in-arq-meta").textContent = vs.slice(0, 2).map(x => x.nome).join(", ") + (n > 2 ? " e mais " + (n - 2) : "") +
+      " · " + tamanho(vs.reduce((a, x) => a + x.tamanho, 0)) + (copia ? " · cópia local" : " · ficam no seu computador");
+  }else if(v){
     $("in-arq-nome").textContent = v.nome; $("in-arq-nome").title = v.caminho;
     $("in-arq-meta").textContent = tamanho(v.tamanho) + (v.duracao ? " · " + ctHms(v.duracao) : "") + (v.copia ? " · cópia local" : " · fica no seu computador");
   }
-  $("in-baixo").lastChild.textContent = v && v.copia ? "Não achei o original no computador: fiz uma cópia local para editar"
-    : "Seu vídeo não é copiado nem enviado";
+  $("in-baixo").lastChild.textContent = copia ? "Não achei o original no computador: fiz uma cópia local para editar"
+    : n > 1 ? "Seus vídeos não são copiados nem enviados" : "Seu vídeo não é copiado nem enviado";
 }
-async function inConfere(caminho, copia){
+function inConfere(caminho, copia){ return inConfereVarios([{caminho, copia}]); }
+async function inConfereVarios(lista, ruins){
   inErro(); const vez = IN.vez = (IN.vez || 0) + 1;
-  const m = inModelo(), r = await api("inicio/video", {caminho, precisa_audio: IN_TEXTOS[m.id].audio}).catch(e => ({erro: e.message}));
+  const m = inModelo(), varios = lista.length > 1;
+  const rs = await Promise.all(lista.map(x => api("inicio/video", {caminho: x.caminho, precisa_audio: IN_TEXTOS[m.id].audio})
+    .catch(e => ({erro: e.message})).then(r => Object.assign(r, {copia: !!x.copia, origem: x.caminho}))));
   if(vez !== IN.vez) return;                          // outra escolha chegou depois: vale a ultima
-  if(r.erro){ IN.video = null; inDesenhaVideo(); return inErro(r.erro); }
-  IN.video = Object.assign(r, {copia: !!copia}); inDesenhaVideo(); $("in-seguir").focus();
+  const ok = rs.filter(r => !r.erro), maus = (ruins || []).concat(rs.filter(r => r.erro).map(r => varios ? nomeArq(r.origem) + ": " + r.erro : r.erro));
+  IN.videos = ok; IN.video = ok[0] || null; inDesenhaVideo();
+  if(maus.length) inErro(maus.join(" ") + (varios && ok.length ? " Os outros estão prontos." : ""));
+  if(ok.length) $("in-seguir").focus();
 }
 $("in-escolher").onclick = async () => {
   inErro();
-  try{ const {caminho} = await api("escolher-arquivo", {tipo: "video"}); if(caminho) inConfere(Array.isArray(caminho) ? caminho[0] : caminho); }
+  const varios = !!IN_TEXTOS[inModelo().id].varios;
+  try{ const {caminho} = await api("escolher-arquivo", varios ? {tipo: "videos", titulo: "Escolha os vídeos de cima (pode selecionar vários)"} : {tipo: "video"});
+    const cs = (Array.isArray(caminho) ? caminho : [caminho]).filter(Boolean);
+    if(cs.length) inConfereVarios((varios ? cs : cs.slice(0, 1)).map(c => ({caminho: c}))); }
   catch(e){ inErro(e.message); }
 };
-$("in-tirar").onclick = () => { IN.video = null; inErro(); inDesenhaVideo(); $("in-escolher").focus(); };
+$("in-tirar").onclick = () => { IN.video = null; IN.videos = []; inErro(); inDesenhaVideo(); $("in-escolher").focus(); };
 const IN_EXT = /\.(mp4|mov|mkv|m4v|avi|webm)$/i;
 ["dragenter", "dragover"].forEach(t => $("in-caixa").addEventListener(t, e => { if(e.dataTransfer.types.includes("Files")){ e.preventDefault(); $("in-caixa").classList.add("sobre"); } }));
 $("in-caixa").addEventListener("dragleave", e => { if(!$("in-caixa").contains(e.relatedTarget)) $("in-caixa").classList.remove("sobre"); });
 $("in-caixa").addEventListener("drop", async e => {
   e.preventDefault(); $("in-caixa").classList.remove("sobre"); inErro();
-  const f = e.dataTransfer.files[0]; if(!f) return;
-  if(!IN_EXT.test(f.name)) return inErro("Esse arquivo não é um vídeo. Escolha um MP4, MOV, MKV, M4V, AVI ou WEBM.");
-  // o navegador nao diz onde o arquivo esta: o app procura o original pelo nome e tamanho (sem copiar)
-  $("in-t").textContent = "Procurando " + f.name + " no seu computador…";
-  const r = await api("inicio/localizar", {nome: f.name, tamanho: f.size}).catch(() => ({}));
+  const varios = !!IN_TEXTOS[inModelo().id].varios, fs = [...e.dataTransfer.files].slice(0, varios ? 99 : 1); if(!fs.length) return;
+  const NAO = "Esse arquivo não é um vídeo. Escolha um MP4, MOV, MKV, M4V, AVI ou WEBM.";
+  if(!varios && !IN_EXT.test(fs[0].name)) return inErro(NAO);
+  const lista = [], ruins = [];
+  for(const f of fs){
+    if(!IN_EXT.test(f.name)){ ruins.push(f.name + ": " + NAO); continue; }
+    // o navegador nao diz onde o arquivo esta: o app procura o original pelo nome e tamanho (sem copiar)
+    $("in-t").textContent = "Procurando " + f.name + " no seu computador…";
+    const r = await api("inicio/localizar", {nome: f.name, tamanho: f.size}).catch(() => ({}));
+    if(r.caminho){ lista.push({caminho: r.caminho}); continue; }
+    $("in-t").textContent = "Copiando " + f.name + "…";          // nao achou: copia em blocos (o mesmo jeito da Edicao)
+    try{ const c = await api("enviar?nome=" + encodeURIComponent(f.name), f, {bruto: true, headers: {"Content-Type": "application/octet-stream"}});
+      lista.push({caminho: c.caminho, copia: true}); }
+    catch(x){ ruins.push(f.name + ": " + x.message); }
+  }
   $("in-t").textContent = IN_TEXTOS[inModelo().id].t;
-  if(r.caminho) return inConfere(r.caminho);
-  $("in-t").textContent = "Copiando " + f.name + "…";            // nao achou: copia em blocos (o mesmo jeito da Edicao)
-  try{ const c = await api("enviar?nome=" + encodeURIComponent(f.name), f, {bruto: true, headers: {"Content-Type": "application/octet-stream"}});
-    $("in-t").textContent = IN_TEXTOS[inModelo().id].t; inConfere(c.caminho, true); }
-  catch(x){ $("in-t").textContent = IN_TEXTOS[inModelo().id].t; inErro(x.message); }
+  if(lista.length) return inConfereVarios(lista, ruins);
+  IN.video = null; IN.videos = []; inDesenhaVideo(); inErro(ruins.join(" "));
 });
 
 // ---------- Continuar: abre o assistente do modelo com o video ja escolhido ----------
@@ -3449,6 +3476,7 @@ $("in-seguir").onclick = () => {
   const v = IN.video, m = inModelo(); if(!v) return;
   try{ localStorage.setItem("clipay-inicio-modelo", m.id); }catch(e){}
   if(m.id === "cortes-basico") return inAbreCortes(v.caminho);
+  if(m.id === "react") return inAbreReact(IN.videos.map(x => x.caminho));
   if(W.rodando) return inErro("Espere a edição que está rodando terminar, ou cancele, antes de começar outra.");
   if(ocupado) novaEdicao();                           // uma edicao parada no meio (sem nada rodando): comeca outra
   escolheModelo(m.id); W.arquivos = {um: "", ipad: "", pessoa: ""}; RT.takes = []; $("escolher-aviso").classList.add("oculto");
@@ -3457,6 +3485,15 @@ $("in-seguir").onclick = () => {
   W.arquivos.um = v.caminho; W.info[v.caminho] = {nome: v.nome, tamanho: v.tamanho, duracao: v.duracao};
   pagina("edicao"); comecaModelo();                   // Cortes + Headline e Legenda: direto pra Transcricao
 };
+async function inAbreReact(cs){                       // abre no passo React: os videos de cima ja ficam no passo Videos
+  if(ocupado && !W.rodando) novaEdicao();
+  escolheModelo("react"); $("escolher-aviso").classList.add("oculto"); pagina("edicao");
+  try{ await rxConfig(); }catch(e){ return; }
+  if(!RX.cfg.acesso){ $("escolher-aviso").textContent = "O React não está no seu plano."; $("escolher-aviso").classList.remove("oculto"); return; }
+  rxLimpaVideos(); RX.qtd = cs.length > 1 ? "varios" : "um";      // a pessoa ainda pode trocar
+  await rxCarregaSalvo(); rxDesenhaReact(); mostra("rx-react");
+  rxPoeVideos(cs);
+}
 function inAbreCortes(caminho){
   if(!CT.acesso){ pagina("cortes"); return; }         // sem acesso: a tela curta do cadeado
   CT.aberta = true; ctLimpa(); CT.gerando = null; CT.ger = null; CT.prev = null; $("ct-cuts").innerHTML = "";
