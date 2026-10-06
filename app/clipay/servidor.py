@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, __version__
+from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -141,14 +141,15 @@ ESTATICOS = {("/assets/img", ".png"): "image/png",          # (pasta, extensao) 
              ("/assets/previews", ".jpg"): "image/jpeg"}
 
 
-def escolhe_arquivo(tipo="video"):
+def escolhe_arquivo(tipo="video", titulo=None):
     """janela nativa do Windows pra escolher o arquivo (caminho direto: nao copia arquivo de GBs)"""
     import tkinter as tk
     from tkinter import filedialog
     r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
-    titulo, rot, ext = (("Escolha a música de fundo", "Áudio", EXT_AUDIO) if tipo == "musica"
+    padrao, rot, ext = (("Escolha a música de fundo", "Áudio", EXT_AUDIO) if tipo == "musica"
                         else ("Escolha os takes (pode selecionar vários)", "Vídeos", EXT_VIDEO) if tipo == "videos"
                         else ("Escolha o vídeo bruto", "Vídeos", EXT_VIDEO))
+    titulo = str(titulo or "")[:80] or padrao                # o React diz qual video e' (react, de cima, CTA)
     try:
         if tipo == "videos":                     # rotina: varios takes de uma vez
             return list(filedialog.askopenfilenames(title=titulo, parent=r, filetypes=[(rot, " ".join("*" + e for e in ext)), ("Todos", "*.*")]))
@@ -578,6 +579,8 @@ class H(BaseHTTPRequestHandler):
             self.send_response(404); self.end_headers(); return
         if u.path == "/api/video":                       # previa da revisao: <video> nao manda cabecalho, token vai na URL
             return self._video(q)
+        if u.path == "/api/react/q":                     # quadro pequeno pra previa do React (<img>: token na URL)
+            return self._quadro_react(q)
         if not self._autorizado(): return
         try:
             if u.path == "/api/sessao":
@@ -588,13 +591,19 @@ class H(BaseHTTPRequestHandler):
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
                                    "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel(),
-                                   "cortes": {"acesso": acesso_cortes()}})
+                                   "cortes": {"acesso": acesso_cortes()}, "react": {"acesso": fluxo_react.acesso()}})
             if u.path == "/api/rotina/estado":
                 return self._json(estado_rotina())
             if u.path == "/api/cortes/estado":
                 return self._json(fluxo_cortes.estado())
             if u.path == "/api/cortes/gerar-estado":
                 return self._json(fluxo_cortes.estado_geracao())
+            if u.path == "/api/react/config":            # as contas do motor que a previa usa
+                return self._json(fluxo_react.constantes())
+            if u.path == "/api/react/pausas-estado":
+                return self._json(fluxo_react.estado_pausas())
+            if u.path == "/api/react/gerar-estado":
+                return self._json(fluxo_react.estado_geracao())
             if u.path == "/api/cortes/recentes":         # faixa do Inicio: so os projetos de Cortes, mais novos primeiro
                 try:
                     raiz, _ = destino_cortes()
@@ -619,6 +628,21 @@ class H(BaseHTTPRequestHandler):
         except conta.ErroConta as e:
             return self._json({"erro": str(e)}, 400)
         self.send_response(404); self.end_headers()
+
+    def _quadro_react(self, q):
+        host = (self.headers.get("Host") or "").split(":")[0]
+        if host not in ("127.0.0.1", "localhost") or not secrets.compare_digest(q.get("t", [""])[0], TOKEN):
+            self.send_response(403); self.end_headers(); return
+        try:
+            arq = fluxo_react.quadro(q.get("c", [""])[0], float(q.get("s", ["0"])[0]), int(q.get("w", ["360"])[0]))
+        except (ValueError, OSError):
+            arq = None
+        if not arq:
+            self.send_response(404); self.end_headers(); return
+        b = arq.read_bytes()
+        self.send_response(200); self.send_header("Content-Type", "image/jpeg")
+        self.send_header("Cache-Control", "max-age=3600")
+        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
 
     def _video(self, q):
         """so o video de uma analise (ou a previa leve de uma sessao do iPad), so com o token; com Range
@@ -724,7 +748,7 @@ class H(BaseHTTPRequestHandler):
                     dur = None
                 return self._json({"nome": p.name, "tamanho": p.stat().st_size, "duracao": dur})
             if u.path == "/api/escolher-arquivo":
-                return self._json({"caminho": escolhe_arquivo(c.get("tipo", "video")) or ""})
+                return self._json({"caminho": escolhe_arquivo(c.get("tipo", "video"), c.get("titulo")) or ""})
             if u.path == "/api/ipad/preparar":
                 vs = {}
                 for q, rot in (("ipad", "do iPad"), ("pessoa", "da pessoa")):
@@ -857,6 +881,27 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/cortes/previas-cancelar":
                 fluxo_cortes.cancela_previas()
                 return self._json(fluxo_cortes.estado_previas())
+            if u.path == "/api/react/arquivo":            # react, video de cima ou CTA: confere e devolve o que a tela mostra
+                return self._json(fluxo_react.confere(c.get("caminho"), c.get("papel", "cima")))
+            if u.path == "/api/react/pausas":             # com CTA: onde cada video congela (em segundo plano)
+                vs = [str(v) for v in c.get("videos") or [] if Path(str(v)).is_file()]   # a mesma escrita da tela (e' a chave)
+                return self._json(fluxo_react.pede_pausas(vs, lambda: carrega_whisper("preciso")()))
+            if u.path == "/api/react/gerar":              # um projeto por video de cima
+                conta.exige_ativa()
+                if not fluxo_react.acesso():
+                    return self._json({"erro": "Seu plano não inclui o React."}, 403)
+                try:
+                    raiz, cache = destino_cortes()
+                    so = c.get("so")
+                    fluxo_react.gera(c.get("react", ""), c.get("itens") or [], raiz, c.get("cta") or None,
+                                     bool(c.get("variar", True)), cache, lambda: carrega_whisper("preciso")(),
+                                     set(so) if so else None)
+                except (fluxo_react.Erro, capcut.ErroProjeto) as e:
+                    return self._json({"erro": str(e)}, 400)
+                return self._json(fluxo_react.estado_geracao())
+            if u.path == "/api/react/gerar-cancelar":
+                fluxo_react.cancela_geracao()
+                return self._json(fluxo_react.estado_geracao())
             if u.path == "/api/cortes/gerar-cancelar":
                 fluxo_cortes.cancela_geracao()
                 return self._json(fluxo_cortes.estado_geracao())

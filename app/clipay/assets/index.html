@@ -435,6 +435,97 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
   .wz-pct{font-size:44px}
 }
 
+/* ---------- REACT: modelo da Edicao (referencia docs/design/react-novo-fluxo.html); a previa usa as contas do motor ---------- */
+.wz-novo{font-style:normal;font-size:10.5px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+.wz-modo-nome .cad{width:14px!important;height:14px!important;color:var(--text-3);margin-left:6px;vertical-align:-2px}
+.pv-react{background:linear-gradient(180deg,#141416,#0b0b0c);display:grid;place-items:center}
+.pv-react b{font-size:13cqw;font-weight:700;letter-spacing:-.03em;color:var(--text)}
+.pv-react small{position:absolute;left:0;right:0;bottom:9cqw;text-align:center;font-size:4.6cqw;color:var(--text-3)}
+.rx-q{margin:6px 0 12px;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.rx-qtd{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rx-qopt{display:flex;gap:14px;align-items:flex-start;text-align:left;padding:18px 20px!important;border-radius:20px!important;background:var(--surface)!important;
+  border:1px solid var(--hair)!important;color:var(--text)!important;font-weight:400!important;transition:background .16s,border-color .16s,box-shadow .16s}
+.rx-qopt:hover{background:var(--surface-2)!important;border-color:var(--hair-2)!important}
+.rx-qopt[aria-checked="true"]{background:var(--surface-2)!important;border-color:var(--accent-line)!important;box-shadow:0 0 0 1px var(--accent-line),0 12px 30px -16px rgba(179,247,6,.35)}
+.rx-qopt[aria-checked="true"] .wz-radio{border-color:var(--accent);background:var(--accent)}
+.rx-qopt[aria-checked="true"] .wz-radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+.rx-qopt b{display:block;font-size:15.5px;letter-spacing:-.012em}
+.rx-qopt span span{display:block;margin-top:3px;font-size:13px;color:var(--text-2);line-height:1.4}
+.rx-vtopo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.rx-vtopo p{margin:0;color:var(--text-2);font-size:14px}
+.rx-vtopo strong{color:var(--text)}
+.rx-lista{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.rx-vlin{display:flex;align-items:center;gap:14px;padding:10px 14px 10px 10px;border-radius:18px;background:var(--surface);border:1px solid var(--hair)}
+.rx-vlin.ruim{border-color:#5a2622}
+.rx-th{position:relative;width:40px;aspect-ratio:9/16;border-radius:9px;background:#151517;overflow:hidden;flex:none}
+.rx-th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rx-vlin-m{flex:1;min-width:0}
+.rx-vlin-m b{display:block;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-vlin-m small{display:block;color:var(--text-3);font-size:12.5px;margin-top:1px;font-variant-numeric:tabular-nums}
+.rx-vlin-m small.ruim{color:var(--erro)}
+.rx-nota{margin:12px 0 0;font-size:12.5px;color:var(--text-3)}
+.rx-abas{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px}
+.rx-aba{display:flex;align-items:center;gap:10px;flex:none;max-width:230px;padding:8px 14px 8px 8px!important;border-radius:16px!important;text-align:left;
+  background:var(--surface)!important;border:1px solid var(--hair)!important;color:var(--text)!important;font-weight:400!important;transition:background .16s}
+.rx-aba:hover{background:var(--surface-2)!important}
+.rx-aba[aria-selected="true"]{border-color:var(--accent-line)!important;background:var(--surface-2)!important;box-shadow:0 0 0 1px var(--accent-line)}
+.rx-aba .rx-th{width:34px;border-radius:7px}
+.rx-aba b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:150px}
+.rx-aba small{display:block;font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.rx-visto{width:16px;height:16px;border-radius:50%;background:var(--status);color:#06210d;display:grid;place-items:center;flex:none}
+.rx-visto .i{width:10px!important;height:10px!important;stroke-width:3!important}
+.rx-quadro{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:start}
+.rx-palco{display:flex;flex-direction:column;gap:14px;align-items:center}
+.rx-tel{position:relative;width:min(250px,32vw);min-width:200px;aspect-ratio:9/16;border-radius:26px;overflow:hidden;background:#000;
+  box-shadow:0 0 0 1px var(--hair-2),0 28px 60px -24px rgba(0,0,0,.9)}
+.rx-tempo{display:flex;align-items:center;gap:10px;width:100%;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.rx-tempo input{flex:1}
+.rx-ctl{padding:22px;display:flex;flex-direction:column;gap:6px}
+.rx-card-h{font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px}
+.rx-linha{padding:12px 0;border-top:1px solid var(--hair)}
+.rx-linha:first-of-type{border-top:0;padding-top:0}
+.rx-linha label{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--text-2);margin-bottom:10px;font-weight:500}
+.rx-linha output{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+.rx-linha small{display:block;margin-top:8px;font-size:12px;color:var(--text-3)}
+.rx-ctl .wz-claro{align-self:flex-start;margin-top:8px}
+.rx-rng{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:var(--hair-2);outline:none;padding:0!important;border:0}
+.rx-rng::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--accent-line);cursor:pointer}
+.rx-rng::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);cursor:pointer}
+.rx-rng:disabled{opacity:.35}
+.rx-rng:focus-visible{outline:var(--focus);outline-offset:6px}
+.rx-aj{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+.rx-fim{padding:22px}
+.rx-cta{padding-top:6px;display:flex;flex-direction:column;gap:14px}
+.rx-cta .wz-solta{padding:26px 18px}
+.rx-tl{display:grid;gap:6px;padding-top:10px;border-top:1px solid var(--hair)}
+.rx-tl:first-child{border-top:0;padding-top:0}
+.rx-tl-n{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;letter-spacing:-.01em;min-width:0}
+.rx-tl-n span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rx-tl-n small{font-weight:500;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rx-tl-n small.aviso{color:#f7d68c}
+.rx-tbar{position:relative;height:10px;border-radius:99px;background:var(--hair-2)}
+.rx-tbar u{position:absolute;top:0;bottom:0;border-radius:99px;background:rgba(179,247,6,.22);text-decoration:none}
+.rx-tbar i{position:absolute;top:-3px;bottom:-3px;width:14px;border-radius:5px;background:var(--accent);transform:translateX(-50%);box-shadow:0 0 0 3px rgba(179,247,6,.18)}
+.rx-tbar i.aviso{background:#f5b84b;box-shadow:0 0 0 3px rgba(245,184,75,.2)}
+.rx-tbar.procura{background:linear-gradient(110deg,var(--hair-2) 30%,#3a3a40 50%,var(--hair-2) 70%);background-size:220% 100%;animation:ct-brilho 1.2s linear infinite}
+.rx-tl-nota{font-size:12.5px;color:var(--text-3);margin:0}
+.rx-g-botoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rx-g-botoes:not(:has(> :not(.oculto))){display:none}
+/* a composicao (previa e cartao): os quadros reais nas posicoes do motor, em % da tela 1080x1920 */
+.rx-comp{position:absolute;inset:0;overflow:hidden;background:#000;container-type:inline-size}
+.rx-comp img{position:absolute;max-width:none;display:block;user-select:none;pointer-events:none}
+.rx-hl{position:absolute;left:11.4%;top:59.6%;width:45.7%;display:flex;align-items:stretch;z-index:3}
+.rx-hl i{flex:none;width:2.2cqw;background:#cc0000}
+.rx-hl span{flex:1;background:#fff;color:#000;font-weight:800;font-style:italic;font-size:3.5cqw;line-height:1.22;padding:1.2cqw 2cqw;text-align:left}
+.rx-zona{position:absolute;left:0;right:0;top:61.72%;bottom:0;background:repeating-linear-gradient(135deg,rgba(255,69,58,.22) 0 2cqw,rgba(255,69,58,.1) 2cqw 4cqw);
+  border-top:.5cqw dashed rgba(255,69,58,.9);z-index:2;pointer-events:none}
+.rx-zona::before{content:"O react cobre daqui pra baixo";position:absolute;right:3cqw;top:5.6cqw;font-size:3.2cqw;font-weight:700;color:#ffb3ad;text-shadow:0 0 1cqw #000}
+.rx-carrega{position:absolute;inset:0;display:grid;place-items:center;color:var(--text-3);font-size:13px}
+@media (max-width:1100px){.rx-quadro,.rx-aj{grid-template-columns:1fr}.rx-palco{width:100%}}
+@media (max-width:720px){.rx-qtd{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.rx-tbar.procura{animation:none}}
+.rx-cv{position:absolute;inset:0}
+
 /* ---------- CORTES: mesmo assistente da Edicao (referencia docs/design/cortes-novo-fluxo.html) ---------- */
 .conteudo:has(> #pag-cortes:not(.oculto)){padding-bottom:0}
 .side .item .cad{width:14px;height:14px;margin-left:auto;color:var(--text-3)}
@@ -967,6 +1058,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
                   <p class="pv-hl">COMO FATURAR<br>R$ 10 MIL POR MÊS</p></div><div class="pv-pessoa pv-zoom"><i class="pv-cab"></i><i class="pv-omb"></i></div></div>
                 <div class="pv-cena pv-rotina" data-cena="rotina"><div class="pv-pessoa"><i class="pv-cab"></i><i class="pv-omb"></i></div>
                   <p class="pv-clk">09:40</p><p class="pv-hl" style="top:22cqw">MINHA ROTINA<br>COMO EMPRESÁRIO</p></div>
+                <div class="pv-cena pv-react" data-cena="react"><b>React</b></div>
                 <!-- videos reais (assets/previews/<modelo>.mp4): entram por cima quando existirem -->
                 <video class="pv-video" data-video="cortes" muted loop playsinline preload="none"></video>
                 <video class="pv-video" data-video="legenda" muted loop playsinline preload="none"></video>
@@ -1285,6 +1377,96 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
           </article>
         </section>
 
+        <!-- ===== REACT (modelo da Edicao): react embaixo, um ou varios videos em cima; tudo vem dos arquivos reais ===== -->
+        <section id="tela-rx-react" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Escolha o vídeo de react</h1>
+            <p class="wz-lede">É o vídeo que fica embaixo. O áudio dele não entra: o som vem do vídeo de cima.</p></header>
+          <div id="rx-react-erro" class="msg erro oculto" role="alert"></div>
+          <div id="rx-react-corpo"></div>
+          <div id="rx-qtd-box" class="oculto">
+            <p class="rx-q" id="rx-q">Quantos vídeos você vai fazer agora?</p>
+            <div class="rx-qtd" id="rx-qtd" role="radiogroup" aria-labelledby="rx-q">
+              <button class="rx-qopt" type="button" role="radio" aria-checked="false" tabindex="0" data-q="um"><span class="wz-radio" aria-hidden="true"></span>
+                <span><b>Só um</b><span>Um vídeo em cima, um projeto no CapCut.</span></span></button>
+              <button class="rx-qopt" type="button" role="radio" aria-checked="false" tabindex="-1" data-q="varios"><span class="wz-radio" aria-hidden="true"></span>
+                <span><b>Vários de uma vez</b><span>Importe quantos quiser. Todos usam esse mesmo react e viram projetos separados.</span></span></button>
+            </div>
+          </div>
+          <p id="rx-qtd-aviso" class="wz-aviso oculto" role="status"></p>
+        </section>
+
+        <section id="tela-rx-videos" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="rx-v-titulo">Escolha o vídeo de cima</h1><p class="wz-lede" id="rx-v-lede"></p></header>
+          <div id="rx-v-erro" class="msg erro oculto" role="alert"></div>
+          <div id="rx-v-corpo"></div>
+        </section>
+
+        <section id="tela-rx-enquadrar" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Confira o enquadramento</h1>
+            <p class="wz-lede">O react cobre a parte de baixo. Passe pelo vídeo e ajuste para não tapar nada importante, como texto ou o prato.</p></header>
+          <div class="rx-abas" id="rx-abas" role="tablist" aria-label="Vídeos"></div>
+          <div class="rx-quadro">
+            <div class="rx-palco">
+              <div class="rx-tel" id="rx-tel" role="img" aria-label="Prévia do resultado"></div>
+              <div class="rx-tempo"><span id="rx-t-agora">0:00</span>
+                <input class="rx-rng" type="range" id="rx-t" min="0" max="100" value="30" aria-label="Momento do vídeo"><span id="rx-t-fim">0:00</span></div>
+            </div>
+            <article class="wz-card rx-ctl">
+              <h2 class="rx-card-h">Vídeo de cima</h2>
+              <div class="rx-linha"><label for="rx-pos"><span id="rx-pos-l">Posição</span> <output id="rx-pos-o" for="rx-pos"></output></label>
+                <input class="rx-rng" type="range" id="rx-pos" min="0" max="34" step="1" value="24"><small id="rx-pos-s"></small></div>
+              <div class="rx-linha"><label for="rx-zoom">Zoom <output id="rx-zoom-o" for="rx-zoom">100%</output></label>
+                <input class="rx-rng" type="range" id="rx-zoom" min="100" max="170" step="1" value="100"></div>
+              <div class="ct-opt"><div><p class="ct-opt-t" id="rx-l-zona">Mostrar a área do react</p><p class="ct-opt-s">Marca em vermelho o que fica coberto.</p></div>
+                <button class="ct-sw" type="button" role="switch" aria-checked="true" aria-labelledby="rx-l-zona" id="rx-sw-zona"></button></div>
+              <div class="ct-opt" id="rx-todos-l"><div><p class="ct-opt-t" id="rx-l-todos">Aplicar a todos os vídeos</p><p class="ct-opt-s">Desligue para ajustar cada vídeo separado.</p></div>
+                <button class="ct-sw" type="button" role="switch" aria-checked="true" aria-labelledby="rx-l-todos" id="rx-sw-todos"></button></div>
+              <button class="wz-claro" type="button" id="rx-padrao">Voltar ao padrão</button>
+            </article>
+          </div>
+          <p id="rx-conferir" class="wz-aviso oculto" role="status"></p>
+        </section>
+
+        <section id="tela-rx-ajustes" class="wz-tela oculto">
+          <header class="wz-cab"><h1>Ajustes finais</h1><p class="wz-lede">A headline você troca depois, direto no CapCut.</p></header>
+          <div id="rx-aj-erro" class="msg erro oculto" role="alert"></div>
+          <div class="rx-aj">
+            <article class="wz-card rx-fim">
+              <h2 class="rx-card-h">CTA no meio do vídeo</h2>
+              <div class="ct-opt"><div><p class="ct-opt-t" id="rx-l-cta">Adicionar um CTA</p>
+                <p class="ct-opt-s">O vídeo de cima congela numa pausa da fala, o seu CTA aparece embaixo e depois o vídeo continua.</p></div>
+                <button class="ct-sw" type="button" role="switch" aria-checked="false" aria-labelledby="rx-l-cta" id="rx-sw-cta"></button></div>
+              <div class="rx-cta oculto" id="rx-cta"></div>
+            </article>
+            <article class="wz-card rx-fim">
+              <h2 class="rx-card-h">Detalhes</h2>
+              <div class="ct-opt"><div><p class="ct-opt-t" id="rx-l-variar">Variar o trecho do react</p>
+                <p class="ct-opt-s">Cada vídeo começa o react num ponto diferente, para os resultados não ficarem iguais.</p></div>
+                <button class="ct-sw" type="button" role="switch" aria-checked="true" aria-labelledby="rx-l-variar" id="rx-sw-variar"></button></div>
+              <div class="ct-opt"><div><p class="ct-opt-t">Headline</p><p class="ct-opt-s" id="rx-hl-nota"></p></div><span class="wz-etiqueta">No CapCut</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="tela-rx-gerar" class="wz-tela oculto">
+          <header class="wz-cab"><h1 id="rx-g-titulo">Seus vídeos</h1>
+            <p class="wz-lede">Cada vídeo vira um projeto no CapCut. Seus vídeos continuam no seu computador.</p></header>
+          <div id="rx-g-erro" class="msg erro oculto" role="alert"></div>
+          <div class="ct-gs" id="rx-gs" aria-live="polite">
+            <span class="ct-gs-ico" id="rx-gs-ico"></span>
+            <p id="rx-gs-txt">Criando os projetos no CapCut…</p>
+            <span class="ct-gs-n" id="rx-gs-n"></span>
+            <div class="ct-gs-bar"><i id="rx-gs-bar"></i></div>
+          </div>
+          <div class="rx-g-botoes">
+            <button class="wz-btn-texto oculto" id="rx-g-cancelar" type="button">Cancelar</button>
+            <button class="wz-claro oculto" id="rx-g-tentar" type="button">Tentar de novo os que falharam</button>
+            <button class="wz-primario oculto" id="rx-g-capcut" type="button">Abrir o CapCut</button>
+            <button class="wz-claro oculto" id="rx-g-outro" type="button">Fazer outros vídeos</button>
+          </div>
+          <ol class="ct-cuts" id="rx-cuts"></ol>
+        </section>
+
         <footer class="wz-acoes" id="wz-acoes">
           <button class="wz-voltar" id="wz-voltar" type="button"><svg class="i"><use href="#i-esq"/></svg>Voltar</button>
           <p class="wz-privado"><svg class="i"><use href="#i-cadeado"/></svg>Seu vídeo não sai do seu computador.</p>
@@ -1453,7 +1635,7 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
 const telasEdicao = ["inativa","escolher","envio","progresso","revisao","revisao-legenda","ipad-enquadrar","ipad-sincronia","ipad-revisao",
-  "rotina-cortes","rotina-relogio","rotina-headline","rotina-musica","gerar","pronto"];
+  "rotina-cortes","rotina-relogio","rotina-headline","rotina-musica","gerar","pronto","rx-react","rx-videos","rx-enquadrar","rx-ajustes","rx-gerar"];
 let modo = "cortes", gancho = null, musica = "";
 let sessao = null, analise = null, site = "", ocupado = false;
 
@@ -1525,6 +1707,7 @@ async function inicio(){
     $("sem-capcut").classList.toggle("oculto", !!est.raiz);
     CT.acesso = !est.cortes || est.cortes.acesso !== false;            // quem tem Cortes vem da configuracao (achar.json)
     $("nav-cortes-cad").classList.toggle("oculto", CT.acesso);
+    MODELOS_WZ.react.travado = !!(est.react && est.react.acesso === false); desenhaModos();   // quem usa o React: configuracao
     sessao = await api("sessao");
   }catch(e){ sessao = {logado:false}; }
   aplicaSessao();
@@ -2220,6 +2403,13 @@ const MODELOS_WZ = {
     precisa: "Os takes do vlog, na ordem em que aparecem", revisao: "rotina-musica",
     passos: ["Edição", "Takes", "Cortes", "Relógio", "Headline", "Música", "Gerar"],
     telas: {escolher: 0, envio: 1, "rotina-cortes": 2, "rotina-relogio": 3, "rotina-headline": 4, "rotina-musica": 5, gerar: 6}},
+  react: {nome: "React", novo: true, desc: "Um vídeo em cima e o seu react embaixo, com a headline no meio. Faz um vídeo ou vários de uma vez.",
+    pede: "1 react + 1 ou mais vídeos", envio: "react",
+    faz: ["Vídeo em cima e react embaixo, com um degradê que junta os dois", "Faz vários vídeos de uma vez com o mesmo react",
+      "Você confere o enquadramento para o react não tapar nada importante", "Opcional: o vídeo congela numa pausa e entra o seu CTA"],
+    precisa: "O vídeo de react e o vídeo (ou os vídeos) que você vai reagir", revisao: "rx-ajustes",
+    passos: ["Modelo", "React", "Vídeos", "Enquadrar", "Ajustes", "Gerar"],
+    telas: {escolher: 0, "rx-react": 1, "rx-videos": 2, "rx-enquadrar": 3, "rx-ajustes": 4, "rx-gerar": 5}},
 };
 const ENVIO = {
   um: {t: "Escolha o vídeo", l: "Arraste o vídeo bruto ou escolha no computador."},
@@ -2252,10 +2442,14 @@ function atualizaWz(){
   s.textContent = W.tela === "escolher" ? "Continuar com " + m.nome : W.tela === "gerar" ? "Gerar projeto no CapCut" : "Continuar";
   s.classList.toggle("oculto", W.tela === "progresso" && !W.depois && !W.rodando);
   s.disabled = W.rodando || (W.tela === "envio" && !envioPronto()) || (W.tela === "progresso" && !W.depois) || (W.tela === "gerar" && !$("g-nome").value.trim());
+  const rx = W.tela.startsWith("rx-");                   // React: os passos dele (rxRodape) e o texto no plural
+  document.querySelector("#wz-acoes .wz-privado").lastChild.textContent = rx ? "Seus vídeos não saem do seu computador." : "Seu vídeo não sai do seu computador.";
+  if(rx) rxRodape(v, s);
 }
 $("wz-seguir").onclick = () => {
   if($("wz-seguir").disabled) return;
   const t = W.tela;
+  if(W.modelo === "react" && (t === "escolher" || t.startsWith("rx-"))) return rxSeguir(t);
   if(t === "escolher") return abreEnvio();
   if(t === "envio") return comecaModelo();
   if(t === "progresso") return W.depois && W.depois();
@@ -2269,6 +2463,7 @@ $("wz-seguir").onclick = () => {
 };
 $("wz-voltar").onclick = () => {
   const t = W.tela;
+  if(t.startsWith("rx-")) return rxVoltar(t);
   if(t === "progresso" && W.rodando) return $("prog-cancelar").click();          // so a Rotina deixa cancelar no meio
   if(t === "envio") return mostra("escolher");
   if(t === "progresso" || t === "ipad-enquadrar" || t === "rotina-cortes") return abreEnvio();
@@ -2287,7 +2482,8 @@ function desenhaModos(){
   $("wz-modos").innerHTML = Object.entries(MODELOS_WZ).map(([id, m]) => {
     const on = id === W.modelo;
     return '<button class="wz-modo" type="button" role="radio" aria-checked="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-modelo="' + id + '">' +
-      '<span class="wz-radio" aria-hidden="true"></span><span><span class="wz-modo-nome">' + m.nome + '</span>' +
+      '<span class="wz-radio" aria-hidden="true"></span><span><span class="wz-modo-nome">' + m.nome + (m.novo ? '<em class="wz-novo">Novo</em>' : "") +
+      (m.travado ? '<svg class="i cad" aria-label="sem acesso no seu plano"><use href="#i-cadeado"/></svg>' : "") + '</span>' +
       '<span class="wz-modo-desc">' + m.desc + '</span><span class="wz-etiqueta">' + m.pede + '</span></span></button>';
   }).join("");
 }
@@ -3217,6 +3413,401 @@ $("in-faixa").addEventListener("click", e => { if(e.target.closest(".in-corte"))
 ["mouseout", "focusout"].forEach(t => $("in-faixa").addEventListener(t, e => { const b = e.target.closest(".in-corte"); const v = b && b.querySelector("video");
   if(v && !b.contains(e.relatedTarget)) v.pause(); }));
 $("in-rec-todos").onclick = () => api("abrir-capcut", {});
+
+// ================= REACT (Fase 2): modelo da Edicao. Tudo vem dos arquivos da pessoa e do motor (react.py) =================
+// A previa monta os quadros REAIS (ffmpeg, pequenos, em cache) com as mesmas contas do motor (rxEnq = react.enquadra_cima).
+const RX = {cfg: null, react: "", rinfo: null, qtd: null, videos: [], info: {}, sel: 0, todos: true, comum: {corte: null, zoom: 1, pos: 0.5},
+  por: {}, zona: true, visto: new Set(), avisou: false, t: 30, cta: false, ctaArq: "", ctaInfo: null, variar: true, pausas: {}, ppoll: null,
+  lote: null, ger: null, gpoll: null, vez: 0};
+const RX_PRIV = "Seus vídeos não saem do seu computador.", WZ_PRIV = "Seu vídeo não sai do seu computador.";
+const RX_EXT = /\.(mp4|mov|mkv|m4v|avi|webm)$/i;
+const RX_NAO_VIDEO = "Esse arquivo não é um vídeo. Escolha um MP4, MOV, MKV, M4V, AVI ou WEBM.";
+const rxQ = (c, s, w) => "/api/react/q?t=" + encodeURIComponent(TOKEN) + "&c=" + encodeURIComponent(c) +
+  "&s=" + (Math.round(Math.max(0, s) * 2) / 2).toFixed(1) + "&w=" + (w || 360);     // meio segundo: o cache serve de novo
+const rxNome = c => nomeArq(c).replace(/\.[^.]+$/, "") + " - react";
+async function rxConfig(){ if(!RX.cfg) RX.cfg = await api("react/config"); return RX.cfg; }
+
+// ---------- as contas do motor (react.enquadra_cima / enquadra_faixa), na tela 1080x1920 ----------
+function rxEncaixe(w, h){ const f = Math.min(1080 / w, 1920 / h); return [w * f, h * f]; }
+function rxEnq(i, e){
+  const [w0, h0] = rxEncaixe(i.largura, i.altura), C = RX.cfg.cobre_ate, zoom = Math.max(1, e.zoom || 1);
+  const vert = 1080 / w0 >= C / h0, s = Math.max(1080 / w0, C / h0) * zoom, lw = w0 * s, lh = h0 * s, cmax = Math.max(0, 1 - C / lh);
+  let c = e.corte == null ? (vert ? RX.cfg.corte_padrao : cmax / 2) : e.corte; c = Math.min(Math.max(c, 0), cmax);
+  const p = Math.min(Math.max(e.pos == null ? 0.5 : e.pos, 0), 1);
+  return {modo: vert ? "vertical" : "horizontal", escala: s, x: (lw / 2 - p * (lw - 1080) - 540) / 540, y: (c * lh - lh / 2 + 960) / 960,
+    corte: c, corte_max: cmax, posicao: p, lateral: lw > 1080.5, lw};
+}
+function rxCaixa(w, h, g){                               // onde o material fica, em % da tela
+  const [w0, h0] = rxEncaixe(w, h), W_ = w0 * g.escala, H_ = h0 * g.escala, cx = 540 + g.x * 540, cy = 960 - g.y * 960;
+  return "left:" + ((cx - W_ / 2) / 10.8).toFixed(3) + "%;top:" + ((cy - H_ / 2) / 19.2).toFixed(3) + "%;width:" + (W_ / 10.8).toFixed(3) + "%;height:" + (H_ / 19.2).toFixed(3) + "%";
+}
+function rxSrc(img, u){                                  // troca o quadro so depois de carregar (passar o tempo nao pisca)
+  if(img.dataset.quer === u) return; img.dataset.quer = u;
+  const p = new Image(); p.onload = () => { if(img.dataset.quer === u) img.src = u; }; p.src = u;
+}
+function rxCompoe(el, c, i, e, t, tr, zona){
+  let cp = el.querySelector(".rx-comp");
+  if(!cp){ el.innerHTML = '<div class="rx-comp"><img class="rx-c" alt=""><img class="rx-r" alt=""><div class="rx-hl"><i></i><span></span></div><div class="rx-zona"></div></div>';
+    cp = el.querySelector(".rx-comp"); }
+  const g = rxEnq(i, e), r = RX.rinfo, f = r.faixa, [, rh0] = rxEncaixe(r.largura, r.altura), H_ = rh0 * f.escala, topo = 960 - f.y * 960 - H_ / 2;
+  const [a, b] = RX.cfg.degrade, m = "linear-gradient(180deg,transparent " + ((a - topo) / H_ * 100).toFixed(2) + "%,#000 " + ((b - topo) / H_ * 100).toFixed(2) + "%)";
+  const px = Math.max(1, el.clientWidth) * Math.min(2, window.devicePixelRatio || 1), larg = l => Math.min(720, Math.max(120, Math.ceil(l / 120) * 120));
+  const ic_ = cp.querySelector(".rx-c"), ir = cp.querySelector(".rx-r");
+  ic_.style.cssText = rxCaixa(i.largura, i.altura, g);
+  ir.style.cssText = rxCaixa(r.largura, r.altura, f) + ";-webkit-mask-image:" + m + ";mask-image:" + m;
+  rxSrc(ic_, rxQ(c, Math.min(t, i.duracao - 0.2), larg(px * g.lw / 1080)));
+  rxSrc(ir, rxQ(RX.react, Math.min(tr, r.duracao - 0.2), larg(px * 1.25)));
+  cp.querySelector(".rx-hl span").textContent = RX.cfg.headline.texto;
+  cp.querySelector(".rx-zona").style.display = zona ? "" : "none";
+}
+
+// ---------- arquivos: escolher (janela do Windows) ou arrastar (acha o original pelo nome e tamanho; nao achou, copia) ----------
+async function rxEscolhe(varios, titulo){
+  const {caminho} = await api("escolher-arquivo", {tipo: varios ? "videos" : "video", titulo});
+  return (Array.isArray(caminho) ? caminho : [caminho]).filter(Boolean);
+}
+async function rxSoltos(files, onde){
+  const out = [], ruins = [];
+  for(const f of files){
+    if(!RX_EXT.test(f.name)){ ruins.push(f.name + ": " + RX_NAO_VIDEO); continue; }
+    const r = await api("inicio/localizar", {nome: f.name, tamanho: f.size}).catch(() => ({}));
+    if(r.caminho){ out.push(r.caminho); continue; }
+    if(onde) onde.textContent = "Copiando " + f.name + "…";
+    try{ out.push((await api("enviar?nome=" + encodeURIComponent(f.name), f, {bruto: true, headers: {"Content-Type": "application/octet-stream"}})).caminho); }
+    catch(e){ ruins.push(f.name + ": " + e.message); }
+  }
+  return {out, ruins};
+}
+function rxArrastar(caixa, aoSoltar){
+  caixa.addEventListener("dragover", e => { const z = e.target.closest("[data-soltar]"); if(z && e.dataTransfer.types.includes("Files")){ e.preventDefault(); z.classList.add("sobre"); } });
+  caixa.addEventListener("dragleave", e => { const z = e.target.closest("[data-soltar]"); if(z && !z.contains(e.relatedTarget)) z.classList.remove("sobre"); });
+  caixa.addEventListener("drop", e => { const z = e.target.closest("[data-soltar]"); if(!z || !e.dataTransfer.files.length) return;
+    e.preventDefault(); z.classList.remove("sobre"); aoSoltar([...e.dataTransfer.files], z.querySelector(".wz-solta-t")); });
+}
+function rxCartao(c, partes, vaga, ruim){
+  return '<div class="wz-arq"><span class="wz-arq-ico">' + ic("camera") + '</span><div class="wz-arq-main"><p class="wz-arq-nome" title="' + esc(c) + '">' + esc(nomeArq(c)) +
+    '</p><p class="wz-arq-meta"' + (ruim ? ' style="color:var(--erro)"' : "") + '>' + esc(partes.join(" · ")) + '</p></div>' +
+    (partes[0] !== "Lendo…" && !ruim ? '<span class="wz-ok" aria-label="Pronto">' + ic("ok") + '</span>' : "") +
+    '<button class="wz-icone" type="button" data-tirar="' + vaga + '" aria-label="Remover ' + esc(nomeArq(c)) + '">' + ic("x") + '</button></div>';
+}
+
+// ---------- passo 2: o react + "quantos vídeos" ----------
+function rxDesenhaReact(){
+  const i = RX.rinfo;
+  $("rx-react-corpo").innerHTML = !RX.react ? zonaSoltar("rx-react", "Arraste o vídeo de react aqui", "Escolher vídeo") +
+      '<p class="wz-dica">O arquivo não é copiado: o Clipay.ia lê direto de onde ele está.</p>'
+    : !i ? rxCartao(RX.react, ["Lendo…"], "rx-react")
+    : i.erro ? rxCartao(RX.react, [i.erro], "rx-react", true)
+    : rxCartao(RX.react, [tamanho(i.tamanho), seg(i.duracao), i.largura + "×" + i.altura, "áudio não usado"], "rx-react");
+  $("rx-qtd-box").classList.toggle("oculto", !(i && !i.erro));
+  document.querySelectorAll(".rx-qopt").forEach(b => { const on = b.dataset.q === RX.qtd;
+    b.setAttribute("aria-checked", on); b.tabIndex = on || (!RX.qtd && b.dataset.q === "um") ? 0 : -1; });
+  atualizaWz();
+}
+async function rxPoeReact(c){
+  const vez = ++RX.vez; RX.react = c; RX.rinfo = null; erro("rx-react-erro"); rxDesenhaReact();
+  const i = await api("react/arquivo", {caminho: c, papel: "react"}).catch(e => ({erro: e.message}));
+  if(vez !== RX.vez || RX.react !== c) return;               // a ultima escolha vale
+  RX.rinfo = i; rxDesenhaReact();
+}
+function rxQtd(q){
+  if(q === RX.qtd) return;
+  const aviso = $("rx-qtd-aviso");
+  aviso.classList.add("oculto");
+  if(RX.qtd === "varios" && q === "um" && RX.videos.length){
+    rxLimpaVideos();
+    aviso.textContent = "Os vídeos que você tinha importado saíram da lista, porque agora é só um."; aviso.classList.remove("oculto");
+  }
+  RX.qtd = q; rxDesenhaReact();
+}
+function rxLimpaVideos(){ RX.videos = []; RX.por = {}; RX.visto.clear(); RX.avisou = false; RX.sel = 0; }
+$("rx-react-corpo").addEventListener("click", async e => {
+  if(e.target.closest("[data-tirar]")){ RX.react = ""; RX.rinfo = null; RX.qtd = null; RX.vez++; return rxDesenhaReact(); }
+  if(!e.target.closest("[data-escolher]")) return;
+  erro("rx-react-erro");
+  try{ const [c] = await rxEscolhe(false, "Escolha o vídeo de react"); if(c) rxPoeReact(c); }catch(x){ erro("rx-react-erro", x.message); }
+});
+rxArrastar($("rx-react-corpo"), async (fs, onde) => {
+  erro("rx-react-erro"); const {out, ruins} = await rxSoltos(fs.slice(0, 1), onde);
+  if(ruins.length) erro("rx-react-erro", ruins[0]); if(out[0]) rxPoeReact(out[0]); else rxDesenhaReact();
+});
+$("rx-qtd").addEventListener("click", e => { const b = e.target.closest(".rx-qopt"); if(b) rxQtd(b.dataset.q); });
+$("rx-qtd").addEventListener("keydown", e => {
+  if(!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(e.key)) return;
+  e.preventDefault(); const q = (RX.qtd || "um") === "um" ? "varios" : "um"; rxQtd(q); document.querySelector('.rx-qopt[data-q="' + q + '"]').focus();
+});
+
+// ---------- passo 3: os videos de cima ----------
+function rxMaior(i){ return !!(RX.rinfo && i && !i.erro && i.duracao > RX.rinfo.duracao + 1e-3); }
+function rxValidos(){ return RX.videos.filter(v => { const i = RX.info[v]; return i && !i.erro && !rxMaior(i); }); }
+function rxLinhaVideo(c, k){
+  const i = RX.info[c];
+  let meta, ruim = false;
+  if(!i) meta = "Lendo…";
+  else if(i.erro){ meta = i.erro; ruim = true; }
+  else if(rxMaior(i)){ meta = "Maior que o react (" + seg(i.duracao) + " contra " + seg(RX.rinfo.duracao) + "): esse não é gerado."; ruim = true; }
+  else meta = seg(i.duracao) + " · " + (i.modo === "vertical" ? "vertical " + i.largura + "×" + i.altura
+    : "horizontal " + i.largura + "×" + i.altura + " · será ampliado para preencher o topo");
+  return '<li class="rx-vlin' + (ruim ? " ruim" : "") + '"><span class="rx-th">' + (i && !i.erro ? '<img alt="" loading="lazy" src="' + rxQ(c, Math.min(1, i.duracao / 2), 120) + '">' : "") +
+    '</span><div class="rx-vlin-m"><b title="' + esc(c) + '">' + esc(nomeArq(c)) + '</b><small' + (ruim ? ' class="ruim"' : "") + '>' + esc(meta) + '</small></div>' +
+    (i && !ruim ? '<span class="wz-ok" aria-label="Pronto">' + ic("ok") + '</span>' : "") +
+    '<button class="wz-icone" type="button" data-tirar="' + k + '" aria-label="Remover ' + esc(nomeArq(c)) + '">' + ic("x") + '</button></li>';
+}
+function rxDesenhaVideos(){
+  const varios = RX.qtd === "varios", n = RX.videos.length;
+  $("rx-v-titulo").textContent = varios ? "Importe os vídeos de cima" : "Escolha o vídeo de cima";
+  $("rx-v-lede").textContent = varios ? "Cada vídeo vira um projeto, todos com o mesmo react embaixo. O som de cada um é o som do resultado."
+    : "É o vídeo que você reage. O som dele é o som do resultado.";
+  let h;
+  if(!n) h = zonaSoltar("rx-videos", varios ? "Arraste os vídeos aqui" : "Arraste o vídeo aqui", varios ? "Escolher vídeos" : "Escolher vídeo", varios) +
+    '<p class="wz-dica">' + (varios ? "Pode escolher vários de uma vez. " : "") + 'Os arquivos não são copiados.</p>';
+  else {
+    h = (varios ? '<div class="rx-vtopo"><p><strong>' + n + '</strong> ' + (n === 1 ? "vídeo" : "vídeos") + ' · react de ' + seg(RX.rinfo.duracao) +
+        '</p><button class="wz-claro" type="button" data-escolher="rx-videos">' + ic("mais") + 'Adicionar mais</button></div>' : "") +
+      '<ul class="rx-lista" data-soltar="rx-videos"' + (varios ? ' data-varios="1"' : "") + '>' + RX.videos.map(rxLinhaVideo).join("") + '</ul>';
+    const ok = rxValidos();
+    if(ok.length && ok.length === n){                    // a nota so quando e' verdade: todos lidos e todos cabem
+      const mx = Math.max(...ok.map(c => RX.info[c].duracao));
+      h += '<p class="rx-nota">O react tem ' + seg(RX.rinfo.duracao) + (n > 1 ? " e o maior vídeo tem " : " e o vídeo tem ") + seg(mx) + (n > 1 ? ". Cabe em todos." : ". Cabe.") + '</p>';
+    }
+  }
+  $("rx-v-corpo").innerHTML = h; atualizaWz();
+}
+async function rxPoeVideos(cs){
+  cs = cs.filter(Boolean); if(!cs.length) return;
+  if(RX.qtd === "um"){ rxLimpaVideos(); RX.videos = [cs[0]]; }
+  else cs.forEach(c => { if(!RX.videos.includes(c)) RX.videos.push(c); });
+  RX.avisou = false; rxDesenhaVideos();
+  await Promise.all(RX.videos.filter(c => !RX.info[c]).map(async c => {
+    RX.info[c] = null;
+    const i = await api("react/arquivo", {caminho: c, papel: "cima"}).catch(e => ({erro: e.message}));
+    RX.info[c] = i; if(W.tela === "rx-videos") rxDesenhaVideos();
+  }));
+}
+$("rx-v-corpo").addEventListener("click", async e => {
+  const t = e.target.closest("[data-tirar]");
+  if(t){ const c = RX.videos.splice(+t.dataset.tirar, 1)[0]; delete RX.por[c]; RX.visto.delete(c); RX.sel = 0; return rxDesenhaVideos(); }
+  if(!e.target.closest("[data-escolher]")) return;
+  erro("rx-v-erro");
+  try{ rxPoeVideos(await rxEscolhe(RX.qtd === "varios", RX.qtd === "varios" ? "Escolha os vídeos de cima (pode selecionar vários)" : "Escolha o vídeo de cima")); }
+  catch(x){ erro("rx-v-erro", x.message); }
+});
+rxArrastar($("rx-v-corpo"), async (fs, onde) => {
+  erro("rx-v-erro"); const {out, ruins} = await rxSoltos(RX.qtd === "varios" ? fs : fs.slice(0, 1), onde);
+  if(ruins.length) erro("rx-v-erro", ruins.join(" ")); if(out.length) rxPoeVideos(out); else rxDesenhaVideos();
+});
+
+// ---------- passo 4: enquadrar ----------
+function rxEnqDe(c){ return RX.todos ? RX.comum : (RX.por[c] || (RX.por[c] = Object.assign({}, RX.comum))); }
+function rxAtual(){ const vs = rxValidos(); RX.sel = Math.max(0, Math.min(RX.sel, vs.length - 1)); return vs[RX.sel]; }
+function rxDesenhaEnq(){
+  const vs = rxValidos(), c = rxAtual(); if(!c) return;
+  RX.visto.add(c);
+  $("rx-abas").classList.toggle("oculto", vs.length < 2); $("rx-todos-l").classList.toggle("oculto", vs.length < 2);
+  $("rx-abas").innerHTML = vs.map((v, k) => '<button class="rx-aba" type="button" role="tab" aria-selected="' + (k === RX.sel) + '" tabindex="' + (k === RX.sel ? 0 : -1) +
+    '" data-k="' + k + '"><span class="rx-th"><img alt="" src="' + rxQ(v, Math.min(1, RX.info[v].duracao / 2), 120) + '"></span><span><b title="' + esc(nomeArq(v)) + '">' +
+    esc(nomeArq(v)) + '</b><small>' + seg(RX.info[v].duracao) + '</small></span>' + (RX.visto.has(v) ? '<span class="rx-visto" aria-label="conferido">' + ic("ok") + '</span>' : "") + '</button>').join("");
+  $("rx-sw-zona").setAttribute("aria-checked", RX.zona); $("rx-sw-todos").setAttribute("aria-checked", RX.todos);
+  $("rx-conferir").classList.add("oculto");
+  rxControles(); rxPinta();
+}
+function rxControles(){
+  const c = rxAtual(), i = RX.info[c], e = rxEnqDe(c), g = rxEnq(i, e), pos = $("rx-pos"), horiz = g.modo === "horizontal";
+  $("rx-pos-l").textContent = horiz ? "Posição na horizontal" : "Posição";
+  if(horiz){ pos.max = 100; pos.value = Math.round(g.posicao * 100); pos.disabled = !g.lateral;
+    $("rx-pos-o").textContent = g.posicao < 0.47 ? "mais à esquerda" : g.posicao > 0.53 ? "mais à direita" : "no meio";
+    $("rx-pos-s").textContent = "Vídeo horizontal: ele é ampliado para preencher o topo e as laterais são cortadas."; }
+  else { const mx = Math.floor(g.corte_max * 100 + 1e-6); pos.max = mx; pos.value = Math.round(g.corte * 100); pos.disabled = mx <= 0;
+    $("rx-pos-o").textContent = Math.round(g.corte * 100) + "% cortado em cima";
+    $("rx-pos-s").textContent = "Até " + mx + "% com este zoom, para nunca aparecer fundo vazio."; }
+  $("rx-zoom").value = Math.round((e.zoom || 1) * 100); $("rx-zoom-o").textContent = Math.round((e.zoom || 1) * 100) + "%";
+}
+function rxPinta(){
+  const c = rxAtual(), i = RX.info[c]; if(!i) return;
+  const t = i.duracao * RX.t / 100;
+  $("rx-t").value = RX.t; $("rx-t-agora").textContent = seg(t); $("rx-t-fim").textContent = seg(i.duracao);
+  rxCompoe($("rx-tel"), c, i, rxEnqDe(c), t, RX.cfg.inicio_react + t, RX.zona);
+}
+function rxAbreEnquadrar(){ rxDesenhaEnq(); mostra("rx-enquadrar"); requestAnimationFrame(rxPinta); }
+$("rx-abas").addEventListener("click", e => { const b = e.target.closest(".rx-aba"); if(b){ RX.sel = +b.dataset.k; rxDesenhaEnq(); } });
+$("rx-abas").addEventListener("keydown", e => {
+  if(!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+  e.preventDefault(); const n = rxValidos().length;
+  RX.sel = e.key === "Home" ? 0 : e.key === "End" ? n - 1 : (RX.sel + (e.key === "ArrowRight" ? 1 : n - 1)) % n;
+  rxDesenhaEnq(); document.querySelector('.rx-aba[data-k="' + RX.sel + '"]').focus();
+});
+$("rx-pos").addEventListener("input", () => { const c = rxAtual(), e = rxEnqDe(c), v = +$("rx-pos").value / 100;
+  if(rxEnq(RX.info[c], e).modo === "horizontal") e.pos = v; else e.corte = v; rxControles(); rxPinta(); });
+$("rx-zoom").addEventListener("input", () => { rxEnqDe(rxAtual()).zoom = +$("rx-zoom").value / 100; rxControles(); rxPinta(); });
+$("rx-t").addEventListener("input", () => { RX.t = +$("rx-t").value; rxPinta(); });
+$("rx-sw-zona").onclick = () => { RX.zona = !RX.zona; $("rx-sw-zona").setAttribute("aria-checked", RX.zona); rxPinta(); };
+$("rx-sw-todos").onclick = () => { RX.todos = !RX.todos; $("rx-sw-todos").setAttribute("aria-checked", RX.todos); RX.por = {}; rxControles(); rxPinta(); };
+$("rx-padrao").onclick = () => { Object.assign(rxEnqDe(rxAtual()), {corte: null, zoom: 1, pos: 0.5}); rxControles(); rxPinta(); };
+addEventListener("resize", () => { if(W.tela === "rx-enquadrar") rxPinta(); });
+
+// ---------- passo 5: ajustes (CTA, variar) ----------
+function rxCtaOk(){ return !!(RX.ctaInfo && !RX.ctaInfo.erro); }
+function rxLinhaPausa(v){
+  const p = RX.pausas[v] || {estado: "fila"}, d = RX.info[v].duracao, [a, b] = RX.cfg.janela;
+  let txt = "Procurando uma pausa…", aviso = false, mk = "";
+  if(p.estado === "pronto"){ aviso = !p.boa; txt = p.boa ? "congela aos " + seg(p.t) : "sem pausa boa, congela no meio";
+    mk = '<i' + (aviso ? ' class="aviso"' : "") + ' style="left:' + (p.t / d * 100).toFixed(2) + '%"></i>'; }
+  else if(p.estado === "erro"){ aviso = true; txt = "o ponto é escolhido ao gerar"; }
+  return '<div class="rx-tl"><div class="rx-tl-n"><span title="' + esc(nomeArq(v)) + '">' + esc(nomeArq(v)) + '</span><small' + (aviso ? ' class="aviso"' : "") + '>' + esc(txt) +
+    '</small></div><div class="rx-tbar' + (["pronto", "erro"].includes(p.estado) ? "" : " procura") + '"><u style="left:' + (a * 100) + '%;width:' + ((b - a) * 100).toFixed(1) + '%"></u>' + mk + '</div></div>';
+}
+function rxDesenhaPausas(){
+  const box = $("rx-pausas"); if(box) box.innerHTML = rxValidos().map(rxLinhaPausa).join("");
+}
+function rxDesenhaAjustes(){
+  $("rx-sw-cta").setAttribute("aria-checked", RX.cta); $("rx-sw-variar").setAttribute("aria-checked", RX.variar);
+  $("rx-hl-nota").textContent = "Sai como “" + RX.cfg.headline.texto + "”. Troque no CapCut.";
+  $("rx-cta").classList.toggle("oculto", !RX.cta);
+  if(RX.cta){
+    const i = RX.ctaInfo;
+    $("rx-cta").innerHTML = !RX.ctaArq ? zonaSoltar("rx-cta", "Arraste o vídeo do CTA aqui", "Escolher CTA")
+      : (!i ? rxCartao(RX.ctaArq, ["Lendo…"], "rx-cta") : i.erro ? rxCartao(RX.ctaArq, [i.erro], "rx-cta", true)
+        : rxCartao(RX.ctaArq, [seg(i.duracao), i.largura + "×" + i.altura, i.tem_audio ? "com som" : "sem som"], "rx-cta") +
+          '<div id="rx-pausas"></div><p class="rx-tl-nota">O app procura uma pausa entre frases perto do meio de cada vídeo, para não cortar uma fala. ' +
+          'O vídeo congela, o CTA aparece embaixo por ' + seg(i.duracao) + ' e depois continua de onde parou.</p>');
+    rxDesenhaPausas();
+  }
+  atualizaWz();
+}
+async function rxPedePausas(){
+  if(!(RX.cta && rxCtaOk())) return;
+  try{ Object.assign(RX.pausas, (await api("react/pausas", {videos: rxValidos()})).itens); }catch(e){}
+  rxDesenhaPausas(); rxAcompanhaPausas();
+}
+function rxAcompanhaPausas(){
+  clearTimeout(RX.ppoll);
+  const vez = async () => {
+    try{ Object.assign(RX.pausas, (await api("react/pausas-estado")).itens); }catch(e){}
+    if(W.tela === "rx-ajustes") rxDesenhaPausas();
+    if(rxValidos().some(v => !RX.pausas[v] || ["fila", "procurando"].includes(RX.pausas[v].estado))) RX.ppoll = setTimeout(vez, 1000);
+  };
+  vez();
+}
+async function rxPoeCta(c){
+  const vez = ++RX.vez; RX.ctaArq = c; RX.ctaInfo = null; rxDesenhaAjustes();
+  const i = await api("react/arquivo", {caminho: c, papel: "cta"}).catch(e => ({erro: e.message}));
+  if(vez !== RX.vez || RX.ctaArq !== c) return;
+  RX.ctaInfo = i; rxDesenhaAjustes(); rxPedePausas();
+}
+$("rx-sw-cta").onclick = () => { RX.cta = !RX.cta; rxDesenhaAjustes(); rxPedePausas(); };
+$("rx-sw-variar").onclick = () => { RX.variar = !RX.variar; $("rx-sw-variar").setAttribute("aria-checked", RX.variar); };
+$("rx-cta").addEventListener("click", async e => {
+  if(e.target.closest("[data-tirar]")){ RX.ctaArq = ""; RX.ctaInfo = null; RX.vez++; return rxDesenhaAjustes(); }
+  if(!e.target.closest("[data-escolher]")) return;
+  erro("rx-aj-erro");
+  try{ const [c] = await rxEscolhe(false, "Escolha o vídeo do CTA"); if(c) rxPoeCta(c); }catch(x){ erro("rx-aj-erro", x.message); }
+});
+rxArrastar($("rx-cta"), async (fs, onde) => {
+  erro("rx-aj-erro"); const {out, ruins} = await rxSoltos(fs.slice(0, 1), onde);
+  if(ruins.length) erro("rx-aj-erro", ruins[0]); if(out[0]) rxPoeCta(out[0]); else rxDesenhaAjustes();
+});
+
+// ---------- passo 6: gerar (grade "Seus vídeos", como o Gerar do Cortes) ----------
+async function rxGerar(so){
+  erro("rx-g-erro");
+  if(!so){
+    const cta = RX.cta && rxCtaOk() ? RX.ctaArq : null;
+    RX.lote = {react: RX.react, cta, variar: RX.variar, itens: rxValidos().map(v => { const e = rxEnqDe(v), p = RX.pausas[v];
+      return {video: v, enquadramento: {corte: e.corte, zoom: e.zoom || 1, posicao: e.pos == null ? 0.5 : e.pos},
+        congelar: cta && p && p.estado === "pronto" ? p.t : null}; })};
+    RX.ger = null; rxMontaGrade();
+  }
+  mostra("rx-gerar"); rxDesenhaGerar();
+  try{ RX.ger = await api("react/gerar", Object.assign({}, RX.lote, {so: so || null})); }catch(e){ erro("rx-g-erro", e.message); }
+  rxDesenhaGerar(); rxAcompanhaGer();
+}
+function rxMontaGrade(){
+  const its = RX.lote.itens;
+  $("rx-g-titulo").textContent = its.length > 1 ? "Seus vídeos" : "Seu vídeo";
+  $("rx-cuts").innerHTML = its.map((it, k) => { const nome = esc(rxNome(it.video));
+    return '<li class="ct-cut" data-n="' + (k + 1) + '"><div style="position:relative"><div class="ct-cut-v" role="img" aria-label="' + nome + '"><div class="rx-cv"></div>' +
+      '<span class="ct-sk"><span>' + String(k + 1).padStart(2, "0") + '</span></span><span class="ct-dur"></span></div><div class="ct-cut-erro" hidden></div></div>' +
+      '<p class="ct-cut-n" title="' + nome + '">' + nome + '</p></li>'; }).join("");
+}
+function rxAcompanhaGer(){
+  clearTimeout(RX.gpoll);
+  const vez = async () => {
+    try{ RX.ger = await api("react/gerar-estado"); }catch(e){ erro("rx-g-erro", e.message); RX.gpoll = setTimeout(vez, 2000); return; }
+    rxDesenhaGerar();
+    if(RX.ger.ativo && !RX.ger.parado) RX.gpoll = setTimeout(vez, 700);
+  };
+  vez();
+}
+function rxDesenhaGerar(){
+  const g = RX.ger || {}, ls = g.linhas || [], N = ls.length || (RX.lote ? RX.lote.itens.length : 0);
+  const k = ls.filter(l => l.estado === "pronto").length, ruins = ls.filter(l => ["erro", "cancelado"].includes(l.estado)).length;
+  const fim = !!g.parado, gs = $("rx-gs");
+  gs.classList.toggle("ok", fim && k === N && N > 0); gs.classList.toggle("falhou", fim && k < N);
+  $("rx-gs-ico").innerHTML = fim ? ic(k === N ? "check" : "x") : "";
+  $("rx-gs-txt").textContent = !fim ? "Criando os projetos no CapCut…" : k === N ? N + (N === 1 ? " projeto criado" : " projetos criados") + " no CapCut. Troque a headline lá."
+    : k + " de " + N + " projetos criados no CapCut. Os que faltaram estão marcados no cartão.";
+  $("rx-gs-n").textContent = fim && k === N ? "" : k + " de " + N;
+  $("rx-gs-bar").style.width = (N ? k / N * 100 : 0) + "%";
+  $("rx-g-cancelar").classList.toggle("oculto", fim || !ls.length);
+  $("rx-g-tentar").classList.toggle("oculto", !fim || !ruins);
+  $("rx-g-capcut").classList.toggle("oculto", !fim || !k);
+  $("rx-g-outro").classList.toggle("oculto", !fim);
+  document.querySelectorAll("#rx-cuts .ct-cut").forEach(li => {
+    const n = +li.dataset.n, l = ls.find(x => x.numero === n), it = RX.lote.itens[n - 1]; if(!l) return;
+    const nome = l.projeto || l.nome, p = li.querySelector(".ct-cut-n");
+    if(p.textContent !== nome){ p.textContent = nome; p.title = nome; }
+    if(l.estado === "pronto" && !li.classList.contains("pronto")){       // o quadro estatico REAL da composicao do projeto
+      const i = RX.info[it.video], t = i.duracao * 0.3;
+      rxCompoe(li.querySelector(".rx-cv"), it.video, i, it.enquadramento, t, (l.inicio_react || 0) + t, false);
+      if(l.duracao) li.querySelector(".ct-dur").textContent = seg(l.duracao);
+      li.classList.add("pronto");
+    }
+    const msgs = l.estado === "erro" ? '<p>Projeto não criado: ' + esc(l.erro || "erro") + '</p><button type="button" data-tentar>Tentar de novo</button>'
+      : l.estado === "cancelado" ? '<p>Projeto cancelado.</p><button type="button" data-tentar>Tentar de novo</button>' : "";
+    const box = li.querySelector(".ct-cut-erro"); if(box.innerHTML !== msgs) box.innerHTML = msgs; box.hidden = !msgs;
+    li.classList.toggle("falhou", !!msgs);
+  });
+}
+$("rx-cuts").addEventListener("click", e => { const t = e.target.closest("[data-tentar]"), li = e.target.closest(".ct-cut"); if(t && li) rxGerar([+li.dataset.n]); });
+$("rx-g-cancelar").onclick = async () => { try{ await api("react/gerar-cancelar", {}); }catch(e){} rxAcompanhaGer(); };
+$("rx-g-tentar").onclick = () => { const ns = ((RX.ger || {}).linhas || []).filter(l => ["erro", "cancelado"].includes(l.estado)).map(l => l.numero); if(ns.length) rxGerar(ns); };
+$("rx-g-capcut").onclick = () => api("abrir-capcut", {});
+$("rx-g-outro").onclick = () => { rxLimpaVideos(); RX.ger = null; RX.lote = null; $("rx-cuts").innerHTML = ""; rxDesenhaVideos(); mostra("rx-videos"); };
+
+// ---------- o rodape do assistente e a navegacao (ganchos no $("wz-seguir") / $("wz-voltar") da Edicao) ----------
+function rxRodape(v, s){
+  const t = W.tela, n = rxValidos().length;
+  if(t === "rx-ajustes") s.textContent = "Gerar " + n + (n === 1 ? " vídeo" : " vídeos");
+  s.disabled = t === "rx-react" ? !(RX.rinfo && !RX.rinfo.erro && RX.qtd)
+    : t === "rx-videos" ? !n || RX.videos.some(c => !RX.info[c])
+    : t === "rx-ajustes" ? !n || (RX.cta && !rxCtaOk()) : false;
+  s.classList.toggle("oculto", t === "rx-gerar"); v.classList.toggle("oculto", t === "rx-gerar");
+}
+async function rxSeguir(t){
+  if(t === "escolher"){
+    try{ await rxConfig(); }catch(e){ $("escolher-aviso").textContent = e.message; $("escolher-aviso").classList.remove("oculto"); return; }
+    if(!RX.cfg.acesso){ $("escolher-aviso").textContent = "O React não está no seu plano."; $("escolher-aviso").classList.remove("oculto"); return; }
+    rxDesenhaReact(); return mostra("rx-react");
+  }
+  if(t === "rx-react"){ rxDesenhaVideos(); return mostra("rx-videos"); }
+  if(t === "rx-videos") return rxAbreEnquadrar();
+  if(t === "rx-enquadrar"){
+    const falta = rxValidos().filter(v => !RX.visto.has(v)).length;
+    if(falta && !RX.avisou){                             // pode seguir sem conferir todos, mas avisa uma vez
+      RX.avisou = true;
+      $("rx-conferir").textContent = "Você ainda não conferiu " + falta + (falta === 1 ? " vídeo" : " vídeos") + ". Toque em Continuar de novo para seguir assim.";
+      $("rx-conferir").classList.remove("oculto"); return;
+    }
+    rxDesenhaAjustes(); mostra("rx-ajustes"); return rxPedePausas();
+  }
+  if(t === "rx-ajustes") return rxGerar();
+}
+function rxVoltar(t){
+  if(t === "rx-react") return mostra("escolher");
+  if(t === "rx-videos"){ rxDesenhaReact(); return mostra("rx-react"); }
+  if(t === "rx-enquadrar"){ rxDesenhaVideos(); return mostra("rx-videos"); }
+  if(t === "rx-ajustes") return rxAbreEnquadrar();
+}
 
 inicio();
 </script>
