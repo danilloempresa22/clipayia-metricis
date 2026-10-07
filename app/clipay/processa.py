@@ -343,7 +343,7 @@ def _analisa(raiz, draft, meta, pasta, modo, op, avisa):
     if all(len(x) == 0 or float(np.abs(x).max()) < 1e-3 for _, _, x in itens):
         raise capcut.ErroProjeto("Não encontrei fala nesse vídeo (sem áudio ou totalmente mudo).")
 
-    frases = {}
+    frases, todas = {}, []
     if op.get("transcrever"):
         qual = op.get("modelo", "preciso")
         w = _whisper(qual, avisa, 0.2, 0.3)
@@ -351,16 +351,22 @@ def _analisa(raiz, draft, meta, pasta, modo, op, avisa):
         for k, (s, m, x) in enumerate(itens):
             src0 = s["source_timerange"]["start"] / 1e6
             linha = getattr(avisa, "linha", None)
-            fr = transcricao.frases(w, x, lambda i, n, f0=feito, lx=len(x):
-                                     avisa("Transcrevendo", 0.3 + 0.4 * (f0 + lx * i / n) / total),
-                                    **({"ao_texto": lambda a, t, s0=src0: linha(a + s0, t)} if linha else {}))
-            frases[k] = [[a + src0, b + src0, t] for a, b, t in fr]
+            prog = lambda i, n, f0=feito, lx=len(x): avisa("Transcrevendo", 0.3 + 0.4 * (f0 + lx * i / n) / total)
+            texto = {"ao_texto": lambda a, t, s0=src0: linha(a + s0, t)} if linha else {}
+            if modo == "reels":                      # Cortes + Headline: tempo de cada palavra (frases certas e sobras)
+                pal = [dict(q, a=q["a"] + src0, b=q["b"] + src0) for q in palavras.transcreve(w, x, prog, **texto)]
+                todas += pal
+                frases[k] = [[f["a"], f["b"], f["t"]] for f in reels.frases_de(pal)]
+            else:
+                fr = transcricao.frases(w, x, prog, **texto)
+                frases[k] = [[a + src0, b + src0, t] for a, b, t in fr]
             feito += len(x)
 
     avisa("Achando os cortes", 0.72)
     prog = lambda i, n: avisa("Achando os cortes", 0.72 + 0.18 * i / n)
     pl = vlog.plano(itens, prog) if modo == "vlog" else reels.plano(itens, op.get("inicio"), op.get("fim"), prog)
-    return {"draft": draft, "meta": meta, "pasta": pasta, "pl": pl, "frases": frases}
+    return {"draft": draft, "meta": meta, "pasta": pasta, "pl": pl, "frases": frases, "palavras": todas,
+            "sobras": reels.sobras(todas) if (modo == "reels" and todas) else []}
 
 
 def _monta(raiz, an, nome_base, modo, op, avisa, capa):
@@ -369,6 +375,10 @@ def _monta(raiz, an, nome_base, modo, op, avisa, capa):
     if modo == "vlog":
         novo, erros = vlog.montar(draft, pl); zooms = []
     elif modo == "reels":
+        if op.get("tirar"):                          # trechos que a pessoa confirmou na revisao (tropeco, fim de conversa)
+            pl = reels.tira_trechos(pl, op["tirar"])
+            if not any(p["keep"] for p in pl):
+                raise capcut.ErroProjeto("Os trechos marcados para tirar ocupam o vídeo todo. Desmarque algum.")
         texto = reels.quebra_2_linhas(op["headline"]) if op.get("headline") else "EDITAR\nHEADLINE"
         tpl = reels.carrega_tpl(capcut.cache_efeitos(raiz))
         novo, zooms, erros = reels.montar(draft, pl, texto, tpl, an.get("posicao", 0.0))
@@ -377,10 +387,26 @@ def _monta(raiz, an, nome_base, modo, op, avisa, capa):
     if erros:
         raise capcut.ErroProjeto("A verificação do projeto falhou: " + ", ".join(sorted(set(erros))[:5]))
 
+    vel = reels.VELOCIDADE if (modo == "reels" and op.get("velocidade")) else 1.0
     avisa("Gravando no CapCut", 0.92)
-    nome = capcut.grava_projeto(raiz, nome_base, novo, meta, capa)
+    if vel != 1.0:                                   # tudo num clipe composto acelerado (como a pessoa faz a mao)
+        dentro = novo["duration"]
+        novo, compostos = reels.embrulha(novo, vel)
+        erros = composto.verifica(novo)
+        if erros:
+            raise capcut.ErroProjeto("A verificação do projeto falhou: " + ", ".join(sorted(set(erros))[:5]))
 
-    resumo = {"nome": nome, "modo": modo,
+        def extras(pasta):
+            composto.grava_subdrafts(pasta, compostos, capa)
+            e = composto.verifica(novo, pasta)
+            if e:
+                raise capcut.ErroProjeto("A verificação do projeto falhou: " + ", ".join(sorted(set(e))[:5]))
+        nome = capcut.grava_projeto(raiz, nome_base, composto.limpa_para_gravar(novo), meta, capa, extras)
+        vel = dentro / novo["duration"]
+    else:
+        nome = capcut.grava_projeto(raiz, nome_base, novo, meta, capa)
+
+    resumo = {"nome": nome, "modo": modo, "velocidade": round(vel, 4),
               "antes": sum(p["dur"] for p in pl), "depois": novo["duration"] / 1e6,
               "pedacos": sum(len(p["keep"]) for p in pl),
               "clipes": agrupa(pl)}
@@ -389,7 +415,7 @@ def _monta(raiz, an, nome_base, modo, op, avisa, capa):
         resumo["empurroes"] = sum(1 for z in zooms if z and z[0] == "empurra")
         resumo["headline"] = texto
     if frases:
-        leg = transcricao.mapeia(frases, pl)
+        leg = [[round(a / vel, 3), round(b / vel, 3), t] for a, b, t in transcricao.mapeia(frases, pl)]   # na timeline final
         destino = Path(raiz) / nome / "legenda_cortes.srt"
         destino.write_text(transcricao.srt(leg), encoding="utf-8")
         txt = "\n".join(t for k in sorted(frases) for _, _, t in frases[k])

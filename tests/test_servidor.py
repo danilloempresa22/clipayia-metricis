@@ -3,7 +3,7 @@ import json, threading, time, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 import pytest
-from clipay import conta, servidor, transcricao
+from clipay import conta, palavras, servidor, transcricao
 
 
 @pytest.fixture
@@ -13,6 +13,10 @@ def app(monkeypatch, raiz_capcut, tmp_path):
     monkeypatch.setattr(transcricao, "modelo_pronto", lambda q="preciso": True)
     monkeypatch.setattr(transcricao, "Whisper", lambda q: None)
     monkeypatch.setattr(transcricao, "frases", lambda w, x, p=None, **k: [[0.0, 3.0, "primeira fala"], [4.5, 7.5, "segunda fala"], [9.0, 10.0, "final"]])
+    # Cortes + Headline: tempo de cada palavra (as frases saem do ponto final)
+    monkeypatch.setattr(palavras, "transcreve", lambda w, x, p=None, **k: [
+        {"t": "primeira", "a": 0.0, "b": 1.5}, {"t": "fala.", "a": 1.5, "b": 3.0}, {"t": "segunda", "a": 4.5, "b": 6.0},
+        {"t": "fala.", "a": 6.0, "b": 7.5}, {"t": "Fechou?", "a": 9.0, "b": 9.5}, {"t": "Boa!", "a": 9.6, "b": 10.0}])
     estado = {"status": "ativo", "usos": 0}
     monkeypatch.setattr(conta, "estado", lambda: {"logado": True, "email": "a@b.c", "username": "a", "status": estado["status"]})
     monkeypatch.setattr(conta, "registra_processamento", lambda: estado.update(usos=estado["usos"] + 1))
@@ -70,11 +74,12 @@ def test_fluxo_completo_analisa_revisa_gera(app, video_vertical, raiz_capcut):
     j = espera(r["id"]); assert "erro" not in j, j
     a = j["resultado"]
     assert "rosto" not in a                                                       # sem escolha de lado: zoom centrado sozinho
-    assert a["frases"][0][2] == "primeira fala" and a["depois"] < a["duracao"] and (a["largura"], a["altura"]) == (540, 960)
+    assert a["frases"][0][2] == "primeira fala." and a["depois"] < a["duracao"] and (a["largura"], a["altura"]) == (540, 960)
+    assert [x["tipo"] for x in a["sobras"]] == ["final"]                        # "Fechou? Boa!" no fim: sugestao, nada sai sozinho
 
-    # a transcricao e' so leitura: um "remover" antigo no pedido e' ignorado
+    # um "remover" antigo no pedido e' ignorado (so "tirar", o que a pessoa confirmou); sem acelerar
     c, r = chama("/api/gerar", {"analise": a["analise"], "headline": "TESTE DE HEADLINE BEM GRANDE AQUI",
-                                "remover": [a["frases"][1][:2]], "nome": "Projeto do teste"})
+                                "remover": [a["frases"][1][:2]], "nome": "Projeto do teste", "velocidade": False})
     assert c == 200
     j = espera(r["id"]); assert "erro" not in j, j
     res = j["resultado"]
@@ -82,6 +87,20 @@ def test_fluxo_completo_analisa_revisa_gera(app, video_vertical, raiz_capcut):
     d = json.loads((Path(raiz_capcut) / "Projeto do teste" / "draft_content.json").read_text(encoding="utf-8"))
     assert any(t["type"] == "text" for t in d["tracks"])
     assert estado["usos"] == 1                                                    # contou 1 processamento
+
+    # tirar a 2a frase (confirmada na revisao) e acelerar 1,13x: tudo num clipe composto acelerado
+    c, r = chama("/api/gerar", {"analise": a["analise"], "headline": "OUTRA", "nome": "Projeto acelerado",
+                                "tirar": [[4.5, 7.6]], "velocidade": True})
+    j = espera(r["id"]); assert "erro" not in j, j
+    res2 = j["resultado"]
+    pasta = Path(raiz_capcut) / "Projeto acelerado"
+    d = json.loads((pasta / "draft_content.json").read_text(encoding="utf-8"))
+    dentro = d["materials"]["drafts"][0]["draft"]
+    assert res2["velocidade"] == pytest.approx(1.13, abs=0.01) and d["tracks"][0]["segments"][0]["speed"] == pytest.approx(1.13, abs=0.01)
+    assert dentro["duration"] == pytest.approx(d["duration"] * res2["velocidade"], abs=1000)
+    assert dentro["duration"] / 1e6 < a["depois"] - 2.5                         # a 2a frase saiu
+    assert (pasta / "subdraft" / dentro["id"] / "draft_content.json").exists()
+    assert {t["type"] for t in dentro["tracks"]} == {"video", "text"}           # cortes, zoom e headline dentro do composto
 
 
 def test_conta_inativa_bloqueia_antes_de_processar(app, video_vertical, monkeypatch):

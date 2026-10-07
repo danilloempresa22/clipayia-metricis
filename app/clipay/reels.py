@@ -8,6 +8,10 @@ from . import capcut
 from .vlog import eh_broll, takes_broll, duplicados
 
 K, SOFT_REL, MAXEXT, G, P0, P1, R, ISO, CURTO, GAP_PICOTADO = 8.0, -1.0, 0.30, 0.10, 0.04, 0.02, 0.25, 0.5, 0.6, 0.5
+INICIO_FOLGA = 0.01                  # s antes da fala em que o trecho comeca (Cortes + Headline). Medido no "edit ale 1":
+                                     # a pessoa puxou o comeco 2 quadros pra frente em 15 de 25 trechos; com 10 ms a regra
+                                     # tira o mesmo ~1 s e fica no maximo 1 quadro mais justa que a escolha dela
+VELOCIDADE = 1.13                    # a mesma do Cortes de podcast, do iPad e da Rotina
 
 
 def regua(e, v, dur):
@@ -51,6 +55,28 @@ def regua(e, v, dur):
     return out
 
 
+def fala_estrita(e, v):
+    """quadro a quadro: onde ha voz de verdade (sem a extensao suave da regua)"""
+    porta = porta_de(e, v)
+    tom = (v > 0.42) & (e > porta)
+    sust = tom.copy()
+    for k in (1, 2): sust[:-k] &= tom[k:]
+    return sust | (e > porta + K)
+
+
+def aperta_inicios(e, v, keep, folga=INICIO_FOLGA):
+    """o comeco de cada trecho vai pra perto de onde a voz comeca (folga s antes, na grade de quadros).
+    So puxa pra frente (nunca come fala) e nao mexe em trecho onde a voz demora a aparecer."""
+    fala = fala_estrita(e, v); out = []
+    for p in keep:
+        a, b = p[0], p[1]
+        i = int(a / H)
+        while i < len(fala) and i * H < b and not fala[i]: i += 1
+        alvo = float(np.floor((i * H - folga) * FPS + 1e-6) / FPS)
+        out.append([max(a, alvo) if a < alvo < b - 0.1 else a, b] + list(p[2:]))
+    return out
+
+
 def divide_longos(e, v, keep, MAX=5.5):
     """pedaco > 5,5s e' partido numa MICROPAUSA do meio (troca de enquadramento). Sem pausa, nao parte."""
     porta = porta_de(e, v); out = []
@@ -84,7 +110,7 @@ def plano(itens, inicio=None, fim=None, progresso=None):
         else:
             tipo = "fala"
             e, v = analisa(x)
-            keep = divide_longos(e, v, regua(e, v, dur))
+            keep = aperta_inicios(e, v, divide_longos(e, v, regua(e, v, dur)))
         keep = [[round(src0 + p[0], 4), round(src0 + min(p[1], dur), 4), p[2]] for p in keep]
         if i == 0 and inicio is not None: keep = tira(keep, [[0, inicio]])
         if i == len(itens) - 1 and fim is not None: keep = tira(keep, [[fim, 1e9]])
@@ -132,6 +158,99 @@ def kf(prop, t0, t1, v0, v1):
         {"id": capcut.uid(), "curveType": "Line", "time_offset": t, "left_control": {"x": 0.0, "y": 0.0},
          "right_control": {"x": 0.0, "y": 0.0}, "values": [val], "string_value": "", "graphID": ""}
         for t, val in ((t0, v0), (t1, v1))]}
+
+
+# ---------------- sobras: tropeco (frase recomecada) e conversa no final ----------------
+_LIMPA = re.compile(r"[^\wà-ÿ]+", re.I)
+CORRIGE = ("quer dizer", "ou melhor", "melhor dizendo", "desculpa", "desculpe", "perdão", "errei", "falar de novo")
+CORRIGE_CURTA = ("não pode", "nao pode", "de novo", "pera", "peraí", "calma", "não, não", "nao, nao")   # so em frase curta
+CURTA = 5                                                                                         # palavras
+FECHO = {"fechou", "boa", "beleza", "valeu", "perfeito", "show", "isso", "entendeu", "tranquilo", "ok", "obrigado",
+         "obrigada", "tchau", "falou", "certo", "massa", "top", "demais", "pronto"}
+
+
+def _norm(t):
+    return _LIMPA.sub("", t.lower())
+
+
+def _fim_de_frase(t):
+    return t.strip().rstrip("\"'”’)»").endswith((".", "!", "?", "…"))
+
+
+def frases_de(pal):
+    """as palavras do transcritor viram frases com tempo (fecha no ponto final ou numa pausa longa)"""
+    out, cur = [], []
+    for i, w in enumerate(pal):
+        cur.append(w)
+        prox = pal[i + 1] if i + 1 < len(pal) else None
+        if prox is None or _fim_de_frase(w["t"]) or prox["a"] - w["b"] >= 0.8 or len(cur) >= 28:
+            out.append({"a": cur[0]["a"], "b": cur[-1]["b"], "t": " ".join(x["t"] for x in cur), "i0": i - len(cur) + 1, "i1": i})
+            cur = []
+    return out
+
+
+def sobras(pal):
+    """trechos que parecem sobrar, pra pessoa CONFIRMAR na revisao (nada sai sozinho):
+    tropeco = a pessoa se corrigiu ("Da substantivo, nao pode."): sai a frase do tropeco, ate a fala seguinte comecar
+    final   = conversa depois do conteudo: frases curtas de fechamento no fim ("Fechou? Fechou. Boa!")
+    Palavra repetida NAO conta: o transcritor junta a repeticao do recomeco ("adjetivo, adjetivo" vira um so) e,
+    numa conversa, repetir e' quase sempre enfase ("bizarro, bizarro"; medido no podcast de 10 min: 3 falsos alarmes)."""
+    fr = frases_de(pal); out = []
+    fim = []
+    for f in reversed(fr):
+        ws = [_norm(x) for x in f["t"].split()]
+        if ws and len(ws) <= 3 and (any(w in FECHO for w in ws) or len(ws) <= 1):
+            fim.insert(0, f)
+        else:
+            break
+    if len(fim) == len(fr): fim = []
+    for n, f in enumerate(fr[:len(fr) - len(fim)]):
+        baixo = f["t"].lower()
+        corrige = any(c in baixo for c in CORRIGE) or (len(baixo.split()) <= CURTA and any(c in baixo for c in CORRIGE_CURTA))
+        if corrige:                                    # a frase inteira, ate a proxima comecar
+            b = fr[n + 1]["a"] if n + 1 < len(fr) else f["b"]
+            out.append({"tipo": "tropeco", "a": round(f["a"], 3), "b": round(b, 3), "texto": f["t"]})
+    if fim:                                            # comeca logo depois da ultima frase do conteudo (leva o respiro)
+        ant = fr[len(fr) - len(fim) - 1]["b"]
+        out.append({"tipo": "final", "a": round(max(ant + 0.05, fim[0]["a"] - 1.0), 3), "b": round(fim[-1]["b"] + 0.3, 3),
+                    "texto": " ".join(f["t"] for f in fim)})
+    return [o for o in out if o["b"] - o["a"] >= 0.3]
+
+
+def tira_trechos(pl, regioes, encosta=0.3):
+    """tira as regioes confirmadas na revisao. A borda que cai a menos de 0,3 s do comeco/fim de um trecho vai ate
+    ele (o tempo das palavras e' aproximado: nao sobra um pedacinho de silaba)"""
+    out = []
+    for p in pl:
+        keep = [list(k) for k in p["keep"]]
+        rs = []
+        for a, b in regioes:
+            for k in keep:
+                if k[0] < a < k[1] and a - k[0] <= encosta: a = k[0]
+                if k[0] < b < k[1] and k[1] - b <= encosta: b = k[1]
+                if abs(b - k[0]) <= encosta and b < k[0]: b = k[0]
+            rs.append([a, b])
+        out.append(dict(p, keep=tira(keep, rs)))
+    return out
+
+
+# ---------------- velocidade: tudo num clipe composto acelerado (como a pessoa fez no "edit ale 1") ----------------
+def embrulha(novo, vel, nome="Vídeo"):
+    """o projeto inteiro (cortes, zoom e headline) vira um clipe composto e a raiz mostra esse composto acelerado.
+    Os zooms ficam dentro do composto, no tempo deles. Devolve (raiz, [entrada do composto])."""
+    from . import composto, ipad
+    canvas = (novo["canvas_config"]["width"], novo["canvas_config"]["height"])
+    dur = novo["duration"]
+    ent = composto.composto(nome, novo, canvas, dur)
+    dc = ent["draft"]; dc["materials"] = copy.deepcopy(novo["materials"]); dc["tracks"] = copy.deepcopy(novo["tracks"])
+    raiz = composto.esqueleto(novo); raiz["id"] = capcut.uid()
+    s_v, _, porcat = composto.seg_composto(composto.MOLDE["raiz"]["corpo"], ent, raiz["materials"], dur, canvas)
+    s_v["clip"] = dict(s_v["clip"], scale={"x": 1.0, "y": 1.0}, transform={"x": 0.0, "y": 0.0})
+    fora = ipad._velocidade(s_v, porcat, dur, vel)
+    raiz["tracks"] = [composto.trilha("trilha_video_modelo", [s_v])]
+    raiz["duration"] = fora
+    raiz["materials"]["drafts"] = [ent]
+    return raiz, [ent]
 
 
 # ---------------- headline ----------------

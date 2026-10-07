@@ -722,6 +722,18 @@ body:has(#app:not(.oculto)){background:var(--bg) radial-gradient(55% 38% at 78% 
 .fr{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--linha);align-items:flex-start;user-select:text}   /* so leitura */
 .fr:last-child{border:0}
 .fr .t{color:var(--mudo);font-size:12px;min-width:74px;padding-top:2px;font-variant-numeric:tabular-nums}
+.fr .x{flex:1}
+.fr.fora .x{text-decoration:line-through;color:var(--mudo)}
+.fr-tirar{flex:none;background:none!important;border:1px solid var(--linha)!important;color:var(--mudo)!important;font-size:12px!important;
+  padding:3px 10px!important;border-radius:99px!important;font-weight:500!important;cursor:pointer}
+.fr-tirar:hover{color:var(--txt)!important;border-color:var(--mudo)!important}
+.fr-tirar[aria-pressed="true"]{color:var(--acc)!important;border-color:var(--acc)!important}
+.sob{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.sob-it{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid var(--linha);background:var(--bg)}
+.sob-it.fora{border-color:var(--acc)}
+.sob-tag{flex:none;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(245,184,75,.12);color:#f7d68c}
+.sob-x{flex:1;min-width:0;font-size:14px}
+.sob-x small{display:block;color:var(--mudo);font-size:12px;font-variant-numeric:tabular-nums}
 .nums{display:flex;gap:28px;flex-wrap:wrap}
 .nums div{font-size:13px;color:var(--mudo)}
 .nums b{display:block;font-size:24px;color:var(--txt);font-variant-numeric:tabular-nums}
@@ -1158,8 +1170,18 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
             <div class="campo" style="margin:0"><label for="headline">Frase fixa no topo do vídeo (promessa ou afirmação forte)</label>
               <input type="text" id="headline" maxlength="90" placeholder="Ex.: VOCÊ ESTÁ EDITANDO ERRADO"></div>
           </div>
+          <div class="card oculto" id="rev-sob-card">
+            <h2>Trechos que parecem sobrar</h2>
+            <p class="sub" style="margin:4px 0 0">O app achou estes trechos na transcrição. Nada sai sozinho: toque em “Tirar” no que você quer fora do vídeo.</p>
+            <div class="sob" id="rev-sob"></div>
+          </div>
+          <div class="card">
+            <h2>Ajustes</h2>
+            <label class="chave" style="margin:0"><input type="checkbox" id="rev-vel" checked> Acelerar o vídeo para 1,13x (tudo dentro de um clipe composto, como no Cortes de podcast)</label>
+          </div>
           <div class="card">
             <h2>Transcrição</h2>
+            <p class="sub" style="margin:4px 0 10px">Ajuda a escrever a headline. Se alguma frase sobrou (um erro, uma repetição), toque em “Tirar”.</p>
             <div class="frases" id="frases"></div>
           </div>
         </div>
@@ -1945,19 +1967,55 @@ function abreRevisao(){
   $("n-antes").textContent = seg(analise.duracao); $("n-depois").textContent = seg(analise.depois); $("n-ped").textContent = analise.pedacos;
   W.nomePadrao = analise.nome.replace(/\.[^.]+$/, "") + " - corte";
   $("headline").value = "";
-  const box = $("frases"); box.innerHTML = "";          // so leitura: ajuda a escrever a headline (nada sai do video)
+  REV.tirar = new Map(); $("rev-vel").checked = true;
+  // sugestoes do app (tropeco, conversa no final): a pessoa confirma com um clique
+  const sob = analise.sobras || [];
+  $("rev-sob-card").classList.toggle("oculto", !sob.length);
+  $("rev-sob").innerHTML = sob.map((x, i) => '<div class="sob-it" data-sob="' + i + '"><span class="sob-tag">' + (x.tipo === "final" ? "Conversa no final" : "Tropeço") +
+    '</span><span class="sob-x"></span><button class="fr-tirar" type="button" aria-pressed="false" data-chave="s' + i + '">Tirar</button></div>').join("");
+  sob.forEach((x, i) => { const e = document.querySelector('[data-sob="' + i + '"] .sob-x'); e.textContent = x.texto;
+    const sm = document.createElement("small"); sm.textContent = seg(x.a) + " – " + seg(x.b); e.appendChild(sm); });
+  const box = $("frases"); box.innerHTML = "";          // ajuda a escrever a headline; frase que sobrou pode sair
   if(!analise.frases.length) box.innerHTML = '<div class="fr"><span class="x" style="color:var(--mudo)">Nenhuma fala transcrita.</span></div>';
-  analise.frases.forEach(f => {
-    const d = document.createElement("div"); d.className = "fr";
-    d.innerHTML = '<span class="t">'+seg(f[0])+' – '+seg(f[1])+'</span><span class="x"></span>';
+  analise.frases.forEach((f, i) => {
+    const d = document.createElement("div"); d.className = "fr"; d.dataset.i = i;
+    d.innerHTML = '<span class="t">'+seg(f[0])+' – '+seg(f[1])+'</span><span class="x"></span><button class="fr-tirar" type="button" aria-pressed="false" data-chave="f' + i + '">Tirar</button>';
     d.querySelector(".x").textContent = f[2];
     box.appendChild(d);
   });
+  revConta();
   erro("rev-erro"); ocupado = true; mostra("revisao");
 }
+const REV = {tirar: new Map()};                         // chave -> [a, b] (s no video original)
+function revRegiao(chave){
+  if(chave[0] === "s"){ const x = analise.sobras[+chave.slice(1)]; return [x.a, x.b]; }
+  const i = +chave.slice(1), f = analise.frases[i], prox = analise.frases[i + 1];
+  return [f[0], prox ? Math.max(f[1], Math.min(prox[0], f[1] + 0.8)) : f[1] + 0.3];   // leva o respiro ate a proxima frase
+}
+function revConta(){                                    // quanto fica: os trechos mantidos menos o que vai sair (e a velocidade)
+  const keep = analise.keep || [], rs = [...REV.tirar.values()];
+  let fica = 0;
+  keep.forEach(([a, b]) => { let d = b - a; rs.forEach(([x, y]) => { d -= Math.max(0, Math.min(b, y) - Math.max(a, x)); }); fica += Math.max(0, d); });
+  const vel = $("rev-vel").checked ? (analise.velocidade || 1.13) : 1;
+  $("n-depois").textContent = seg(keep.length ? fica / vel : analise.depois / vel);
+  document.querySelectorAll("[data-chave]").forEach(b => { const on = REV.tirar.has(b.dataset.chave);
+    b.setAttribute("aria-pressed", on); b.textContent = on ? "Vai sair" : "Tirar"; b.closest(".fr, .sob-it").classList.toggle("fora", on); });
+  document.querySelectorAll("#frases .fr[data-i]").forEach(d => {     // frase que cai num trecho que vai sair tambem fica riscada
+    const f = analise.frases[+d.dataset.i], meio = (f[0] + f[1]) / 2;
+    if(rs.some(([x, y]) => meio > x && meio < y)) d.classList.add("fora");
+  });
+}
+["rev-sob", "frases"].forEach(id => $(id).addEventListener("click", e => {
+  const b = e.target.closest("[data-chave]"); if(!b) return;
+  const k = b.dataset.chave;
+  if(REV.tirar.has(k)) REV.tirar.delete(k); else REV.tirar.set(k, revRegiao(k));
+  revConta();
+}));
+$("rev-vel").addEventListener("change", revConta);
 // o que vai pro "gerar" de cada modelo (mesmos campos de antes; o nome vem da tela Gerar)
 const CORPO = {
-  cortes: nome => ({analise: analise.analise, headline: $("headline").value, nome}),
+  cortes: nome => ({analise: analise.analise, headline: $("headline").value, nome, velocidade: $("rev-vel").checked,
+    tirar: [...REV.tirar.values()]}),
   legenda: nome => {
     if(!$("lg-texto").value.trim()) throw new Error("O texto da legenda está vazio. Volte à revisão.");
     return {analise: analise.analise, texto: $("lg-texto").value, inicio: gancho === null ? null : analise.palavras[gancho][0],
@@ -1991,7 +2049,8 @@ function pronto(r){
   const extra = r.modo === "legenda"
     ? '<div><b>'+r.legendas+'</b>legendas</div><div><b>'+r.enfases+'</b>ênfases</div>'
     : r.modo === "rotina" ? '<div><b>1,13×</b>velocidade</div>'
-    : '<div><b>'+(r.zooms||0)+'</b>zooms</div>' + (r.legendas ? '<div><b>'+r.legendas+'</b>legendas</div>' : '');
+    : '<div><b>'+(r.zooms||0)+'</b>zooms</div>' + (r.legendas ? '<div><b>'+r.legendas+'</b>legendas</div>' : '') +
+      (r.velocidade && r.velocidade !== 1 ? '<div><b>' + r.velocidade.toFixed(2).replace(".", ",") + '×</b>velocidade</div>' : '');
   $("pronto-nums").innerHTML = '<div><b>'+seg(r.antes)+'</b>original</div><div><b class="ok">'+seg(r.depois)+'</b>final</div><div><b>'+r.pedacos+'</b>trechos</div>' + extra;
   mostra("pronto");
 }

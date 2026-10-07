@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
+from . import capcut, transcricao, processa, reels, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -364,7 +364,9 @@ def trabalho_analisa(caminho, modelo, modo="cortes"):
         keep = an["pl"][0]["keep"]
         return {"analise": aid, "nome": an["video"].name, "duracao": an["pl"][0]["dur"],
                 "depois": sum(k[1] - k[0] for k in keep), "pedacos": len(keep),
+                "keep": [[round(k[0], 3), round(k[1], 3)] for k in keep],
                 "frases": [[round(a, 2), round(b, 2), t] for a, b, t in an["frases"].get(0, [])],
+                "sobras": an.get("sobras", []), "velocidade": reels.VELOCIDADE,
                 "largura": an["info"]["largura"], "altura": an["info"]["altura"]}
     return fn
 
@@ -438,7 +440,16 @@ def trabalho_gera(c):
             r = processa.monta_legenda(raiz, an, op, avisa)
             _conta_uso(r)
             return r
-        op = {"headline": (c.get("headline") or "").strip(), "nome": (c.get("nome") or "").strip() or None}
+        dur = an["pl"][0]["dur"] if an.get("pl") else 0
+        tirar = []
+        for x in (c.get("tirar") or [])[:200]:          # trechos que a pessoa marcou na revisao (dentro do video)
+            try:
+                a, b = max(0.0, float(x[0])), min(float(dur) + 1, float(x[1]))
+            except (TypeError, ValueError, IndexError):
+                continue
+            if b - a > 0.05: tirar.append([a, b])
+        op = {"headline": (c.get("headline") or "").strip(), "nome": (c.get("nome") or "").strip() or None,
+              "tirar": tirar, "velocidade": bool(c.get("velocidade", True))}
         r = processa.monta_video(raiz, an, op, avisa)
         _conta_uso(r)
         return r
