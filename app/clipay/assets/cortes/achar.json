@@ -2,6 +2,8 @@
  "_origem": "Configuracao da busca de cortes (Fase 3). BETA: IA local e gratuita pelo Ollama (nada sai do computador). Na versao paga isto vira a Edge Function achar-cortes e estes valores passam para o banco.",
  "acesso": "todas_ativas",
  "_acesso": "quem usa Cortes: todas_ativas (BETA: toda conta ativa) ou uma lista de planos, ex.: [\"basic\", \"premium\"]. Plano fora da lista ve o cadeado.",
+ "liberado": false,
+ "_liberado": "false = Cortes 'Em breve': fica na barra lateral com cadeado e nada dele carrega nem roda. true libera (vale o 'acesso' acima).",
  "provedor": "ollama",
  "modelo": "gemma3:12b",
  "url": "http://127.0.0.1:11434",

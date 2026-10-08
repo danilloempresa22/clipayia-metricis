@@ -110,8 +110,9 @@ def entra_com_tokens(access_token, refresh_token, expires_in=3600):
 
 
 def logout():
-    try: _arq().unlink()
-    except OSError: pass
+    for f in (_arq(), _cache()):
+        try: f.unlink()
+        except OSError: pass
 
 
 def sessao():
@@ -127,16 +128,69 @@ def sessao():
         logout(); return None
 
 
+def _cache():
+    return transcricao.pasta_dados() / "conta_cache.json"
+
+
 def estado():
-    """{logado, email, username, status}. status: 'ativo' | 'inativo'."""
-    s = sessao()
+    """{logado, email, username, nome, status}. status: 'ativo' | 'inativo'. Sem internet com sessao guardada: os
+    ultimos dados salvos, com offline=True (a Conta abre e avisa "sem conexao"; nada quebra)."""
+    try:
+        s = sessao()
+    except ErroConta as e:
+        if "internet" not in str(e): raise
+        try: s = json.loads(_arq().read_text(encoding="utf-8"))
+        except (OSError, ValueError): s = None
     if not s:
         return {"logado": False}
     uid = s["user_id"]
-    ass = _chama("GET", f"/rest/v1/subscriptions?select=status&user_id=eq.{uid}", token=s["access_token"])
-    perf = _chama("GET", f"/rest/v1/profiles?select=username&id=eq.{uid}", token=s["access_token"])
-    return {"logado": True, "email": s["email"], "username": perf[0]["username"] if perf else s["email"],
-            "status": ass[0]["status"] if ass else "inativo"}
+    try:
+        ass = _chama("GET", f"/rest/v1/subscriptions?select=status&user_id=eq.{uid}", token=s["access_token"])
+        try:                                              # a coluna nome vem do SQL 0003 (antes dele, so o username)
+            perf = _chama("GET", f"/rest/v1/profiles?select=username,nome&id=eq.{uid}", token=s["access_token"])
+        except ErroConta as e:
+            if "internet" in str(e): raise
+            perf = _chama("GET", f"/rest/v1/profiles?select=username&id=eq.{uid}", token=s["access_token"])
+    except ErroConta as e:
+        if "internet" not in str(e): raise
+        try:
+            c = json.loads(_cache().read_text(encoding="utf-8"))
+            if c.get("email") == s.get("email"):
+                return dict(c, offline=True)
+        except (OSError, ValueError):
+            pass
+        raise
+    e = {"logado": True, "email": s["email"], "username": perf[0]["username"] if perf else s["email"],
+         "nome": (perf[0].get("nome") or "") if perf else "", "status": ass[0]["status"] if ass else "inativo"}
+    try: _cache().write_text(json.dumps(e, ensure_ascii=False), encoding="utf-8")
+    except OSError: pass
+    return e
+
+
+def salva_nome(nome):
+    """o nome da pessoa no perfil do Supabase (so a propria linha e so a coluna nome: ver supabase/migrations/0003)"""
+    nome = " ".join((nome or "").split())[:80]
+    if not nome:
+        raise ErroConta("Escreva seu nome.")
+    s = sessao()
+    if not s:
+        raise ErroConta("Entre na sua conta de novo.")
+    try:
+        r = _chama("PATCH", f"/rest/v1/profiles?id=eq.{s['user_id']}", {"nome": nome}, token=s["access_token"],
+                   extra={"Prefer": "return=representation"})
+    except ErroConta as e:
+        m = str(e).lower()
+        if "internet" in m: raise ErroConta("Sem conexão: salvar o nome precisa de internet.")
+        if "nome" in m and ("column" in m or "coluna" in m): raise ErroConta("O banco ainda não tem o campo do nome (falta rodar o SQL 0003 no Supabase).")
+        raise
+    if not r:
+        raise ErroConta("Não consegui salvar o nome (o banco recusou). Confira se o SQL 0003 foi rodado no Supabase.")
+    try:
+        c = json.loads(_cache().read_text(encoding="utf-8")); c["nome"] = nome
+        _cache().write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+    except (OSError, ValueError):
+        pass
+    return nome
 
 
 def exige_ativa():
@@ -145,7 +199,7 @@ def exige_ativa():
     if not e["logado"]:
         raise ErroConta("Entre na sua conta para usar o Clipay.ia.")
     if e["status"] != "ativo":
-        raise ErroConta(f"Sua conta ainda não está ativa. Veja o status em {SITE_URL}")
+        raise ErroConta("Sua conta ainda não está ativa. Veja em Conta › Plano e cobrança.")
     return e
 
 

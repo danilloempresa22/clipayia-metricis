@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, reels, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
+from . import capcut, transcricao, processa, reels, edicoes, cobranca_demo, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -71,10 +71,9 @@ def le_historico():
 
 
 def anota_historico(r):
-    h = [{"data": datetime.now(timezone.utc).isoformat(timespec="seconds"), "nome": r["nome"],
-          "antes": round(r["antes"], 1), "depois": round(r["depois"], 1), "pedacos": r["pedacos"],
-          "zooms": r.get("zooms", 0), "headline": (r.get("headline") or "").replace("\n", " ")}] + le_historico()
-    historico_path().write_text(json.dumps(h[:100], ensure_ascii=False, indent=1), encoding="utf-8")
+    """cada projeto da Edicao, com o modelo (alimenta "Suas edicoes recentes" e a Conta)"""
+    edicoes.anota(r["nome"], r.get("modo"), r["depois"], {"antes": round(r["antes"], 1), "pedacos": r["pedacos"],
+                  "zooms": r.get("zooms", 0), "headline": (r.get("headline") or "").replace("\n", " ")})
 
 
 def semanas(datas, n=8):
@@ -242,6 +241,31 @@ def rotina_em_segundo_plano(caminhos, modelo="preciso"):
 # ---------------- CORTES (tela da Fase 4): o trabalho fica em fluxo_cortes.py ----------------
 def carrega_whisper(modelo):
     return lambda threads=None, paralelo=1: processa._whisper(modelo, lambda e, f=None: None, 0, 0, threads, paralelo)
+
+
+def cortes_liberado():
+    """o sinalizador unico do Cortes (assets/cortes/achar.json, "liberado"): false = "Em breve", nada dele roda"""
+    return bool(achar.config().get("liberado", True))
+
+
+FOTO_LADO = 256
+
+
+def foto_path():
+    return transcricao.pasta_dados() / "foto_perfil.jpg"
+
+
+def salva_foto(dados):
+    """a foto do perfil fica SO neste computador: quadrada, 256 px, JPEG"""
+    import cv2, numpy as np
+    im = cv2.imdecode(np.frombuffer(dados, np.uint8), cv2.IMREAD_COLOR) if dados else None
+    if im is None or min(im.shape[:2]) < 16:
+        raise capcut.ErroProjeto("Escolha uma imagem JPG ou PNG.")
+    h, w = im.shape[:2]; lado = min(h, w)
+    im = im[(h - lado) // 2:(h - lado) // 2 + lado, (w - lado) // 2:(w - lado) // 2 + lado]
+    im = cv2.resize(im, (FOTO_LADO, FOTO_LADO), interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", im, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    foto_path().write_bytes(buf.tobytes())
 
 
 def acesso_cortes():
@@ -627,17 +651,28 @@ class H(BaseHTTPRequestHandler):
             return self._video(q)
         if u.path == "/api/react/q":                     # quadro pequeno pra previa do React (<img>: token na URL)
             return self._quadro_react(q)
+        if u.path in ("/api/foto", "/api/capa"):         # foto do perfil / capa de um projeto (<img>: token na URL)
+            return self._imagem(u.path, q)
         if not self._autorizado(): return
         try:
             if u.path == "/api/sessao":
                 return self._json(conta.estado())
+            if u.path.startswith("/api/cortes/") and not cortes_liberado():
+                return self._json({"erro": "Cortes está chegando."}, 403)
+            if u.path == "/api/edicoes":                  # "Suas edicoes recentes" (Inicio) e a Conta
+                return self._json(edicoes.resumo(raiz_atual()))
+            if u.path == "/api/conta":                    # tela Conta: perfil real + plano (exemplo, ver cobranca_demo.py)
+                e = conta.estado()
+                return self._json({"conta": e, "cobranca": cobranca_demo.dados(e.get("status")),
+                                   "edicoes": edicoes.resumo(raiz_atual()), "foto": foto_path().exists(), "versao": __version__})
             if u.path == "/api/painel":
                 return self._json(painel())
             if u.path == "/api/estado":
                 raiz = raiz_atual()
                 return self._json({"versao": __version__, "raiz": str(raiz) if raiz else None,
                                    "modelo": transcricao.pronto("preciso"), "site": conta.SITE_URL, "google": conta.google_disponivel(),
-                                   "cortes": {"acesso": acesso_cortes()}, "react": {"acesso": fluxo_react.acesso()}})
+                                   "cortes": {"acesso": acesso_cortes(), "liberado": cortes_liberado()},
+                                   "react": {"acesso": fluxo_react.acesso()}})
             if u.path == "/api/rotina/estado":
                 return self._json(estado_rotina())
             if u.path == "/api/cortes/estado":
@@ -681,6 +716,18 @@ class H(BaseHTTPRequestHandler):
         except conta.ErroConta as e:
             return self._json({"erro": str(e)}, 400)
         self.send_response(404); self.end_headers()
+
+    def _imagem(self, caminho, q):
+        host = (self.headers.get("Host") or "").split(":")[0]
+        if host not in ("127.0.0.1", "localhost") or not secrets.compare_digest(q.get("t", [""])[0], TOKEN):
+            self.send_response(403); self.end_headers(); return
+        f = foto_path() if caminho == "/api/foto" else edicoes.capa(raiz_atual(), q.get("p", [""])[0])
+        if not f or not f.is_file():
+            self.send_response(404); self.end_headers(); return
+        b = f.read_bytes()
+        self.send_response(200); self.send_header("Content-Type", "image/jpeg")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
 
     def _quadro_react(self, q):
         host = (self.headers.get("Host") or "").split(":")[0]
@@ -763,7 +810,26 @@ class H(BaseHTTPRequestHandler):
                         if not b: break
                         f.write(b); falta -= len(b)
                 return self._json({"caminho": str(destino)})
+            if u.path.startswith("/api/cortes/") and not cortes_liberado():
+                return self._json({"erro": "Cortes está chegando."}, 403)
+            if u.path == "/api/conta/foto":               # a foto nova (bytes da imagem); fica so neste computador
+                n = int(self.headers.get("Content-Length", 0) or 0)
+                if n > 15 << 20:
+                    return self._json({"erro": "Essa imagem é grande demais. Escolha uma de até 15 MB."}, 400)
+                try:
+                    salva_foto(self.rfile.read(n))
+                except capcut.ErroProjeto as e:
+                    return self._json({"erro": str(e)}, 400)
+                return self._json({"ok": True})
             c = self._corpo()
+            if u.path == "/api/conta/nome":
+                return self._json({"nome": conta.salva_nome(c.get("nome", ""))})
+            if u.path == "/api/conta/senha":              # e-mail de redefinicao do Supabase (nunca pede nem mostra a senha)
+                e = conta.estado()
+                if e.get("offline"):
+                    return self._json({"erro": "Sem conexão: alterar a senha precisa de internet."}, 400)
+                conta.recupera_senha(e.get("email", ""))
+                return self._json({"ok": True, "email": e.get("email")})
             if u.path == "/api/login":
                 conta.login(c.get("email", ""), c.get("senha", ""))
                 return self._json(conta.estado())
@@ -974,6 +1040,7 @@ class H(BaseHTTPRequestHandler):
                 try:
                     raiz, cache = destino_cortes()
                     so = c.get("so")
+                    fluxo_react.AO_PRONTO = lambda l: edicoes.anota(l["projeto"], "react", l.get("duracao") or 0)
                     fluxo_react.gera(c.get("react", ""), c.get("itens") or [], raiz, c.get("cta") or None,
                                      bool(c.get("variar", True)), cache, lambda: carrega_whisper("preciso")(),
                                      set(so) if so else None, "final" if c.get("cta_pos") == "final" else "meio")

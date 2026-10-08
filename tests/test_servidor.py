@@ -201,11 +201,37 @@ def test_estado_e_exige_ativa(monkeypatch, tmp_path):
     dados = {"/rest/v1/subscriptions": [{"status": "inativo"}], "/rest/v1/profiles": [{"username": "fulano"}]}
     monkeypatch.setattr(conta, "_chama", lambda m, p, *a, **k: next(v for k, v in dados.items() if p.startswith(k)))
     e = conta.estado()
-    assert e == {"logado": True, "email": "e@x", "username": "fulano", "status": "inativo"}
+    assert e == {"logado": True, "email": "e@x", "username": "fulano", "nome": "", "status": "inativo"}
     with pytest.raises(conta.ErroConta, match="não está ativa"): conta.exige_ativa()
     dados["/rest/v1/subscriptions"] = [{"status": "ativo"}]
     assert conta.exige_ativa()["status"] == "ativo"
 
+
+
+def test_estado_nome_cache_offline_e_sql_0003(monkeypatch, tmp_path):
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
+    (tmp_path / "sessao.json").write_text(json.dumps({"access_token": _jwt("u"), "refresh_token": "r",
+                                                       "expira": time.time() + 999, "email": "e@x", "user_id": "u"}))
+    def sem_coluna(m, p, *a, **k):                       # antes do SQL 0003: a coluna nome nao existe
+        if "nome" in p: raise conta.ErroConta("column profiles.nome does not exist")
+        return [{"status": "ativo"}] if "subscriptions" in p else [{"username": "fulano"}]
+    monkeypatch.setattr(conta, "_chama", sem_coluna)
+    assert conta.estado()["nome"] == "" and conta.estado()["username"] == "fulano"
+    def patch_sem_coluna(m, p, *a, **k):
+        raise conta.ErroConta("Could not find the 'nome' column of 'profiles' in the schema cache")
+    monkeypatch.setattr(conta, "_chama", patch_sem_coluna)
+    with pytest.raises(conta.ErroConta, match="SQL 0003"): conta.salva_nome("Fulano")
+    monkeypatch.setattr(conta, "_chama", lambda *a, **k: [])        # RLS recusou (sem policy de update)
+    with pytest.raises(conta.ErroConta, match="SQL 0003"): conta.salva_nome("Fulano")
+    with pytest.raises(conta.ErroConta, match="Escreva"): conta.salva_nome("   ")
+    monkeypatch.setattr(conta, "_chama", lambda *a, **k: [{"nome": "Fulano de Tal"}])
+    assert conta.salva_nome("  Fulano   de  Tal ") == "Fulano de Tal"
+    def sem_internet(*a, **k): raise conta.ErroConta("Sem internet.")
+    monkeypatch.setattr(conta, "_chama", sem_internet)              # offline: os ultimos dados, marcados
+    e = conta.estado()
+    assert e["offline"] and e["username"] == "fulano" and e["nome"] == "Fulano de Tal" and e["status"] == "ativo"
+    with pytest.raises(conta.ErroConta, match="Sem conexão"): conta.salva_nome("Outro")
+    conta.logout(); assert not (tmp_path / "conta_cache.json").exists()
 
 # ---- tela de login: senha esquecida, Google, logo ----
 def test_login_recusa_email_invalido_antes_de_chamar_o_supabase(monkeypatch, tmp_path):
@@ -302,3 +328,67 @@ def test_ipad_sem_fala_em_nenhum_video_avisa(app, video_mudo, tmp_path):
     outro = tmp_path / "outro_mudo.mp4"; shutil.copy(video_mudo, outro)
     c, r = chama("/api/ipad/preparar", {"ipad": str(video_mudo), "pessoa": str(outro)})
     assert "Não encontrei fala" in espera(r["id"])["erro"]
+
+
+# ---- Inicio e Conta: edicoes de todos os modelos, plano de exemplo, Cortes "Em breve" ----
+def test_edicoes_junta_modelos_e_some_o_que_saiu_do_capcut(monkeypatch, tmp_path):
+    from clipay import edicoes
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
+    raiz = tmp_path / "capcut"
+    for n in ("velho", "react 1", "corte 1"):
+        (raiz / n).mkdir(parents=True); (raiz / n / "draft_content.json").write_text("{}")
+    (raiz / "react 1" / "draft_cover.jpg").write_bytes(b"x")
+    (tmp_path / "historico.json").write_text(json.dumps([
+        {"data": "2026-09-01T10:00:00+00:00", "nome": "velho", "depois": 30},           # antigo: sem modelo
+        {"data": "2026-09-02T10:00:00+00:00", "nome": "apagado", "modelo": "ipad", "depois": 20}]))
+    (tmp_path / "historico_cortes.json").write_text(json.dumps([{"data": "2026-09-03T10:00:00+00:00", "projeto": "corte 1", "duracao": 50}]))
+    edicoes.anota("react 1", "react", 61.04)
+    ts = edicoes.todas(raiz)
+    assert [(x["projeto"], x["modelo"]) for x in ts] == [("react 1", "React"), ("corte 1", "Cortes de podcast"), ("velho", "Edição")]
+    assert ts[0]["capa"] and not ts[1]["capa"] and ts[0]["duracao"] == 61.0
+    r = edicoes.resumo(raiz)
+    assert r["total"] == 3 and r["ultima"]["projeto"] == "react 1" and r["mes"] >= 1
+    assert edicoes.capa(raiz, "react 1") and edicoes.capa(raiz, "../react 1") is None and edicoes.capa(raiz, "corte 1") is None
+
+
+def test_cobranca_demo_e_o_unico_lugar_dos_exemplos(monkeypatch):
+    from datetime import date
+    from clipay import cobranca_demo
+    d = cobranca_demo.dados("ativo", date(2026, 10, 8))
+    assert d["demo"] and d["status"] == "ativo" and d["plano"]["id"] == "premium"
+    assert (d["inicio"], d["renova"], d["dias_total"], d["dias_restantes"]) == ("2026-10-01", "2026-11-01", 31, 24)
+    assert [h["data"] for h in d["historico"]] == ["2026-10-01", "2026-09-01", "2026-08-01"]
+    assert cobranca_demo.dados("ativo", date(2026, 12, 31))["renova"] == "2027-01-01"
+    monkeypatch.setattr(cobranca_demo, "DEMO", False)
+    assert cobranca_demo.dados("inativo") == {"demo": False, "status": "inativo"}     # sem exemplo: nada inventado
+
+
+def test_cortes_em_breve_nao_roda_nada(app, monkeypatch):
+    chama, _, _, _ = app
+    monkeypatch.setattr(servidor, "cortes_liberado", lambda: False)
+    c, e = chama("/api/estado")
+    assert c == 200 and e["cortes"]["liberado"] is False
+    assert chama("/api/cortes/recentes") == (403, {"erro": "Cortes está chegando."})
+    assert chama("/api/cortes/analisa", {"caminho": "x"})[0] == 403
+    c, d = chama("/api/conta")
+    assert c == 200 and d["cobranca"]["status"] == "ativo" and d["foto"] is False and "total" in d["edicoes"]
+
+
+def test_foto_do_perfil_fica_so_no_computador(app, tmp_path):
+    import cv2, numpy as np
+    chama, _, _, base = app
+    ruim = urllib.request.Request(base + "/api/conta/foto", data=b"nao e imagem", method="POST",
+                                  headers={"X-Clipay-Token": servidor.TOKEN, "Content-Type": "application/octet-stream"})
+    try: urllib.request.urlopen(ruim); assert False
+    except urllib.error.HTTPError as e: assert e.code == 400 and "JPG ou PNG" in json.loads(e.read())["erro"]
+    ok, png = cv2.imencode(".png", np.full((300, 500, 3), 200, np.uint8))
+    boa = urllib.request.Request(base + "/api/conta/foto", data=png.tobytes(), method="POST",
+                                 headers={"X-Clipay-Token": servidor.TOKEN, "Content-Type": "application/octet-stream"})
+    assert urllib.request.urlopen(boa).status == 200
+    im = cv2.imread(str(tmp_path / "foto_perfil.jpg"))
+    assert im.shape[:2] == (256, 256)
+    r = urllib.request.urlopen(f"{base}/api/foto?t={servidor.TOKEN}")
+    assert r.headers["Content-Type"].startswith("image/jpeg")
+    try: urllib.request.urlopen(f"{base}/api/foto?t=errado"); assert False
+    except urllib.error.HTTPError as e: assert e.code in (401, 403)
+    assert chama("/api/conta")[1]["foto"] is True

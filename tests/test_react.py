@@ -1,7 +1,7 @@
 """React (Fase 1, so o motor): o projeto do CapCut sai igual ao real "Patricio clipay ia" trocando so o que varia.
 Sem CTA, com CTA (o de cima congela e o react pausa e volta do mesmo ponto), video horizontal em cima, react curto
 demais, sem pausa na janela, variar o trecho, nomes com acento — e o teste de ouro contra o projeto de referencia."""
-import json, re, shutil, subprocess
+import copy, json, re, shutil, subprocess
 from pathlib import Path
 import pytest
 from clipay import audio, react
@@ -59,9 +59,11 @@ def test_com_cta_congela_e_react_volta_de_onde_parou(video_vertical, midia, tmp_
     assert c3[2] + c3[3] == k3[2] + k3[3] == t[3] == D + C == r["draft"]["duration"]
     segs = r["draft"]["tracks"][1]["segments"]
     assert [s["volume"] for s in segs] == [0.0, 1.0, 0.0]        # o CTA tem som
-    refs = lambda s: {r["draft"]["materials"][k][0]["type"] for k in ("effects",) if any(
-        x["id"] in s["extra_material_refs"] for x in r["draft"]["materials"][k])}
-    assert [bool(refs(s)) for s in segs] == [True, False, True]  # filtro Aprimorar no react, nao no CTA
+    todos = [s for t in r["draft"]["tracks"] for s in t["segments"]]
+    filtros = {x["id"] for x in r["draft"]["materials"].get("effects", [])}
+    assert not filtros and not any(set(s["extra_material_refs"]) & filtros for s in todos)   # nenhum filtro em trecho nenhum
+    mascaras = {x["id"] for x in r["draft"]["materials"]["common_mask"]}
+    assert [bool(set(s["extra_material_refs"]) & mascaras) for s in segs] == [True, True, True]   # a mascara "Dividir" continua
     nome = react.grava(raiz, r)
     png = raiz / nome / r["png"]
     assert png.exists() and png.stat().st_size > 0 and react.verifica(r, raiz / nome) == []
@@ -168,7 +170,10 @@ def test_ouro_patricio():
     r = react.monta(rec, rct, {"corte": ref["tracks"][0]["segments"][0]["clip"]["transform"]["y"] / 2}, cta, None,
                     ref["tracks"][0]["segments"][0]["target_timerange"]["duration"] / 1e6, cache)
     assert react.verifica(r) == []
-    difs = _difs(r["draft"], ref)
+    sem = copy.deepcopy(ref); react.sem_filtro(sem)                # desde 2026-10 o React sai sem o filtro "Aprimorar"
+    assert len(ref["materials"]["effects"]) == 2 and not sem["materials"].get("effects")
+    assert not r["draft"]["materials"].get("effects") and len(r["draft"]["materials"]["common_mask"]) == 3
+    difs = _difs(r["draft"], sem)
     assert sorted(difs) == sorted([".materials.texts[0].content"] + [f".{k}.{c}" for k in ("platform", "last_modified_platform")
                                                                        for c in ("device_id", "hard_disk_id", "mac_address")])
     # as pecas do modelo de texto mantem o nome do pacote (texto e barra vermelha): senao o CapCut refaz o modelo

@@ -17,6 +17,7 @@ EXT_VIDEO = (".mp4", ".mov", ".mkv", ".m4v", ".avi", ".webm")
 PARALELO = 3                                  # projetos ao mesmo tempo (o computador continua usavel)
 SUMIU = "Esse vídeo não está mais nesse lugar. Ele foi movido ou apagado?"
 GERACAO = {"job": None}
+AO_PRONTO = None                              # chamado com a linha de cada projeto pronto (o servidor anota no historico)
 _TRAVA_GRAVA = threading.Lock()               # o indice do CapCut (root_meta_info) e' um arquivo so: um por vez
 _QUADROS = threading.Semaphore(3)             # no maximo 3 ffmpeg tirando quadro ao mesmo tempo
 _TRAVA_WHISPER = threading.Lock()             # uma transcricao por vez (a busca da pausa e a geracao usam o mesmo motor)
@@ -297,6 +298,9 @@ def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whispe
                 l.update(estado="gravando", previsto=capcut.nome_livre(raiz, l["nome"])); _salva(job)   # o nome, antes de gravar
                 l["projeto"] = react.grava(raiz, r, nome=l["previsto"], capa=capa)
             l.update(estado="pronto", congelar=r["congelar"], avisos=r["avisos"], tempo=round(time.perf_counter() - t0, 2))
+            if AO_PRONTO:
+                try: AO_PRONTO(l)                     # historico de edicoes (Inicio e Conta)
+                except Exception: traceback.print_exc()   # noqa: BLE001
         except Exception as e:                       # noqa: BLE001 — um video que falha nao derruba os outros
             traceback.print_exc()
             l.update(estado="erro", erro=SUMIU if not v.exists() else _curto(e))

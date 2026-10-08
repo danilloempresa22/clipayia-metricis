@@ -5,7 +5,8 @@ varios videos: um projeto do CapCut por video de cima.
 O projeto e' o real "Patricio clipay ia" (docs/design/referencia-react, copiado em assets/react com marcadores no
 lugar dos caminhos): so muda o que varia (materiais, tempos, enquadramento, ids). Nada de estrutura inventada.
   trilha 1 (video)  o video de cima, com som. Com CTA: [0,P) | quadro congelado em P (foto "Congelar") | [P,fim)
-  trilha 2 (video)  o react, mudo, na faixa de baixo, mascara "Dividir" (o degrade) + filtro "Aprimorar".
+  trilha 2 (video)  o react, mudo, na faixa de baixo, mascara "Dividir" (o degrade). SEM filtro: a referencia tinha
+                    "Aprimorar" nos 2 trechos do react (antes e depois do CTA); desde 2026-10 nenhum trecho tem filtro.
                     Com CTA: no mesmo intervalo entra o video do CTA (com som, sem filtro) e o react fica parado:
                     depois do CTA ele volta exatamente de onde parou.
   trilha 3 (texto)  headline no modelo "Title EN Simple News", o video todo (a pessoa troca o texto no CapCut)."""
@@ -264,6 +265,18 @@ def fonte_headline():
     return ""
 
 
+def sem_filtro(d):
+    """tira todo filtro (materials.effects do tipo filter, ex.: "Aprimorar") de todos os trechos; a mascara fica"""
+    M = d["materials"]
+    filtros = {x["id"] for x in M.get("effects", []) if x.get("type") == "filter"}
+    if not filtros:
+        return
+    for t in d["tracks"]:
+        for s in t["segments"]:
+            s["extra_material_refs"] = [r for r in s.get("extra_material_refs", []) if r not in filtros]
+    M["effects"] = [x for x in M["effects"] if x["id"] not in filtros]
+
+
 def nome_congelado(receita, p_us):
     return f"{hashlib.md5(str(receita).encode()).hexdigest()}_{p_us}-sdr709.png"
 
@@ -379,6 +392,7 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
         tm["content"] = json.dumps(cont, ensure_ascii=False, separators=(",", ":"))
         tm["font_path"] = fonte
     d["duration"] = total
+    sem_filtro(d)
     d["name"] = ""
 
     # --- meta: os videos usados (tipo 0) e o quadro congelado (tipo 6)
