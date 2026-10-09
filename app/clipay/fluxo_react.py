@@ -52,7 +52,26 @@ def constantes():
             "corte_padrao": react.enquadra_cima(1080, 1920)["corte"], "inicio_react": react.INICIO_REACT,
             "janela": list(react.JANELA), "headline": {"texto": react.HEADLINE, "x": t["transform"]["x"],
                                                        "y": t["transform"]["y"], "escala": t["scale"]["x"]},
-            "acesso": acesso()}
+            "headlines": headlines(), "acesso": acesso()}
+
+
+PREVIAS_HL = Path(__file__).resolve().parent / "assets" / "previews" / "headline"
+
+
+def headlines():
+    """os modelos de headline pra tela: o que a pessoa le, onde a caixa fica no celular (as mesmas contas do motor)
+    e a imagem de previa (so se existir: sem ela a tela mostra a previa simples, sem pedir arquivo que nao existe)"""
+    out = []
+    for m in react.headlines():
+        if m.get("bloco"):
+            c = json.loads((react.PASTA / m["bloco"]).read_text(encoding="utf-8"))["segmento"]["clip"]
+        else:
+            c = _ref_clips()[2]
+        img = next((f for f in (PREVIAS_HL / f"{m['previa']}.{e}" for e in ("webp", "png", "jpg")) if f.is_file()), None)
+        out.append({"id": m["id"], "nome": m["nome"], "descricao": m["descricao"], "selo": m["selo"],
+                    "previa": f"/assets/previews/headline/{img.name}" if img else None,
+                    "x": c["transform"]["x"], "y": c["transform"]["y"], "escala": c["scale"]["x"]})
+    return out
 
 
 # ---------------- conferir o arquivo ----------------
@@ -164,11 +183,11 @@ def _arq_geracao():
     return transcricao.pasta_dados() / "geracao_react.json"
 
 
-def _chave(react_p, itens, cta, variar, raiz, cta_pos="meio"):
+def _chave(react_p, itens, cta, variar, raiz, cta_pos="meio", headline=None, react_pos=0):
     """o que define a geracao. O ponto de congelar fica de fora: e' o motor que acha (o mesmo, sempre); se o app fechou
     antes da busca terminar, na volta ele ja vem pronto e a geracao tem que ser reconhecida como a mesma"""
     corpo = [str(Path(react_p).resolve()), str(Path(cta).resolve()) if cta else None, bool(variar), str(raiz),
-             cta_pos if cta else None,
+             cta_pos if cta else None, headline or react.headline()["id"], round(float(react_pos or 0)),
              [(str(Path(i["video"]).resolve()), json.dumps(i.get("enquadramento") or {}, sort_keys=True)) for i in itens]]
     return hashlib.sha1(json.dumps(corpo).encode()).hexdigest()
 
@@ -219,15 +238,22 @@ def _feitos_antes(chave, raiz):
     return feitos
 
 
-def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whisper=None, so=None, cta_pos="meio"):
+def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whisper=None, so=None, cta_pos="meio",
+         headline=None, react_pos=0):
     """um projeto por video de cima, em segundo plano, ate PARALELO ao mesmo tempo. itens = [{"video",
     "enquadramento"?, "congelar"?}] (congelar: o ponto que a tela ja mostrou; sem ele, o motor acha). cta_pos: "meio"
     ou "final". so: numeros a refazer (os que falharam). A mesma geracao pedida de novo: devolve a que esta rodando,
-    ou continua o que falta. Cada projeto pronto entra na fila de transcricao."""
+    ou continua o que falta. Cada projeto pronto entra na fila de transcricao. headline e react_pos valem pro lote
+    todo (o react e' o mesmo)."""
     cta_pos = "final" if cta_pos == "final" else "meio"
+    try:
+        headline = react.headline(headline)["id"]
+    except react.ErroReact as e:
+        raise Erro(str(e))
+    react_pos = min(max(round(float(react_pos or 0)), -100), 100)
     if not itens:
         raise Erro("Nenhum vídeo para gerar.")
-    chave = _chave(react_p, itens, cta, variar, raiz, cta_pos)
+    chave = _chave(react_p, itens, cta, variar, raiz, cta_pos, headline, react_pos)
     ant = GERACAO["job"]
     if ant and not ant["parado"]:
         if ant["chave"] == chave and so is None:
@@ -290,7 +316,7 @@ def gera(react_p, itens, raiz, cta=None, variar=True, cache=None, carrega_whispe
                 if job["cancelar"].is_set():
                     l["estado"] = "cancelado"; _salva(job); return
             r = react.monta(v, react_p, it.get("enquadramento"), cta, react.us(l["inicio_react"]), cong, cache, falas,
-                            dict(infos, receita=ir), cta_pos)
+                            dict(infos, receita=ir), cta_pos, headline, react_pos)
             tmp = transcricao.pasta_dados() / "temp"; tmp.mkdir(parents=True, exist_ok=True)
             capa = tmp / f"capa_react_{l['numero']}.jpg"
             if not audio.capa(v, capa): capa = None

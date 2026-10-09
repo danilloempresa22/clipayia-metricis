@@ -392,3 +392,35 @@ def test_foto_do_perfil_fica_so_no_computador(app, tmp_path):
     try: urllib.request.urlopen(f"{base}/api/foto?t=errado"); assert False
     except urllib.error.HTTPError as e: assert e.code in (401, 403)
     assert chama("/api/conta")[1]["foto"] is True
+
+
+# ---- React: modelo da headline lembrado, posicao do react guardada com o react salvo ----
+def test_react_modelo_lembrado_e_posicao_com_o_react_salvo(app, video_vertical, tmp_path):
+    chama, _, _, _ = app
+    c, cfg = chama("/api/react/config")
+    assert c == 200 and [h["id"] for h in cfg["headlines"]] == ["noticia", "citacao"]
+    assert cfg["preferencias"] == {"headline": "noticia"}                       # nunca escolheu: o padrao
+    assert all(h["previa"] is None or h["previa"].startswith("/assets/previews/headline/") for h in cfg["headlines"])
+    assert chama("/api/react/preferencias", {"headline": "citacao"})[1]["headline"] == "citacao"
+    assert chama("/api/react/config")[1]["preferencias"]["headline"] == "citacao"   # reabriu: volta a Citacao
+    assert chama("/api/react/preferencias", {"headline": "nao-existe"})[0] == 400
+    v = str(video_vertical)
+    s = chama("/api/react/salvo", {"caminho": v, "posicao": -40})[1]["salvo"]
+    assert s["posicao"] == -40 and s["existe"]
+    r = chama("/api/react/preferencias", {"react": v, "posicao": 75})[1]
+    assert r["salvo"]["posicao"] == 75 and chama("/api/react/salvo")[1]["salvo"]["posicao"] == 75
+    outro = chama("/api/react/preferencias", {"react": str(tmp_path / "outro.mp4"), "posicao": 10})[1]
+    assert outro["salvo"]["posicao"] == 75                                       # outro react: nao mexe no salvo
+    assert chama("/api/react/preferencias", {"react": v, "posicao": 999})[1]["salvo"]["posicao"] == 100   # limite
+    assert chama("/api/react/salvo", {"caminho": ""})[1] == {"salvo": None}      # esquecer: a posicao vai junto
+    cfg = json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
+    assert "react_salvo" not in cfg and cfg["react_headline"] == "citacao"
+    assert chama("/api/react/salvo", {"caminho": v})[1]["salvo"]["posicao"] == 0   # salvo de novo: no centro
+
+
+def test_react_previa_da_headline_so_se_existir(monkeypatch, tmp_path):
+    from clipay import fluxo_react
+    monkeypatch.setattr(fluxo_react, "PREVIAS_HL", tmp_path)
+    assert [h["previa"] for h in fluxo_react.headlines()] == [None, None]          # sem imagem: a tela usa a simples
+    (tmp_path / "headline-citacao.webp").write_bytes(b"x")
+    assert [h["previa"] for h in fluxo_react.headlines()] == [None, "/assets/previews/headline/headline-citacao.webp"]

@@ -7,6 +7,7 @@ import pytest
 from clipay import audio, react
 
 REF = Path(__file__).resolve().parent.parent / "docs" / "design" / "referencia-react"
+REF_HL = REF.parent / "referencia-headline"
 
 
 def _video(destino, w, h, dur):
@@ -39,7 +40,7 @@ def test_sem_cta(video_vertical, midia, tmp_path):
     assert r["draft"]["duration"] == D and r["png"] is None and react.verifica(r) == []
     vols = [s["volume"] for t in r["draft"]["tracks"][:2] for s in t["segments"]]
     assert vols == [1.0, 0.0]                                    # receita com som, react mudo
-    assert json.loads(r["draft"]["materials"]["texts"][0]["content"])["text"] == "Coloque a headline do seu vídeo aqui"
+    assert json.loads(r["draft"]["materials"]["texts"][0]["content"])["text"] == "SUA HEADLINE AQUI"
     nomes = {v["material_name"] for v in r["draft"]["materials"]["videos"]}
     assert nomes == {"vertical.mp4", "react.mp4"}                # sem foto congelada nem CTA sobrando
     assert [g["value"] for g in r["meta"]["draft_materials"] if g["type"] == 6] == [[]]
@@ -164,6 +165,9 @@ def test_ouro_patricio():
     ref = json.loads((REF / "draft_content.json").read_text(encoding="utf-8"))
     pega = lambda n: next(v["path"] for v in ref["materials"]["videos"] if v["material_name"] == n)
     rec, rct, cta = pega("snaptik_7597584659882724629_v3.mp4"), pega("IMG_7361.MOV"), pega("CTA +100 RECEITAS .mp4")
+    novo = Path(rct).parent / "React Patricio.mp4"               # o react da referencia foi renomeado (mesmo 16:9)
+    trocou = not Path(rct).exists() and novo.exists()
+    if trocou: rct = str(novo)
     if not all(Path(p).exists() for p in (rec, rct, cta)):
         pytest.skip("mídia do projeto de referência não está neste computador")
     cache = ref["materials"]["effects"][0]["path"].split("/effect/")[0]      # o cache do CapCut desta maquina
@@ -174,8 +178,13 @@ def test_ouro_patricio():
     assert len(ref["materials"]["effects"]) == 2 and not sem["materials"].get("effects")
     assert not r["draft"]["materials"].get("effects") and len(r["draft"]["materials"]["common_mask"]) == 3
     difs = _difs(r["draft"], sem)
-    assert sorted(difs) == sorted([".materials.texts[0].content"] + [f".{k}.{c}" for k in ("platform", "last_modified_platform")
-                                                                       for c in ("device_id", "hard_disk_id", "mac_address")])
+    esperado = [".materials.texts[0].content"] + [f".{k}.{c}" for k in ("platform", "last_modified_platform")
+                                                   for c in ("device_id", "hard_disk_id", "mac_address")]
+    if trocou:                                                   # so os dados do proprio arquivo do react podem mudar
+        ik = {i for i, v in enumerate(sem["materials"]["videos"]) if v["material_name"] == "IMG_7361.MOV"}
+        dado = re.compile(r"\.materials\.videos\[(\d+)\]\.(path|material_name|duration|width|height)$")
+        difs = [x for x in difs if not (dado.match(x) and int(dado.match(x)[1]) in ik)]
+    assert sorted(difs) == sorted(esperado)
     # as pecas do modelo de texto mantem o nome do pacote (texto e barra vermelha): senao o CapCut refaz o modelo
     # do zero, com 3 s e o texto padrao, e a headline some
     nomes = lambda x: (x["materials"]["texts"][0]["name"], x["materials"]["text_templates"][0]["non_text_info_resources"][0]["name"])
@@ -201,3 +210,108 @@ def test_cta_no_final(video_vertical, midia, tmp_path):
     nome = react.grava(raiz, r)
     png = raiz / nome / r["png"]
     assert png.exists() and png.stat().st_size > 0 and react.verifica(r, raiz / nome) == []
+
+
+# ---------------- modelo da headline e posicao do react ----------------
+def _bloco_hl(d):
+    """o trecho da headline e os materiais dele, por tipo (pra comparar so a headline)"""
+    M = d["materials"]; s = next(t for t in d["tracks"] if t["type"] == "text")["segments"][0]
+    por_id = {x["id"]: x for v in M.values() if isinstance(v, list) for x in v if isinstance(x, dict) and "id" in x}
+    ordem = {i: n for n, i in enumerate(re.findall(r'"([0-9A-Fa-f-]{36})"', json.dumps(s)))}   # na ordem em que o trecho cita
+    out = {"segmento": s}
+    for k, ids in react.materiais_do_trecho(M, s).items():
+        out[k] = [por_id[i] for i in sorted(ids, key=lambda i: ordem.get(i, 99))]
+    return out
+
+
+def test_modelos_de_headline_na_configuracao():
+    ms = react.headlines()
+    assert [m["id"] for m in ms] == ["noticia", "citacao"] and react.headline()["id"] == "noticia"
+    for m in ms:
+        assert {"id", "nome", "descricao", "selo", "previa", "bloco"} <= set(m)
+        if m["bloco"]: assert (react.PASTA / m["bloco"]).is_file()
+    with pytest.raises(react.ErroReact, match="desconhecido"): react.headline("nao-existe")
+    t = (react.PASTA / "headlines" / "citacao.json").read_text(encoding="utf-8")
+    assert "danil" not in t.lower() and "{FONTE}" in t and "{CACHE}" in t      # sem dados da maquina
+
+
+def test_ouro_citacao(video_vertical, midia):
+    """React com Citacao: o bloco da headline igual ao do projeto "headline teste"; so ids, tempos e texto mudam"""
+    if not (REF_HL / "citacao" / "draft_content.json").exists():
+        pytest.skip("o projeto de referência da Citação não está neste computador")
+    ref = json.loads((REF_HL / "citacao" / "draft_content.json").read_text(encoding="utf-8"))
+    if not react.fonte_headline():
+        pytest.skip("a fonte Creato Display não está instalada neste computador")
+    cache = ref["materials"]["text_templates"][0]["path"].split("/artistEffect/")[0]
+    r = react.monta(video_vertical, midia["react"], cta=midia["cta"], congelar=5.0, cache=cache, headline_id="citacao")
+    d = r["draft"]; total = d["duration"]
+    assert react.verifica(r) == [] and r["headline"] == "citacao"
+    a, b = _bloco_hl(d), _bloco_hl(ref)
+    assert sorted(a) == sorted(b) == ["material_animations", "segmento", "text_templates", "texts"]
+    assert a["text_templates"][0]["effect_id"] == "7641057540280798472" and len(d["materials"]["text_templates"]) == 1
+    assert a["segmento"]["target_timerange"] == {"start": 0, "duration": total}       # o video todo, contando o CTA
+    for x in a["text_templates"][0]["text_info_resources"] + a["text_templates"][0]["non_text_info_resources"]:
+        assert x["attach_info"]["start_time"] == 0 and x["attach_info"]["duration"] == total
+    ca, cb = (json.loads(x["texts"][0]["content"]) for x in (a, b))
+    assert ca["text"] == "SUA HEADLINE AQUI" and ca["styles"][0]["range"] == [0, len("SUA HEADLINE AQUI")]
+    ca["text"] = cb["text"] = ""; ca["styles"][0]["range"] = cb["styles"][0]["range"] = None
+    assert ca == cb                                               # estilo identico (fonte, tamanho, cor, negrito)
+    a["texts"][0]["content"] = b["texts"][0]["content"] = ""
+    difs = [x for x in _difs(a, b) if not re.search(r"(target_timerange\.duration|attach_info\.duration)$", x)]
+    assert difs == []                                             # o resto da headline: identico
+    nomes = lambda x: (x["texts"][0]["name"], x["text_templates"][0]["non_text_info_resources"][0]["name"])
+    assert nomes(a) == nomes(b)                                   # nomes do pacote mantidos (a headline nao some)
+    tudo = json.dumps(d, ensure_ascii=False)
+    assert "praticar" not in tudo and "Simple News" not in tudo and "Bomba de presunto" not in tudo
+    ids = [x["id"] for v in d["materials"].values() if isinstance(v, list) for x in v if isinstance(x, dict) and "id" in x]
+    assert len(ids) == len(set(ids))                              # nenhum id repetido
+
+
+def test_react_deslocado_no_limite(video_vertical, midia):
+    """react horizontal: so pros lados, no maximo a sobra (nunca fundo vazio); a mascara e o CTA nao mudam"""
+    base = react.monta(video_vertical, midia["react"], cta=midia["cta"], congelar=5.0)
+    k0 = base["draft"]["tracks"][1]["segments"]
+    mk = lambda r, s: next(m for m in r["draft"]["materials"]["common_mask"] if m["id"] in s["extra_material_refs"])["config"]
+    lim = (1080 * 1.2172339513890111 - 1080) / 2 / 540
+    assert base["faixa"]["eixo"] == "x" and base["faixa"]["lim"] == pytest.approx(lim) and lim == pytest.approx(0.2172, abs=1e-4)
+    for pos, x in ((-100, -lim), (100, lim), (-250, -lim), (250, lim), (50, lim / 2)):
+        r = react.monta(video_vertical, midia["react"], cta=midia["cta"], congelar=5.0, react_pos=pos)
+        k1, kc, k3 = r["draft"]["tracks"][1]["segments"]
+        assert k1["clip"]["transform"]["x"] == k3["clip"]["transform"]["x"] == pytest.approx(x)
+        assert abs(k1["clip"]["transform"]["x"]) <= lim + 1e-12                 # nunca passa do limite
+        assert k1["clip"]["transform"]["y"] == k0[0]["clip"]["transform"]["y"] and k1["clip"]["scale"] == k0[0]["clip"]["scale"]
+        assert mk(r, k1) == mk(base, k0[0]) and mk(r, k3) == mk(base, k0[2])      # a mascara nao muda
+        assert kc["clip"] == k0[1]["clip"] and mk(r, kc) == mk(base, k0[1])       # o CTA nao se move
+        lw = 1080 * k1["clip"]["scale"]["x"]
+        esq = 540 + k1["clip"]["transform"]["x"] * 540 - lw / 2
+        assert esq <= 1e-6 and esq + lw >= 1080 - 1e-6                           # cobre a largura toda
+    r = react.monta(video_vertical, midia["react"], cta=midia["cta"], cta_pos="final", react_pos=-100)
+    k1, kc = r["draft"]["tracks"][1]["segments"]
+    assert k1["clip"]["transform"]["x"] == pytest.approx(-lim) and kc["clip"]["transform"]["x"] == 0.0 and react.verifica(r) == []
+
+
+def test_react_vertical_move_na_vertical(video_vertical, midia, tmp_path):
+    """react vertical: so pra cima e pra baixo, cobrindo a faixa; a linha da mascara fica no mesmo lugar da tela"""
+    rv = _video(tmp_path / "react vertical.mp4", 540, 960, 30)
+    ref = react.monta(video_vertical, midia["react"])["draft"]
+    k_ref = ref["tracks"][1]["segments"][0]
+    cy_ref = next(m for m in ref["materials"]["common_mask"] if m["id"] in k_ref["extra_material_refs"])["config"]["centerY"]
+    linha = lambda clip, h, cy: (960 - clip["transform"]["y"] * 960) - cy * h * clip["scale"]["y"] / 2   # px na tela
+    h_ref = 1080 * 9 / 16
+    alvo = linha(k_ref["clip"], h_ref, cy_ref)
+    assert 1180 < alvo < 1250                                     # a emenda medida na referencia (~1215 px)
+    topo_faixa = (960 - k_ref["clip"]["transform"]["y"] * 960) - h_ref * k_ref["clip"]["scale"]["y"] / 2   # topo da faixa na tela
+    ys = []
+    for pos in (-100, 0, 100):
+        r = react.monta(video_vertical, rv, cta=midia["cta"], congelar=5.0, react_pos=pos)
+        assert react.verifica(r) == [] and r["faixa"]["eixo"] == "y" and r["faixa"]["orientacao"] == "vertical"
+        k1, kc, k3 = r["draft"]["tracks"][1]["segments"]
+        for s in (k1, k3):
+            assert s["clip"]["transform"]["x"] == 0.0
+            cy = next(m for m in r["draft"]["materials"]["common_mask"] if m["id"] in s["extra_material_refs"])["config"]["centerY"]
+            assert linha(s["clip"], 1920, cy) == pytest.approx(alvo)             # mascara compensada
+            c, lh = 960 - s["clip"]["transform"]["y"] * 960, 1920 * s["clip"]["scale"]["y"]
+            assert c - lh / 2 <= topo_faixa + 1e-6 and c + lh / 2 >= 1920 - 1e-6   # cobre a faixa, sem fundo vazio
+        assert kc["clip"]["transform"]["x"] == 0.0
+        ys.append(k1["clip"]["transform"]["y"])
+    assert ys[0] > ys[1] > ys[2]                                  # -100 = pra cima (y do CapCut cresce pra cima)

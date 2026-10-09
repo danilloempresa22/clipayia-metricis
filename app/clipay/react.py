@@ -9,7 +9,11 @@ lugar dos caminhos): so muda o que varia (materiais, tempos, enquadramento, ids)
                     "Aprimorar" nos 2 trechos do react (antes e depois do CTA); desde 2026-10 nenhum trecho tem filtro.
                     Com CTA: no mesmo intervalo entra o video do CTA (com som, sem filtro) e o react fica parado:
                     depois do CTA ele volta exatamente de onde parou.
-  trilha 3 (texto)  headline no modelo "Title EN Simple News", o video todo (a pessoa troca o texto no CapCut)."""
+  trilha 3 (texto)  headline, o video todo (a pessoa troca o texto no CapCut). O modelo vem de headlines.json:
+                    "Noticia" e' a do molde ("Title EN Simple News"); os outros trocam SO esse bloco (trecho + materiais)
+                    pelo de um projeto real (headlines/<id>.json).
+Posicao do react: so pra onde ele sobra (horizontal: pros lados; vertical: pra cima e pra baixo), sem nunca abrir
+fundo vazio; a mascara "Dividir" fica no mesmo lugar da tela (no vertical o centro dela e' compensado)."""
 import copy, hashlib, json, math, re, subprocess, time, uuid
 from pathlib import Path
 from . import audio, capcut, composto, cortes, palavras
@@ -24,7 +28,7 @@ COBRE_ATE = 1250                        # px: o video de cima tem que chegar ate
 JANELA = (0.40, 0.70)                   # onde procurar a pausa pra congelar (fracao da duracao)
 IDEAL = 0.55
 PAUSA_MIN = 0.4                         # s
-HEADLINE = "Coloque a headline do seu vídeo aqui"
+HEADLINE = "SUA HEADLINE AQUI"              # em qualquer modelo; a pessoa troca no CapCut
 FONTE = "CreatoDisplay-Bold.otf"
 _FIM_FRASE = re.compile(r"[.!?…]+[\"'”’)»]*$")
 _CACHE_REF = re.compile(r"\{CACHE\}/(effect|artistEffect)/(\d+)/([0-9a-f]+)(/[^\"\\]*)?")
@@ -106,15 +110,39 @@ def enquadra_cima(w, h, corte=None, zoom=1.0, posicao=0.5):
             "lateral": lw > W + 0.5}
 
 
-def enquadra_faixa(w, h, ref):
+def enquadra_faixa(w, h, ref, pos=0):
     """react ou CTA na faixa de baixo: o mesmo lugar da referencia (ref = clip do segmento no molde, material 16:9).
-    Outro formato: amplia ate cobrir a faixa inteira, centrado nela."""
-    if abs(w / h - 16 / 9) < 0.01:
-        return {"escala": ref["scale"]["x"], "x": ref["transform"]["x"], "y": ref["transform"]["y"]}
+    Outro formato: amplia ate cobrir a faixa inteira, centrado nela.
+    pos: -100..100, so pra onde o video sobra (eixo "x": horizontal, -100 = encostado na borda esquerda da sobra;
+    eixo "y": vertical, -100 = pra cima). lim = o maximo do transform naquele eixo (1 = meia tela): calculado do
+    tamanho do arquivo, entao nunca aparece fundo vazio. Sem sobra, nao mexe."""
     rw0, rh0 = _encaixe(16, 9)
     fh = rh0 * ref["scale"]["x"]                     # altura da faixa em px
     w0, h0 = _encaixe(w, h)
-    return {"escala": max(W / w0, fh / h0), "x": 0.0, "y": ref["transform"]["y"]}
+    if abs(w / h - 16 / 9) < 0.01:
+        g = {"escala": ref["scale"]["x"], "x": ref["transform"]["x"], "y": ref["transform"]["y"]}
+    else:
+        g = {"escala": max(W / w0, fh / h0), "x": 0.0, "y": ref["transform"]["y"]}
+    sobra_x, sobra_y = (w0 * g["escala"] - W) / 2, (h0 * g["escala"] - fh) / 2      # px que sobram de cada lado
+    eixo = "x" if sobra_x > 0.5 and sobra_x >= sobra_y else "y" if sobra_y > 0.5 else None
+    lim = sobra_x / (W / 2) if eixo == "x" else sobra_y / (H / 2) if eixo == "y" else 0.0
+    p = min(max(float(pos or 0), -100.0), 100.0) if eixo else 0.0
+    if eixo == "x": g["x"] += p / 100 * lim
+    elif eixo == "y": g["y"] -= p / 100 * lim     # transform y do CapCut cresce pra cima; -100 = pra cima
+    g.update(eixo=eixo, lim=lim, pos=p, orientacao="vertical" if h > w else "horizontal")
+    return g
+
+
+def mascara_na_emenda(clip_ref, cy_ref, g, w, h):
+    """centerY da mascara "Dividir" (relativo ao trecho: meia altura dele, positivo pra cima) pra linha do degrade
+    ficar no MESMO lugar da tela que na referencia, qualquer que seja o tamanho e a posicao do react.
+    Referencia: a linha cai em ~1215 px (o degrade medido vai de ~1185 a ~1240 px)."""
+    rw0, rh0 = _encaixe(16, 9)
+    c_ref = H / 2 - clip_ref["transform"]["y"] * H / 2               # centro do trecho na tela (px, pra baixo)
+    linha = c_ref - cy_ref * rh0 * clip_ref["scale"]["y"] / 2
+    w0, h0 = _encaixe(w, h)
+    c = H / 2 - g["y"] * H / 2
+    return (c - linha) / (h0 * g["escala"] / 2)
 
 
 # ---------------- onde congelar ----------------
@@ -202,6 +230,47 @@ def inicios_react(react_us, duracoes_us, variar=False, inicio=INICIO_REACT):
     return out
 
 
+# ---------------- modelos de headline ----------------
+def headlines():
+    """os modelos de headline (assets/react/headlines.json); o primeiro e' o padrao"""
+    return json.loads((PASTA / "headlines.json").read_text(encoding="utf-8"))["modelos"]
+
+
+def headline(mid=None):
+    ms = headlines()
+    if not mid:
+        return ms[0]
+    m = next((m for m in ms if m["id"] == mid), None)
+    if m is None:
+        raise ErroReact(f"Modelo de headline desconhecido: {mid}")
+    return m
+
+
+def materiais_do_trecho(M, s):
+    """{tipo: [ids]} de tudo que o trecho usa (o material dele, os extras e o que esses citam, ex.: o texto e as
+    animacoes do modelo de texto)"""
+    por_id = {x["id"]: (k, x) for k, v in M.items() if isinstance(v, list) for x in v if isinstance(x, dict) and "id" in x}
+    vistos, fila = set(), [s["material_id"], *s.get("extra_material_refs", [])]
+    while fila:
+        i = fila.pop()
+        if i in vistos or i not in por_id: continue
+        vistos.add(i)
+        fila += [x for x in re.findall(r'"([0-9A-Fa-f-]{36})"', json.dumps(por_id[i][1])) if x in por_id]
+    out = {}
+    for i in vistos: out.setdefault(por_id[i][0], []).append(i)
+    return out
+
+
+def troca_headline(d, bloco):
+    """a headline do molde sai inteira (trecho + materiais) e entra a do bloco (copiada de um projeto real)"""
+    M, txt = d["materials"], next(t for t in d["tracks"] if t["type"] == "text")
+    for k, ids in materiais_do_trecho(M, txt["segments"][0]).items():
+        M[k] = [x for x in M[k] if x["id"] not in ids]
+    for k, v in bloco["materiais"].items():
+        M.setdefault(k, []).extend(v)
+    txt["segments"] = [bloco["segmento"]]
+
+
 # ---------------- montar ----------------
 def nomes_do_modelo(d):
     """ids que vem do PACOTE do modelo de texto (content.json dele: o texto e a barra vermelha). Nao podem mudar:
@@ -212,10 +281,16 @@ def nomes_do_modelo(d):
     return {x.upper() for x in out}
 
 
-def _molde():
+def _molde(bloco=None):
+    """o molde com ids novos; bloco = arquivo da headline (headlines/<id>.json), ids trocados no MESMO mapa (nenhum
+    se repete) e os nomes do pacote dele mantidos"""
     SEP = "\n␞\n"
-    t = SEP.join((PASTA / f).read_text(encoding="utf-8") for f in ("draft_content.json", "draft_meta_info.json"))
-    fixos = nomes_do_modelo(json.loads(t.split(SEP)[0])) | {cortes.GUID_TOKEN}
+    fs = ["draft_content.json", "draft_meta_info.json"] + ([bloco] if bloco else [])
+    t = SEP.join((PASTA / f).read_text(encoding="utf-8") for f in fs)
+    partes = t.split(SEP)
+    fixos = nomes_do_modelo(json.loads(partes[0])) | {cortes.GUID_TOKEN}
+    if bloco:
+        fixos |= nomes_do_modelo({"materials": json.loads(partes[2])["materiais"]})
     mapa = {}
 
     def troca(mt):
@@ -225,8 +300,10 @@ def _molde():
         if k not in mapa:
             mapa[k] = str(uuid.uuid4())
         return mapa[k] if s == s.lower() else mapa[k].upper()
-    d, m = (json.loads(x) for x in capcut._UUID.sub(troca, t).split(SEP))
-    return d, m
+    out = [json.loads(x) for x in capcut._UUID.sub(troca, t).split(SEP)]
+    if bloco:
+        troca_headline(out[0], out[2])
+    return out[0], out[1]
 
 
 def _cache(o, cache):
@@ -282,11 +359,13 @@ def nome_congelado(receita, p_us):
 
 
 def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cache=None, falas=None, infos=None,
-          cta_pos="meio"):
+          cta_pos="meio", headline_id=None, react_pos=0):
     """receita: o video de cima. react: o video do apresentador. enq: {corte, zoom, posicao} da tela.
     cta: caminho do video do CTA ou None. cta_pos: "meio" (congela numa pausa e o video continua depois) ou "final"
     (o video toca inteiro; depois dele, o ultimo quadro parado com o CTA embaixo). inicio_us: onde o react comeca
-    (inicios_react). congelar: s, ou None = acha a pausa. cache: pasta 'User Data/Cache' do CapCut."""
+    (inicios_react). congelar: s, ou None = acha a pausa. cache: pasta 'User Data/Cache' do CapCut.
+    headline_id: modelo de headline (headlines.json; None = o padrao). react_pos: -100..100 (enquadra_faixa), vale
+    pros trechos do react (inclusive o que volta depois do CTA); o CTA nao se move."""
     receita, react = Path(receita), Path(react)
     infos = infos or {}
     ir = infos.get("receita") or info(receita)
@@ -298,7 +377,8 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
         raise ErroReact(f"O react é mais curto que o vídeo “{receita.name}”: o react tem "
                         f"{ik['dur_us'] / 1e6:.0f} s e o vídeo {D / 1e6:.0f} s. Use um react mais longo.")
     avisos = []
-    d, meta = _molde()
+    hl = headline(headline_id)
+    d, meta = _molde(hl.get("bloco"))
     M = d["materials"]; ix = capcut.indice_materiais(M)
     cima, baixo, txt = d["tracks"]
     caminho = lambda p: str(Path(p).resolve()).replace("\\", "/")
@@ -344,9 +424,16 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
         avisos.append(f"O corte em cima foi limitado a {g['corte'] * 100:.0f}% pra não aparecer fundo vazio.")
     c1, foto, c3 = cima["segments"]
     k1, kcta, k3 = baixo["segments"]
-    fk = enquadra_faixa(ik["largura"], ik["altura"], k1["clip"])
+    ref_k = copy.deepcopy(k1["clip"])
+    fk = enquadra_faixa(ik["largura"], ik["altura"], ref_k, react_pos)
     for s in (c1, foto, c3): clip(s, g)
-    for s in (k1, k3): clip(s, fk)
+    for s in (k1, k3):
+        clip(s, fk)
+        for r in s["extra_material_refs"]:                # a mascara: a linha do degrade fica na emenda
+            m = ix.get(r)
+            if m and m[0] == "common_mask":
+                cy = mascara_na_emenda(ref_k, m[1]["config"]["centerY"], fk, ik["largura"], ik["altura"])
+                if abs(cy - m[1]["config"]["centerY"]) > 1e-9: m[1]["config"]["centerY"] = cy
     for s in (c1, c3): video(s, receita, ir)
     for s in (k1, k3): video(s, react, ik)
     if final:                                         # [video inteiro | ultimo quadro]  /  [react | CTA]
@@ -430,7 +517,7 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
         return s
     d, meta = _cache(_troca(d, marca), cache), _cache(_troca(meta, marca), cache)
     return {"draft": d, "meta": meta, "receita": str(receita), "congelar": cong, "png": png, "enquadramento": g,
-            "faixa": fk, "inicio_react": r0, "total": total, "avisos": avisos}
+            "faixa": fk, "inicio_react": r0, "total": total, "avisos": avisos, "headline": hl["id"]}
 
 
 # ---------------- conferir e gravar ----------------

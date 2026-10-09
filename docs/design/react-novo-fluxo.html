@@ -450,12 +450,18 @@ h2{margin:0}
 .rc .hand.a{left:6%;top:26%}.rc .hand.b{right:4%;top:58%;--hr:-24deg}
 .rc .cap{position:absolute;left:8%;right:8%;top:76%;text-align:center;font-weight:800;font-size:6cqw;color:#fff;text-shadow:0 .4cqw 1.2cqw rgba(0,0,0,.8);background:rgba(0,0,0,.35);border-radius:2cqw;padding:1.6cqw 3cqw}
 .rc .react{position:absolute;left:0;right:0;bottom:0;height:38.5%;background:linear-gradient(180deg,#b86a2e 0 46%,#3b2a1c 46% 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 24%);mask-image:linear-gradient(180deg,transparent 0,#000 24%);overflow:hidden}
+.rc .rin{position:absolute;top:0;bottom:0;left:-10.8%;width:121.6%;background:linear-gradient(180deg,#b86a2e 0 46%,#3b2a1c 46% 100%);transform:translateX(calc(var(--rx,0) * .0888%));will-change:transform}
 .rc .react .win{position:absolute;left:6%;right:6%;top:46%;bottom:0;background:linear-gradient(180deg,#8f8a73,#4a4a40)}
-.rc .pres{position:absolute;left:50%;bottom:0;width:62%;height:96%;transform:translateX(-50%)}
+.rc .pres{position:absolute;left:58%;bottom:0;width:62%;height:96%;transform:translateX(-50%)}
 .rc .pres i{position:absolute;display:block}
 .rc .pres .h{left:30%;width:40%;aspect-ratio:1;border-radius:50%;top:10%;background:radial-gradient(circle at 40% 35%,#d9a37f,#8a5a3d)}
 .rc .pres .b{left:4%;right:4%;bottom:0;height:52%;border-radius:36% 36% 0 0/50% 50% 0 0;background:linear-gradient(90deg,#e5722a 50%,#16181d 50%)}
-.rc .hlbox{position:absolute;left:6%;top:56.5%;max-width:60%;background:#fff;color:#000;font-weight:800;font-style:italic;font-size:4.4cqw;line-height:1.2;padding:1.6cqw 2.6cqw;border-radius:.8cqw;z-index:3}
+.rc .hlbox{position:absolute;left:6%;top:56.5%;max-width:60%;z-index:3}
+/* modelos de headline (aproximação do CapCut) */
+.hlbox{display:block;background:#fff;color:#000;font-weight:800;font-style:italic;font-size:4.4cqw;line-height:1.2;padding:1.6cqw 2.6cqw;border-radius:.8cqw;transition:box-shadow .2s}
+.hl-quote .hlbox{font-style:normal;font-weight:800;font-size:3.7cqw;line-height:1.25;padding:1.8cqw 3cqw;border-radius:2.4cqw;max-width:62%}
+.rc.hl-quote .hlbox{left:7%}
+.hl-quote .hlbox::before{content:"";position:absolute;left:-3.2cqw;top:6%;bottom:6%;width:1.6cqw;border-radius:.4cqw;background:#fff}
 .rc .zone{position:absolute;left:0;right:0;top:61.5%;bottom:0;background:repeating-linear-gradient(135deg,rgba(255,69,58,.22) 0 2cqw,rgba(255,69,58,.1) 2cqw 4cqw);border-top:.5cqw dashed rgba(255,69,58,.9);z-index:2;pointer-events:none;display:none}
 .rc.showzone .zone{display:block}
 .rc .zone::before{content:"O react cobre daqui pra baixo";position:absolute;left:3cqw;top:1.2cqw;font-size:3.2cqw;font-weight:700;color:#ffb3ad;text-shadow:0 0 1cqw #000}
@@ -565,6 +571,42 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
 .modal-f{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
 .modal-f .btn-light{display:inline-flex;align-items:center;gap:8px}
 @media (max-width:560px){.seg{grid-template-columns:1fr}}
+
+/* foco no celular conforme a aba */
+.rc.f-react::after{content:"";position:absolute;left:0;right:0;bottom:0;height:38.5%;border:.8cqw solid var(--accent);border-radius:0 0 26px 26px;z-index:4;pointer-events:none}
+.rc.f-react::before{content:"\2190  React  \2192";position:absolute;right:3cqw;bottom:3cqw;z-index:5;font-size:3.4cqw;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:99px;padding:.8cqw 2.4cqw}
+.rc.f-hl .hlbox{box-shadow:0 0 0 .8cqw var(--accent),0 0 0 2.2cqw rgba(179,247,6,.25)}
+
+/* abas do painel */
+.ctabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--surface-2);border:1px solid var(--hair);margin-bottom:14px}
+.ctab{padding:9px 8px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text-2);transition:background .16s,color .16s}
+.ctab:hover{color:var(--text)}
+.ctab[aria-selected="true"]{background:var(--raise,#26262a);color:var(--text);box-shadow:0 0 0 1px var(--hair-2)}
+.ctab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pn{display:flex;flex-direction:column;gap:6px;animation:fadeup .25s ease both}
+.pn[hidden]{display:none}
+.pn .btn-light{align-self:flex-start;margin-top:8px}
+.pn-note{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--hair)}
+.pn-note p{margin:0;font-size:12.5px;color:var(--text-2);line-height:1.45}
+.pn-help{margin:4px 0 0;font-size:12.5px;color:var(--text-3);line-height:1.45}
+#pn-hl .q2{margin-top:0}
+.hls{display:flex;flex-direction:column;gap:10px}
+.hlo{display:flex;align-items:center;gap:14px;text-align:left;padding:10px 14px 10px 10px;border-radius:16px;background:var(--surface-2);border:1px solid var(--hair);transition:border-color .16s,box-shadow .16s}
+.hlo:hover{border-color:var(--hair-2)}
+.hlo[aria-checked="true"]{border-color:var(--accent-line);box-shadow:0 0 0 1px var(--accent-line)}
+.hlo:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.hlo-pv{position:relative;flex:none;width:150px;aspect-ratio:16/8;border-radius:10px;overflow:hidden;container-type:inline-size;background:linear-gradient(180deg,#3a2f26 0 48%,#b86a2e 48% 72%,#3b2a1c 72%)}
+.hlo-pv .hlbox{position:absolute;left:9%;top:50%;transform:translateY(-50%);max-width:78%;font-size:9cqw;padding:3cqw 5cqw;border-radius:1.6cqw}
+.hlo-pv.hl-quote .hlbox{left:14%;font-size:7.6cqw;border-radius:5cqw}
+.hlo-pv.hl-quote .hlbox::before{left:-6.5cqw;width:3.2cqw;border-radius:.8cqw}
+.hlo-t{flex:1;min-width:0}
+.hlo-t b{display:flex;align-items:center;gap:6px;font-size:14px;letter-spacing:-.01em}
+.hlo-t b em{font-style:normal}
+.hlo-t small{display:block;margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.4}
+.hlo .radio{flex:none}
+.hlo[aria-checked="true"] .radio{border-color:var(--accent);background:var(--accent)}
+.hlo[aria-checked="true"] .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+@media (max-width:560px){.hlo-pv{width:104px}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -644,7 +686,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
           <span class="radio" aria-hidden="true"></span>
           <span><span class="mode-title">React <em class="newtag">Novo</em></span><p class="mode-desc">Um vídeo em cima e o seu react embaixo, com a headline no meio. Faz um vídeo ou vários de uma vez.</p><span class="chip chip--muted">1 react + 1 ou mais vídeos</span></span>
         </button>
-        <div class="mode mode--soon" aria-disabled="true"><span class="radio" aria-hidden="true"></span><span><span class="mode-title">Legenda complexa</span><p class="mode-desc">Legenda acumulada com as palavras-chave em destaque.</p></span></div>
         <div class="mode mode--soon" aria-disabled="true"><span class="radio" aria-hidden="true"></span><span><span class="mode-title">Rotina</span><p class="mode-desc">Vlog de rotina com relógio que pula entre os cortes.</p></span></div>
       </div>
       <article class="card preview">
@@ -691,8 +732,8 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   <!-- 4: enquadrar -->
   <section id="s-frame" class="screen" hidden>
     <header class="head">
-      <h1>Confira o enquadramento</h1>
-      <p class="lede">O react cobre a parte de baixo. Passe pelo vídeo e ajuste para não tapar nada importante, como texto ou o prato.</p>
+      <h1>Confira o visual</h1>
+      <p class="lede">Ajuste o vídeo de cima, a posição do react e escolha o modelo da headline. Tudo aparece na prévia do celular.</p>
     </header>
     <div class="vtabs" id="vtabs" role="tablist" aria-label="Vídeos"></div>
     <div class="frame">
@@ -706,12 +747,32 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
         </div>
       </div>
       <article class="card fctl">
-        <h2 class="card-h">Vídeo de cima</h2>
-        <div class="frow"><label for="fy">Posição <output id="fyO">24% cortado em cima</output></label><input type="range" id="fy" min="0" max="45" value="24"></div>
-        <div class="frow"><label for="fz">Zoom <output id="fzO">100%</output></label><input type="range" id="fz" min="100" max="170" value="100"></div>
-        <div class="opt"><div><p class="opt-t">Mostrar a área do react</p><p class="opt-s">Marca em vermelho o que fica coberto.</p></div><button class="sw" type="button" role="switch" aria-checked="true" id="swZone" aria-label="Mostrar a área do react"></button></div>
-        <div class="opt" id="allRow"><div><p class="opt-t">Aplicar a todos os vídeos</p><p class="opt-s">Desligue para ajustar cada vídeo separado.</p></div><button class="sw" type="button" role="switch" aria-checked="true" id="swAll" aria-label="Aplicar a todos os vídeos"></button></div>
-        <button class="btn-light" type="button" id="fReset">Voltar ao padrão</button>
+        <div class="ctabs" role="tablist" aria-label="O que ajustar">
+          <button class="ctab" role="tab" type="button" id="tab-top" aria-controls="pn-top" aria-selected="true" data-tab="top">Vídeo de cima</button>
+          <button class="ctab" role="tab" type="button" id="tab-react" aria-controls="pn-react" aria-selected="false" tabindex="-1" data-tab="react">React</button>
+          <button class="ctab" role="tab" type="button" id="tab-hl" aria-controls="pn-hl" aria-selected="false" tabindex="-1" data-tab="hl">Headline</button>
+        </div>
+
+        <div class="pn" id="pn-top" role="tabpanel" aria-labelledby="tab-top">
+          <div class="frow"><label for="fy">Posição <output id="fyO">24% cortado em cima</output></label><input type="range" id="fy" min="0" max="45" value="24"></div>
+          <div class="frow"><label for="fz">Zoom <output id="fzO">100%</output></label><input type="range" id="fz" min="100" max="170" value="100"></div>
+          <div class="opt"><div><p class="opt-t">Mostrar a área do react</p><p class="opt-s">Marca em vermelho o que fica coberto.</p></div><button class="sw" type="button" role="switch" aria-checked="true" id="swZone" aria-label="Mostrar a área do react"></button></div>
+          <div class="opt" id="allRow"><div><p class="opt-t">Aplicar a todos os vídeos</p><p class="opt-s">Desligue para ajustar cada vídeo separado.</p></div><button class="sw" type="button" role="switch" aria-checked="true" id="swAll" aria-label="Aplicar a todos os vídeos"></button></div>
+          <button class="btn-light" type="button" id="fReset">Voltar ao padrão</button>
+        </div>
+
+        <div class="pn" id="pn-react" role="tabpanel" aria-labelledby="tab-react" hidden>
+          <div class="frow"><label for="fx">Posição do react <output id="fxO">No centro</output></label><input type="range" id="fx" min="-100" max="100" step="1" value="0"></div>
+          <div class="pn-note"><span class="chip chip--muted">Horizontal</span><p>Seu react é horizontal, então ele se move para os lados. Um react vertical se move para cima e para baixo.</p></div>
+          <p class="pn-help" id="rxHelp">Vale para todos os vídeos, porque o react é o mesmo.</p>
+          <button class="btn-light" type="button" id="rxReset">Voltar ao centro</button>
+        </div>
+
+        <div class="pn" id="pn-hl" role="tabpanel" aria-labelledby="tab-hl" hidden>
+          <p class="q2" id="hlQ">Modelo da headline</p>
+          <div class="hls" role="radiogroup" aria-labelledby="hlQ" id="hls"></div>
+          <p class="pn-help">Vale para todos os vídeos. O texto sai como “SUA HEADLINE AQUI” e você troca no CapCut.</p>
+        </div>
       </article>
     </div>
   </section>
@@ -731,7 +792,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
       <article class="card finish">
         <h2 class="card-h">Detalhes</h2>
         <div class="opt"><div><p class="opt-t">Variar o trecho do react</p><p class="opt-s">Cada vídeo começa o react num ponto diferente, para os resultados não ficarem iguais.</p></div><button class="sw" type="button" role="switch" aria-checked="true" id="swVary" aria-label="Variar o trecho do react"></button></div>
-        <div class="opt"><div><p class="opt-t">Headline</p><p class="opt-s">Sai como “SUA HEADLINE AQUI”. Troque no CapCut.</p></div><span class="chip chip--muted">No CapCut</span></div>
+        <div class="opt"><div><p class="opt-t">Headline</p><p class="opt-s" id="hlSum">Modelo Notícia. O texto você troca no CapCut.</p></div><button class="btn-text" type="button" id="hlEdit">Mudar</button></div>
       </article>
     </div>
   </section>
@@ -787,15 +848,20 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   var two=function(n){return String(n).padStart(2,'0')};
   var mmss=function(s){s=Math.round(s);return Math.floor(s/60)+':'+two(s%60)};
   var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var st={step:0,react:false,qty:null,vids:[],sel:0,all:true,shared:{y:24,z:100},per:{},zone:true,cta:false,ctaFile:false,ctaPos:'mid',vary:true,seen:{},savedReact:false,other:false,playing:false};
+  var st={step:0,react:false,qty:null,vids:[],sel:0,all:true,shared:{y:24,z:100},per:{},zone:true,cta:false,ctaFile:false,ctaPos:'mid',vary:true,seen:{},savedReact:false,other:false,playing:false,tab:'top',rx:0,hl:'news'};
+  var HL=[
+    {id:'news',n:'Notícia',d:'Caixa branca reta, texto em itálico. É o modelo de hoje.'},
+    {id:'quote',n:'Citação',d:'Caixa arredondada com uma barra ao lado. Boa para frases e citações.'}
+  ];
+  var hlName=function(id){for(var i=0;i<HL.length;i++)if(HL[i].id===id)return HL[i].n;return ''};
 
   /* composição */
   function comp(o){
-    o=o||{};var y=o.y==null?24:o.y,z=(o.z==null?100:o.z)/100,px=o.px||0,c=o.c||['#3a2f26','#15110e'];
-    return '<div class="rc'+(o.zone?' showzone':'')+'" style="--y:'+y+';--z:'+z+';--px:'+px+'%">'
+    o=o||{};var y=o.y==null?24:o.y,z=(o.z==null?100:o.z)/100,px=o.px||0,c=o.c||['#3a2f26','#15110e'],rx=o.rx==null?st.rx:o.rx,hl=o.hl||st.hl;
+    return '<div class="rc hl-'+hl+(o.zone?' showzone':'')+(o.focus?' f-'+o.focus:'')+'" style="--y:'+y+';--z:'+z+';--px:'+px+'%;--rx:'+rx+'">'
       +'<div class="top"><div class="rec" style="background:radial-gradient(120% 70% at 50% 45%,'+c[0]+','+c[1]+' 70%)"></div><i class="hand a"></i><i class="plate"></i><i class="food"></i><i class="hand b"></i>'+(o.cap===false?'':'<div class="cap">Misture bem a farinha</div>')+'</div>'
-      +(o.cta?'<div class="cta"><b>+100 RECEITAS</b></div>':'<div class="react"><div class="win"></div><div class="pres"><i class="h"></i><i class="b"></i></div></div>')
-      +'<div class="hlbox">SUA HEADLINE AQUI</div>'
+      +(o.cta?'<div class="cta"><b>+100 RECEITAS</b></div>':'<div class="react"><div class="rin"><div class="win"></div><div class="pres"><i class="h"></i><i class="b"></i></div></div></div>')
+      +'<div class="hlbox"><span>SUA HEADLINE AQUI</span></div>'
       +(o.zone?'<div class="zone"></div>':'')+'</div>';
   }
   $('#rScene').innerHTML=comp({cap:false});
@@ -861,14 +927,14 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
 
   /* 4: enquadrar */
   function cur(){var s=st.all?st.shared:(st.per[st.sel]||(st.per[st.sel]={y:st.shared.y,z:st.shared.z}));return s}
-  function build(){var v=st.vids[st.sel],s=cur();$('#fphone').innerHTML=comp({y:s.y,z:s.z,px:0,c:v.c,zone:st.zone});paint()}
+  function build(){var v=st.vids[st.sel],s=cur();$('#fphone').innerHTML=comp({y:s.y,z:s.z,px:0,c:v.c,zone:st.zone&&st.tab==='top',focus:st.tab==='top'?'':st.tab});paint()}
   function frame(){
     play(false);
     var many=st.vids.length>1;
     $('#vtabs').hidden=!many;$('#allRow').hidden=!many;
     $('#vtabs').innerHTML=st.vids.map(function(v,i){return '<button class="vt" role="tab" type="button" aria-selected="'+(i===st.sel)+'" data-i="'+i+'"><span class="vt-th" style="--c1:'+v.c[0]+';--c2:'+v.c[1]+'"></span><span><b>'+v.n+'</b><small>'+mmss(v.d)+'</small></span>'+(st.seen[i]?'<span class="ok">'+ic('check')+'</span>':'')+'</button>'}).join('');
     var v=st.vids[st.sel],s=cur();st.seen[st.sel]=true;
-    $('#fy').value=s.y;$('#fz').value=s.z;$('#scr').value=0;
+    $('#fy').value=s.y;$('#fz').value=s.z;$('#fx').value=st.rx;$('#scr').value=0;tabs();hls();
     $('#tEnd').textContent=mmss(v.d);
     build();
   }
@@ -876,9 +942,10 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   function paint(){
     var v=st.vids[st.sel],s=cur(),t=+$('#scr').value/100,rc=$('#fphone .rc');
     $('#fyO').textContent=s.y+'% cortado em cima';$('#fzO').textContent=s.z+'%';
+    $('#fxO').textContent=st.rx===0?'No centro':Math.abs(st.rx)+'% para a '+(st.rx<0?'esquerda':'direita');
     $('#tNow').textContent=mmss(v.d*t);
     if(!rc)return;
-    rc.style.setProperty('--y',s.y);rc.style.setProperty('--z',s.z/100);rc.style.setProperty('--px',Math.round((t-.5)*30)+'%');
+    rc.style.setProperty('--y',s.y);rc.style.setProperty('--rx',st.rx);rc.style.setProperty('--z',s.z/100);rc.style.setProperty('--px',Math.round((t-.5)*30)+'%');
   }
   var raf=0,last=0;
   function play(on){
@@ -901,10 +968,35 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   $('#swZone').addEventListener('click',function(){st.zone=!st.zone;this.setAttribute('aria-checked',String(st.zone));build()});
   $('#swAll').addEventListener('click',function(){st.all=!st.all;this.setAttribute('aria-checked',String(st.all));if(!st.all){st.per={};}frame()});
   $('#fReset').addEventListener('click',function(){var s=cur();s.y=24;s.z=100;frame()});
+  $('#fx').addEventListener('input',function(){st.rx=+this.value;paint()});
+  $('#rxReset').addEventListener('click',function(){st.rx=0;$('#fx').value=0;paint()});
+  /* abas do painel: vídeo de cima, react, headline */
+  function tabs(){
+    document.querySelectorAll('.ctab').forEach(function(b){var on=b.dataset.tab===st.tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});
+    ['top','react','hl'].forEach(function(t){$('#pn-'+t).hidden=t!==st.tab});
+    $('#rxHelp').textContent='Vale para todos os vídeos, porque o react é o mesmo.'+(st.savedReact?' Fica salvo junto com o seu react.':'');
+  }
+  function setTab(t,focus){st.tab=t;tabs();build();if(focus)$('#tab-'+t).focus()}
+  var TABS=['top','react','hl'];
+  document.querySelector('.ctabs').addEventListener('click',function(e){var b=e.target.closest('.ctab');if(b)setTab(b.dataset.tab)});
+  document.querySelector('.ctabs').addEventListener('keydown',function(e){var i=TABS.indexOf(st.tab);
+    if(e.key==='ArrowRight'){i=(i+1)%3}else if(e.key==='ArrowLeft'){i=(i+2)%3}else if(e.key==='Home'){i=0}else if(e.key==='End'){i=2}else return;
+    e.preventDefault();setTab(TABS[i],true)});
+  /* modelos de headline */
+  function hls(){
+    $('#hls').innerHTML=HL.map(function(m){var on=m.id===st.hl;
+      return '<button class="hlo" type="button" role="radio" aria-checked="'+on+'" tabindex="'+(on?0:-1)+'" data-hl="'+m.id+'"><span class="hlo-pv hl-'+m.id+'" aria-hidden="true"><span class="hlbox"><span>SUA HEADLINE AQUI</span></span></span><span class="hlo-t"><b>'+m.n+(m.id==='news'?' <em class="chip chip--muted">Atual</em>':' <em class="newtag">Novo</em>')+'</b><small>'+m.d+'</small></span><span class="radio" aria-hidden="true"></span></button>'}).join('');
+  }
+  function setHl(id,focus){st.hl=id;hls();build();if(focus)$('[data-hl="'+id+'"]').focus()}
+  $('#hls').addEventListener('click',function(e){var b=e.target.closest('.hlo');if(b)setHl(b.dataset.hl,true)});
+  $('#hls').addEventListener('keydown',function(e){var ids=HL.map(function(m){return m.id}),i=ids.indexOf(st.hl);
+    if(e.key==='ArrowDown'||e.key==='ArrowRight'){i=(i+1)%ids.length}else if(e.key==='ArrowUp'||e.key==='ArrowLeft'){i=(i-1+ids.length)%ids.length}else return;
+    e.preventDefault();setHl(ids[i],true)});
 
   /* 5: ajustes */
   function pauseFor(v,i){var p=.5+((i*7)%5-2)*.03;return Math.round(v.d*p)}
   function adjust(){
+    $('#hlSum').textContent='Modelo '+hlName(st.hl)+'. O texto você troca no CapCut.';
     $('#swCta').setAttribute('aria-checked',String(st.cta));
     var b=$('#ctaBox');b.hidden=!st.cta;
     if(!st.cta){return}
@@ -920,6 +1012,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:6
   }
   $('#swCta').addEventListener('click',function(){st.cta=!st.cta;adjust();actions()});
   $('#ctaBox').addEventListener('click',function(e){var pb=e.target.closest('[data-pos]');if(pb){st.ctaPos=pb.dataset.pos;adjust();return}if(e.target.closest('[data-pickcta]'))st.ctaFile=true;else if(e.target.closest('[data-rmcta]'))st.ctaFile=false;else return;adjust();actions()});
+  $('#hlEdit').addEventListener('click',function(){st.tab='hl';st.step=3;show()});
   $('#swVary').addEventListener('click',function(){st.vary=!st.vary;this.setAttribute('aria-checked',String(st.vary))});
 
   /* 6: gerar */

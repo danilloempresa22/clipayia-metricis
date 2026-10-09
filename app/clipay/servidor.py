@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from . import capcut, transcricao, processa, reels, edicoes, cobranca_demo, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, __version__
+from . import capcut, transcricao, processa, reels, edicoes, cobranca_demo, conta, audio, ipad, rotina, composto, pacote, longo, achar, fluxo_cortes, fluxo_react, react, __version__
 
 ASSETS = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "clipay" / "assets"
 if not ASSETS.exists():
@@ -177,10 +177,18 @@ def react_salvo():
     r = le_cfg().get("react_salvo")
     if not r or not r.get("caminho"):
         return {"salvo": None}
-    return {"salvo": dict(r, existe=Path(r["caminho"]).is_file())}
+    return {"salvo": dict(r, existe=Path(r["caminho"]).is_file(), posicao=r.get("posicao", 0))}
 
 
-def salva_react(caminho):
+def _pos(v):
+    try:
+        return min(max(round(float(v or 0)), -100), 100)
+    except (TypeError, ValueError):
+        return 0
+
+
+def salva_react(caminho, posicao=0):
+    """guarda o react e a posicao dele (vem junto nas proximas vezes); caminho vazio = esquecer (a posicao vai junto)"""
     cfg = le_cfg()
     if not caminho:
         cfg.pop("react_salvo", None); grava_cfg(cfg); return {"salvo": None}
@@ -188,8 +196,28 @@ def salva_react(caminho):
     if i.get("erro"):
         raise fluxo_react.Erro(i["erro"])
     cfg["react_salvo"] = {k: i[k] for k in ("caminho", "nome", "tamanho", "duracao", "largura", "altura")}
+    cfg["react_salvo"]["posicao"] = _pos(posicao)
     grava_cfg(cfg)
     return react_salvo()
+
+
+def preferencias_react():
+    """o ultimo modelo de headline usado (o padrao se nunca escolheu ou se o modelo saiu da configuracao)"""
+    ids = [m["id"] for m in react.headlines()]
+    h = le_cfg().get("react_headline")
+    return {"headline": h if h in ids else ids[0]}
+
+
+def salva_preferencias_react(c):
+    """modelo da headline (sempre lembrado) e a posicao do react (so guardada se esse react e' o salvo)"""
+    cfg = le_cfg()
+    if c.get("headline") is not None:
+        cfg["react_headline"] = react.headline(c["headline"])["id"]
+    s = cfg.get("react_salvo")
+    if "posicao" in c and s and c.get("react") and str(Path(c["react"]).resolve()) == str(Path(s["caminho"]).resolve()):
+        s["posicao"] = _pos(c["posicao"])
+    grava_cfg(cfg)
+    return dict(preferencias_react(), **react_salvo())
 
 
 def abre_capcut():
@@ -679,8 +707,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json(fluxo_cortes.estado())
             if u.path == "/api/cortes/gerar-estado":
                 return self._json(fluxo_cortes.estado_geracao())
-            if u.path == "/api/react/config":            # as contas do motor que a previa usa
-                return self._json(fluxo_react.constantes())
+            if u.path == "/api/react/config":            # as contas do motor que a previa usa + o ultimo modelo usado
+                return self._json(dict(fluxo_react.constantes(), preferencias=preferencias_react()))
             if u.path == "/api/react/pausas-estado":
                 return self._json(fluxo_react.estado_pausas())
             if u.path == "/api/react/gerar-estado":
@@ -1011,8 +1039,13 @@ class H(BaseHTTPRequestHandler):
                 return self._json(fluxo_react.pede_pausas(vs, lambda: carrega_whisper("preciso")()))
             if u.path == "/api/react/salvo":              # "Usar sempre este react" (caminho vazio: esquecer)
                 try:
-                    return self._json(salva_react(c.get("caminho")))
+                    return self._json(salva_react(c.get("caminho"), c.get("posicao", 0)))
                 except fluxo_react.Erro as e:
+                    return self._json({"erro": str(e)}, 400)
+            if u.path == "/api/react/preferencias":       # modelo da headline e posicao do react salvo
+                try:
+                    return self._json(salva_preferencias_react(c))
+                except react.ErroReact as e:
                     return self._json({"erro": str(e)}, 400)
             if u.path == "/api/react/leve":               # versoes leves pro play do Enquadrar (em segundo plano)
                 ks = {}
@@ -1043,7 +1076,10 @@ class H(BaseHTTPRequestHandler):
                     fluxo_react.AO_PRONTO = lambda l: edicoes.anota(l["projeto"], "react", l.get("duracao") or 0)
                     fluxo_react.gera(c.get("react", ""), c.get("itens") or [], raiz, c.get("cta") or None,
                                      bool(c.get("variar", True)), cache, lambda: carrega_whisper("preciso")(),
-                                     set(so) if so else None, "final" if c.get("cta_pos") == "final" else "meio")
+                                     set(so) if so else None, "final" if c.get("cta_pos") == "final" else "meio",
+                                     c.get("headline") or None, _pos(c.get("react_pos")))
+                    salva_preferencias_react({"headline": c.get("headline") or None, "react": c.get("react"),
+                                              "posicao": c.get("react_pos")})        # lembrado pra proxima vez
                 except (fluxo_react.Erro, capcut.ErroProjeto) as e:
                     return self._json({"erro": str(e)}, 400)
                 return self._json(fluxo_react.estado_geracao())

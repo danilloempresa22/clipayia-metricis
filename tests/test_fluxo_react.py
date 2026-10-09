@@ -231,3 +231,26 @@ def test_versao_leve_em_cache(video_vertical, dados):
     assert i["largura"] == 540 and not i["tem_audio"] and i["fps"] == 30
     assert fluxo_react.pede_leve(str(video_vertical), 0, None) == k                 # a segunda vez: o mesmo arquivo
     assert fluxo_react.arquivo_leve("../../segredo") is None
+
+
+def test_gera_lote_com_citacao_e_react_deslocado(video_vertical, midia, dados):
+    """o modelo da headline e a posicao do react valem pro lote todo; o CTA (no meio) nao se move; mudar o modelo
+    ou a posicao e' outra geracao (nao reaproveita o projeto feito com o outro modelo)"""
+    raiz = dados / "capcut"; raiz.mkdir()
+    v2 = dados / "outra.mp4"; shutil.copy(video_vertical, v2)
+    itens = [{"video": str(video_vertical), "congelar": 4.0}, {"video": str(v2), "congelar": 4.0}]
+    fluxo_react.gera(str(midia["react"]), itens, raiz, cta=str(midia["cta"]), headline="citacao", react_pos=-100)
+    e = _espera()
+    lim = (1080 * 1.2172339513890111 - 1080) / 2 / 540
+    for l in e["linhas"]:
+        assert l["estado"] == "pronto", l
+        d = json.loads((raiz / l["projeto"] / "draft_content.json").read_text(encoding="utf-8"))
+        assert d["materials"]["text_templates"][0]["effect_id"] == "7641057540280798472"
+        k1, kc, k3 = d["tracks"][1]["segments"]
+        assert k1["clip"]["transform"]["x"] == k3["clip"]["transform"]["x"] == pytest.approx(-lim)
+        assert kc["clip"]["transform"]["x"] == 0.0
+    c1 = fluxo_react._chave(str(midia["react"]), itens, str(midia["cta"]), True, raiz, "meio", "citacao", -100)
+    assert c1 != fluxo_react._chave(str(midia["react"]), itens, str(midia["cta"]), True, raiz, "meio", "noticia", -100)
+    assert c1 != fluxo_react._chave(str(midia["react"]), itens, str(midia["cta"]), True, raiz, "meio", "citacao", 0)
+    with pytest.raises(fluxo_react.Erro, match="desconhecido"):
+        fluxo_react.gera(str(midia["react"]), itens, raiz, headline="nao-existe")

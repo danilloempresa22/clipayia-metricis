@@ -1,0 +1,9 @@
+{
+ "_": "Modelos de headline do React. Um modelo novo = um arquivo em headlines/<id>.json (o trecho da trilha de texto + os materiais dele, copiados de um projeto real do CapCut) + uma entrada aqui. bloco null = a headline que ja esta no molde (assets/react/draft_content.json). previa = imagem em assets/previews/headline/ (sem ela, a tela mostra a previa simples). O primeiro e' o padrao.",
+ "modelos": [
+  {"id": "noticia", "nome": "Notícia", "descricao": "Caixa branca reta, texto em itálico. É o modelo de hoje.", "selo": "Atual",
+   "previa": "headline-noticia", "bloco": null},
+  {"id": "citacao", "nome": "Citação", "descricao": "Caixa arredondada com uma barra ao lado. Boa para frases e citações.", "selo": "Novo",
+   "previa": "headline-citacao", "bloco": "headlines/citacao.json"}
+ ]
+}
