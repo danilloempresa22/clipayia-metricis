@@ -4,26 +4,29 @@ MicroSaaS que automatiza o fluxo de edição "cortes + headline" no CapCut: usu�
 
 Design completo validado em `docs/plans/2026-09-29-clipay-ia-design.md`. Este arquivo é o resumo operacional para trabalhar no código; consulte o design doc para o "porquê" das decisões.
 
-**Nome do produto: Clipay.ia — não CortesApp.** O motor veio do CortesApp (`Downloads\capcut-kit-main\CortesApp`, mantido intocado como referência), mas este repositório já é o Clipay.ia: pacote `app/clipay/`, spec `app/clipay.spec`, executável `Clipay.exe`. Onde este documento ainda disser `cortesapp`, leia `clipay`.
+**Nome do produto: Clipay.ia — não CortesApp.** O motor veio do CortesApp (`Downloads\capcut-kit-main\CortesApp`, mantido intocado como referência), mas este repositório já é o Clipay.ia: pacote `app/clipay/`, spec `app/clipay.spec`. O que o cliente baixa: `Clipay.ia-Windows.zip` (pasta com `Clipay.ia.exe`) e `Clipay.ia-Mac.zip` (`Clipay.ia.app`). Onde este documento ainda disser `cortesapp`, leia `clipay`.
 
 ## Layout do repositório
 ```
 app/        motor local (Python): clipay/ (pacote), app.py, clipay.spec, requirements*.txt
 web/        painel Next.js 16 (landing, cadastro, entrar, conta) — auth só no navegador via supabase-js
-supabase/   migrations 0001 + 0002 (já aplicadas no projeto oslrmcxzbsneherutmyn); aplicar_tudo.sql = só referência
-tests/      pytest (18 testes; pasta CapCut falsa + vídeo sintético via ffmpeg; nada toca o CapCut real)
+supabase/   migrations 0001, 0002, 0003 (já aplicadas no projeto oslrmcxzbsneherutmyn); aplicar_tudo.sql = só referência
+tests/      pytest (~180 testes; pasta CapCut falsa + vídeo sintético via ffmpeg; nada toca o CapCut real)
 docs/       design doc + operacao.md (ativar contas, SQL úteis)
 ```
 Rodar: `app\.venv\Scripts\python.exe app\app.py --navegador` · testes: `app\.venv\Scripts\python.exe -m pytest tests` · site: `cd web; npm run dev`.
 
 ## Estado (atualizado)
-Feito e validado: criação de projeto CapCut do zero (`capcut.cria_draft`, moldes reais em `app/clipay/assets/moldes/`, **validado abrindo no CapCut real**), login/status/contador (`conta.py`), servidor com token de sessão, fluxo analisa → revisa → gera (`processa.analisa_video` / `monta_video`), detecção de rosto (`rosto.py`, OpenCV **<5**, detector carregado da memória por causa de caminhos com acento), painel web, `Clipay.exe` onefile (~131 MB) com `--autoteste`.
-Falta: publicar o site (Vercel) e o `.exe` (GitHub Release, ver `.github/workflows/build.yml`), preencher `NEXT_PUBLIC_DOWNLOAD_URL`, testar "baixa, abre, usa" em máquina limpa, testar em 2+ versões do CapCut, ícone do app.
+Feito e validado no CapCut real (Windows, CapCut 9.5): modelos da Edição **Cortes + Headline**, **Apresentador + iPad**, **Rotina** e **React** (headline Notícia ou Citação, posição do react); **Cortes** (vários cortes de um vídeo longo) existe mas está travado como "Em breve" (`assets/cortes/achar.json` "liberado"); **Legenda complexa** desligada por flag. Conta dentro do app (Perfil + Plano e cobrança com valores de exemplo só em `cobranca_demo.py`). Site no ar: https://clipayia-metricis.vercel.app. Repositório público no GitHub (danilloempresa22/clipayia-metricis); Releases com o app.
+Em andamento (beta): app para o cliente baixar e abrir no **Windows e no Mac com chip da Apple** (`prompt-pronto-para-cliente.md`), sem assinatura de código. Falta testar em 2+ versões do CapCut e no CapCut do Mac.
 
 ## Correções em relação ao texto original
 - Servidor local é `http.server` da stdlib (não Flask/FastAPI). Sem framework novo.
-- Vídeo é escolhido por **caminho** (diálogo nativo do tkinter), sem copiar arquivo; arrastar-e-soltar grava em blocos como plano B.
-- ffmpeg **não** vai no git: `app/bin/ffmpeg.exe` (build LGPL da BtbN, baixado pelo CI).
+- Vídeo é escolhido por **caminho** (janela nativa), sem copiar arquivo; arrastar-e-soltar também entrega o caminho.
+- ffmpeg **não** vai no git: o CI baixa (`app/bin/ffmpeg.exe` no Windows: build LGPL da BtbN; `app/bin/ffmpeg` no Mac: build estático para chip da Apple).
+- Empacotamento: PyInstaller em pasta (não `--onefile`), zipada pelo CI; no Mac, `Clipay.ia.app`.
+- Zoom: sempre centrado na pessoa (detecção de rosto); não há mais escolha de lado.
+- Caminhos de fonte, efeito e vídeo nos projetos gerados são sempre montados a partir do computador de quem usa (cache do CapCut dela); nada de `C:/...` fixo.
 - Molde/fixtures têm ids da máquina zerados e o usuário trocado por `USUARIO`; manter assim ao recapturar.
 
 ## O que este projeto NÃO é
@@ -34,7 +37,7 @@ Não é o CortesApp (app avulso vendido separadamente) — é um produto novo e 
 
 Duas metades, propositalmente simples:
 
-1. **App local (o motor)** — um único executável Windows (PyInstaller `--onefile`, sem instalador, sem assinatura de código). Ao abrir, sobe um servidor local (Flask/FastAPI) e abre o navegador padrão em `localhost`. Faz todo o processamento: lê áudio direto do vídeo (ffmpeg), transcreve com Whisper offline (onnxruntime), detecta silêncio, corta, aplica zoom, escreve o `draft_content.json`/`draft_meta_info.json` novo direto na pasta do CapCut.
+1. **App local (o motor)** — app para Windows e Mac (PyInstaller, sem instalador, sem assinatura de código no beta). Ao abrir, sobe um servidor local (`http.server`) e mostra a tela numa janela própria (pywebview) ou no navegador em `localhost`. Faz todo o processamento: lê áudio direto do vídeo (ffmpeg), transcreve com Whisper offline (onnxruntime), detecta silêncio, corta, aplica zoom, escreve o `draft_content.json`/`draft_meta_info.json` novo direto na pasta do CapCut.
 2. **Backend Supabase** — só a camada de conta: login, status ativo/inativo, contador de uso. Não processa nem armazena vídeo. Ver `supabase/migrations/0001_init.sql` para o schema.
 3. **Painel web** — cadastro (username + e-mail + senha), status da conta, botão de download do app.
 
@@ -94,9 +97,9 @@ Seguir o estilo já usado no motor existente (`cortes_headline.py`, `audio.py` e
 
 ## Escopo do MVP — não expandir sem decisão explícita
 
-**Dentro:** Windows apenas · modo "cortes + headline" apenas (sem vlog-youtube) · cadastro simples · conta ativa/inativo manual · executável único sem instalador · transcrição local · headline/cortes manuais na tela · detecção automática (corrigível) do lado do rosto.
+**Dentro:** Windows e Mac com chip da Apple (Mac só beta, para teste) · modo "cortes + headline" apenas (sem vlog-youtube) · cadastro simples · conta ativa/inativo manual · executável único sem instalador · transcrição local · headline/cortes manuais na tela · detecção automática (corrigível) do lado do rosto.
 
-**Fora por enquanto:** Mac · modo vlog-youtube · cobrança automatizada · geração de headline via IA · sincronização de configs entre dispositivos · auto-updater.
+**Fora por enquanto:** Mac com Intel · modo vlog-youtube · cobrança automatizada · geração de headline via IA · sincronização de configs entre dispositivos · auto-updater.
 
 ## Próximos passos
 
