@@ -1,0 +1,54 @@
+name: diagnostico-mac
+# Abre o Clipay.ia no Mac como um cliente: baixa o zip do Release, abre o zip, abre o app pelo Finder (open)
+# e junta o que o Mac registrou (relatorio de erro e log do sistema). So roda quando disparado a mao.
+on:
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - name: baixa e abre o zip como o Finder
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o Clipay.ia-Mac.zip "https://github.com/${{ github.repository }}/releases/latest/download/Clipay.ia-Mac.zip"
+          ditto -x -k Clipay.ia-Mac.zip app
+          ls -la app
+          codesign -dv --verbose=2 "app/Clipay.ia.app" 2>&1 || true
+          codesign --verify --deep --strict --verbose=2 "app/Clipay.ia.app" 2>&1 || echo "ASSINATURA COM PROBLEMA"
+          spctl --assess --type execute -vv "app/Clipay.ia.app" 2>&1 || true
+      - name: abre pelo Finder (open), sem marca de quarentena
+        run: |
+          cd "$RUNNER_TEMP"
+          open "app/Clipay.ia.app"
+          ok=0; for i in $(seq 60); do curl -fs http://127.0.0.1:8765/ > /dev/null && ok=1 && break; sleep 1; done
+          echo "respondeu: $ok"
+          pgrep -fl Clipay || echo "processo do Clipay.ia NAO esta rodando"
+          sleep 5; screencapture -x "$RUNNER_TEMP/finder.png" || true
+          pkill -f "Clipay.ia.app" || true; sleep 2
+      - name: abre de novo com a marca de quarentena (como baixado pelo Safari)
+        run: |
+          cd "$RUNNER_TEMP"
+          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" "app/Clipay.ia.app"
+          xattr -l "app/Clipay.ia.app" || true
+          sudo spctl --master-disable 2>/dev/null || true
+          open "app/Clipay.ia.app" || true
+          ok=0; for i in $(seq 60); do curl -fs http://127.0.0.1:8765/ > /dev/null && ok=1 && break; sleep 1; done
+          echo "com quarentena respondeu: $ok"
+          pgrep -fl Clipay || echo "processo do Clipay.ia NAO esta rodando"
+          pkill -f "Clipay.ia.app" || true
+      - name: abre direto (mostra a mensagem de erro, se houver)
+        run: |
+          cd "$RUNNER_TEMP"
+          xattr -cr "app/Clipay.ia.app"
+          ( "app/Clipay.ia.app/Contents/MacOS/Clipay.ia" > direto.txt 2>&1 & echo $! > pid ); sleep 25
+          cat direto.txt | head -80; kill $(cat pid) 2>/dev/null || true
+      - name: o que o Mac registrou
+        if: always()
+        run: |
+          ls -la ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i clipay || echo "nenhum relatorio de erro do Clipay.ia"
+          for f in ~/Library/Logs/DiagnosticReports/*Clipay*; do [ -f "$f" ] && head -60 "$f"; done
+          log show --last 10m --style compact --predicate 'process CONTAINS "Clipay" OR eventMessage CONTAINS "Clipay"' 2>/dev/null | grep -iE "error|kill|deny|crash|signature|quarantine|fail|exception" | head -60 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: diagnostico-mac, path: "${{ runner.temp }}/finder.png", if-no-files-found: ignore }
