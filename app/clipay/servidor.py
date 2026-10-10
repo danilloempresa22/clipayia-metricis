@@ -140,15 +140,61 @@ ESTATICOS = {("/assets/img", ".png"): "image/png",          # (pasta, extensao) 
              ("/assets/previews", ".jpg"): "image/jpeg"}
 
 
+JANELA = None          # a janela do app (pywebview), quando aberta nela: as janelas de arquivo vem dela
+SOLTOS = []            # [(nome, tamanho, caminho, quando)]: o que a janela entregou ao soltar um arquivo
+_TRAVA_SOLTOS = threading.Lock()
+
+
+def soltou(arquivos):
+    """a janela do app entrega o caminho de verdade do que foi arrastado (no Windows e no Mac): fica guardado pro
+    localiza achar na hora (nada e' copiado)"""
+    agora = time.time()
+    with _TRAVA_SOLTOS:
+        SOLTOS[:] = [x for x in SOLTOS if agora - x[3] < 600]
+        for c in arquivos:
+            try:
+                p = Path(c); SOLTOS.append((p.name, p.stat().st_size, str(p), agora))
+            except OSError:
+                pass
+
+
+def _do_solto(nome, tamanho, espera=1.0):
+    fim = time.time() + espera
+    while True:
+        with _TRAVA_SOLTOS:
+            for n, t, c, _ in reversed(SOLTOS):
+                if n == nome and str(t) == str(tamanho) and Path(c).is_file():
+                    return c
+        if time.time() >= fim or JANELA is None:
+            return None
+        time.sleep(0.05)
+
+
+def _janela_arquivo(titulo, rot, ext, varios=False, salvar=None):
+    """janela de arquivo da propria janela do app (nativa no Windows e no Mac; o tkinter nao pode ser usado fora da
+    linha principal no Mac). salvar = nome sugerido (janela Salvar como)."""
+    import webview
+    tipos = (f"{rot} (" + ";".join("*" + e for e in ext) + ")", "Todos os arquivos (*.*)")
+    if salvar:
+        r = JANELA.create_file_dialog(webview.FileDialog.SAVE, directory=str(Path.home() / "Downloads"),
+                                      save_filename=salvar, file_types=tipos)
+        return (r[0] if isinstance(r, (list, tuple)) else r) or ""
+    r = JANELA.create_file_dialog(webview.FileDialog.OPEN, allow_multiple=varios, file_types=tipos)
+    r = list(r or [])
+    return r if varios else (r[0] if r else "")
+
+
 def escolhe_arquivo(tipo="video", titulo=None):
-    """janela nativa do Windows pra escolher o arquivo (caminho direto: nao copia arquivo de GBs)"""
-    import tkinter as tk
-    from tkinter import filedialog
-    r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
+    """janela nativa pra escolher o arquivo (caminho direto: nao copia arquivo de GBs)"""
     padrao, rot, ext = (("Escolha a música de fundo", "Áudio", EXT_AUDIO) if tipo == "musica"
                         else ("Escolha os takes (pode selecionar vários)", "Vídeos", EXT_VIDEO) if tipo == "videos"
                         else ("Escolha o vídeo bruto", "Vídeos", EXT_VIDEO))
     titulo = str(titulo or "")[:80] or padrao                # o React diz qual video e' (react, de cima, CTA)
+    if JANELA is not None:
+        return _janela_arquivo(titulo, rot, ext, tipo == "videos")
+    import tkinter as tk                                     # aberto no navegador (so Windows): a do tkinter
+    from tkinter import filedialog
+    r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
     try:
         if tipo == "videos":                     # rotina: varios takes de uma vez
             return list(filedialog.askopenfilenames(title=titulo, parent=r, filetypes=[(rot, " ".join("*" + e for e in ext)), ("Todos", "*.*")]))
@@ -158,15 +204,19 @@ def escolhe_arquivo(tipo="video", titulo=None):
 
 
 def salva_txt(nome, texto):
-    """janela "Salvar como" do Windows (ja em Downloads, com o nome sugerido): a janela do app nao baixa arquivo"""
-    import tkinter as tk
-    from tkinter import filedialog
-    r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
-    try:
-        c = filedialog.asksaveasfilename(title="Salvar a transcrição", parent=r, initialdir=str(Path.home() / "Downloads"),
-                                         initialfile=nome, defaultextension=".txt", filetypes=[("Texto", "*.txt")])
-    finally:
-        r.destroy()
+    """janela "Salvar como" (ja em Downloads, com o nome sugerido): a janela do app nao baixa arquivo"""
+    if JANELA is not None:
+        c = _janela_arquivo("Salvar a transcrição", "Texto", [".txt"], salvar=nome)
+        if c and not c.lower().endswith(".txt"): c += ".txt"
+    else:
+        import tkinter as tk
+        from tkinter import filedialog
+        r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
+        try:
+            c = filedialog.asksaveasfilename(title="Salvar a transcrição", parent=r, initialdir=str(Path.home() / "Downloads"),
+                                             initialfile=nome, defaultextension=".txt", filetypes=[("Texto", "*.txt")])
+        finally:
+            r.destroy()
     if c:
         Path(c).write_text(texto, encoding="utf-8")
     return c or ""
@@ -220,13 +270,53 @@ def salva_preferencias_react(c):
     return dict(preferencias_react(), **react_salvo())
 
 
+PREP = {"estado": None, "feito": 0, "total": 0, "erro": None}      # primeira abertura: o modelo de transcricao
+_TRAVA_PREP = threading.Lock()
+
+
+def estado_preparar():
+    if PREP["estado"] in ("baixando", "erro"):
+        return dict(PREP)
+    return dict(PREP, estado="pronto" if transcricao.pronto("preciso") else "falta")
+
+
+def preparar():
+    """baixa o modelo de transcricao em segundo plano (uma vez so). Sem internet: frase clara e Tentar de novo."""
+    with _TRAVA_PREP:
+        if PREP["estado"] == "baixando" or transcricao.pronto("preciso"):
+            return estado_preparar()
+        PREP.update(estado="baixando", erro=None)
+
+    def roda():
+        try:
+            transcricao.prepara("preciso", lambda f, t: PREP.update(feito=f, total=t))
+            PREP.update(estado="pronto")
+        except Exception as e:                          # noqa: BLE001 — vira a frase da tela
+            traceback.print_exc()
+            rede = isinstance(e, (OSError, TimeoutError)) or "urlopen" in str(e).lower()
+            PREP.update(estado="erro", erro=("A internet caiu ou está muito lenta. Confira a conexão e toque em "
+                                             "Tentar de novo: o download continua de onde parou." if rede else
+                                             "Não consegui preparar o Clipay.ia. Toque em Tentar de novo."))
+    threading.Thread(target=roda, daemon=True).start()
+    return estado_preparar()
+
+
+def app_capcut():
+    """onde o CapCut esta instalado neste computador (Windows: CapCut.exe; Mac: CapCut.app). None = nao achou."""
+    if sys.platform == "darwin":
+        for p in (Path("/Applications/CapCut.app"), Path.home() / "Applications" / "CapCut.app"):
+            if p.exists(): return p
+        return None
+    exe = Path(os.environ.get("LOCALAPPDATA", "")) / "CapCut" / "Apps" / "CapCut.exe"
+    return exe if exe.exists() else None
+
+
 def abre_capcut():
-    for base in (os.environ.get("LOCALAPPDATA", ""),):
-        exe = Path(base) / "CapCut" / "Apps" / "CapCut.exe"
-        if exe.exists():
-            subprocess.Popen([str(exe)], close_fds=True)
-            return True
-    return False
+    p = app_capcut()
+    if not p:
+        return False
+    subprocess.Popen(["open", str(p)] if sys.platform == "darwin" else [str(p)], close_fds=True)
+    return True
 
 
 RT_BG = {"job": None}                # Rotina: transcricao em segundo plano dos takes escolhidos
@@ -336,8 +426,11 @@ def localiza(nome, tamanho):
     Achou: usa o original (nada e' copiado). Nao achou: None (a tela copia em blocos, como a Edicao ja faz)."""
     if not nome or Path(nome).name != nome:
         return None
+    c = _do_solto(nome, tamanho)                              # a janela do app ja disse onde ele esta
+    if c:
+        return c
     casa = Path.home(); inicio = time.time()
-    raizes = [casa / d for d in ("Downloads", "Desktop", "Videos", "Documents", "Área de Trabalho")]
+    raizes = [casa / d for d in ("Downloads", "Desktop", "Videos", "Movies", "Documents", "Área de Trabalho")]
     od = Path(os.environ.get("OneDrive") or casa / "OneDrive")
     raizes += [od / d for d in ("Desktop", "Área de Trabalho", "Videos", "Vídeos", "Documents", "Documentos")] + [od]
     vistos = set()
@@ -689,6 +782,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json({"erro": "Cortes está chegando."}, 403)
             if u.path == "/api/edicoes":                  # "Suas edicoes recentes" (Inicio) e a Conta
                 return self._json(edicoes.resumo(raiz_atual()))
+            if u.path == "/api/preparar":                  # primeira abertura: o modelo de transcricao ja esta aqui?
+                return self._json(estado_preparar())
             if u.path == "/api/conta":                    # tela Conta: perfil real + plano (exemplo, ver cobranca_demo.py)
                 e = conta.estado()
                 return self._json({"conta": e, "cobranca": cobranca_demo.dados(e.get("status")),
@@ -1037,6 +1132,8 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/react/pausas":             # com CTA: onde cada video congela (em segundo plano)
                 vs = [str(v) for v in c.get("videos") or [] if Path(str(v)).is_file()]   # a mesma escrita da tela (e' a chave)
                 return self._json(fluxo_react.pede_pausas(vs, lambda: carrega_whisper("preciso")()))
+            if u.path == "/api/preparar":                  # primeira abertura: baixa o modelo de transcricao
+                return self._json(preparar())
             if u.path == "/api/react/salvo":              # "Usar sempre este react" (caminho vazio: esquecer)
                 try:
                     return self._json(salva_react(c.get("caminho"), c.get("posicao", 0)))

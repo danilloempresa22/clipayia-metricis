@@ -1065,6 +1065,15 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
 .rodape{text-align:center;font-size:12px;color:var(--mudo);margin:22px 0 0}
 .rodape a{color:var(--txt);font-weight:600;margin-left:4px}.rodape a:hover{text-decoration:underline}
 .msg.ok{background:var(--ok-fundo);border:1px solid #2f4a1c;color:var(--acc)}
+/* primeira abertura: "Preparando o Clipay.ia" (o motor de transcricao, uma vez so) */
+#tela-prep{position:fixed;inset:0;z-index:60}
+.prep{max-width:420px;text-align:center}
+.prep .lg-sub{margin-bottom:22px;line-height:1.5}
+.prep-barra{height:8px;border-radius:99px;background:rgba(255,255,255,.10);overflow:hidden}
+.prep-barra i{display:block;height:100%;width:0;border-radius:99px;background:var(--accent,#b3f706);transition:width .3s linear}
+.prep-n{margin:10px 0 0;font-size:12.5px;color:var(--mudo);font-variant-numeric:tabular-nums}
+.prep .msg{margin:16px 0 0;text-align:left}
+.prep button.branco{margin-top:16px}
 
 /* ate 1100 px: barra lateral so com icones (76 px), conta vira so o avatar */
 @media (max-width:1100px){
@@ -1133,6 +1142,20 @@ button.fino{padding:6px 10px;min-width:34px;font-size:14px}
   <symbol id="i-texto" viewBox="0 0 24 24"><path d="M5 6h14M5 11h14M5 16h9"/></symbol>
   <symbol id="i-cortes" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M3 9v6M21 9v6"/></symbol>
 </svg>
+
+<!-- ================= PRIMEIRA ABERTURA ================= -->
+<section id="tela-prep" class="login oculto" aria-labelledby="prep-t">
+  <div class="feixe" aria-hidden="true"></div>
+  <div class="vidro prep">
+    <img class="logo" src="/assets/img/logo-clipay.png" alt="" width="64" height="38">
+    <h1 id="prep-t">Preparando o Clipay.ia</h1>
+    <p class="lg-sub">Só na primeira vez. Estamos baixando o motor que transcreve seus vídeos. Depois disso, a transcrição roda no seu computador.</p>
+    <div class="prep-barra" id="prep-barra" role="progressbar" aria-labelledby="prep-t" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="prep-i"></i></div>
+    <p class="prep-n" id="prep-n" aria-live="polite">Começando…</p>
+    <div id="prep-erro" class="msg erro oculto" role="alert"></div>
+    <button type="button" id="prep-tentar" class="branco oculto">Tentar de novo</button>
+  </div>
+</section>
 
 <!-- ================= LOGIN ================= -->
 <section id="tela-login" class="login oculto">
@@ -2095,9 +2118,35 @@ document.querySelectorAll(".nav").forEach(b => b.onclick = () => pagina(b.datase
 $("ir-inicio").onclick = () => pagina("inicio");
 if($("nova-edicao")) $("nova-edicao").onclick = () => pagina("edicao");   // so no painel antigo (guardado)
 
+// ---------------- primeira abertura: o motor de transcricao (uma vez so, com barra de verdade) ----------------
+function prepPrecisa(){
+  return new Promise(ok => {
+    const mb = b => (b / 1048576).toFixed(0);
+    const desenha = e => {
+      const pc = e.total ? Math.min(100, Math.round(e.feito / e.total * 100)) : 0;
+      $("prep-i").style.width = pc + "%"; $("prep-barra").setAttribute("aria-valuenow", pc);
+      $("prep-n").textContent = e.estado === "erro" ? "Parou em " + pc + "%" : e.total ? mb(e.feito) + " de " + mb(e.total) + " MB (" + pc + "%)" : "Começando…";
+      $("prep-erro").classList.toggle("oculto", e.estado !== "erro"); $("prep-erro").textContent = e.erro || "";
+      $("prep-tentar").classList.toggle("oculto", e.estado !== "erro");
+    };
+    const segue = async () => {
+      let e;
+      try{ e = await api("preparar"); }catch(x){ e = {estado: "erro", feito: 0, total: 0, erro: "Não consegui falar com o Clipay.ia. Feche e abra de novo."}; }
+      desenha(e);
+      if(e.estado === "pronto"){ $("tela-prep").classList.add("oculto"); return ok(); }
+      if(e.estado !== "erro") setTimeout(segue, 700); else $("prep-tentar").focus();
+    };
+    $("prep-tentar").onclick = async () => { $("prep-tentar").classList.add("oculto"); await api("preparar", {}).catch(() => {}); segue(); };
+    $("tela-prep").classList.remove("oculto");
+    api("preparar", {}).catch(() => {}).then(segue);
+  });
+}
+
 // ---------------- sessao ----------------
 async function inicio(){
   try{
+    const pr = await api("preparar").catch(() => null);
+    if(pr && pr.estado !== "pronto") await prepPrecisa();
     const est = await api("estado"); site = est.site;
     ["ou-google", "google"].forEach(id => $(id).classList.toggle("oculto", !est.google));   // Google so aparece quando estiver ligado no Supabase
     $("sem-capcut").classList.toggle("oculto", !!est.raiz);

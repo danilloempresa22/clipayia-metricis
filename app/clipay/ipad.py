@@ -212,13 +212,9 @@ _PENDURADA = {"a", "o", "e", "de", "do", "da", "que", "no", "na", "em", "um", "u
 
 
 def fonte_legenda():
-    """a fonte da legenda (Creato Display Black) mora no Windows, nao no cache do CapCut. Vazio = nao instalada."""
-    nome = MOLDE_AUTO["fonte_arquivo"]
-    for p in (Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Windows" / "Fonts" / nome,
-              Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / nome):
-        if p.exists():
-            return str(p).replace("\\", "/")
-    return ""
+    """a fonte da legenda (Creato Display Black) e' uma fonte instalada no sistema (Windows ou Mac), nao do cache do
+    CapCut. Vazio = nao instalada."""
+    return capcut.fonte_instalada(MOLDE_AUTO["fonte_arquivo"])
 
 
 def frases(palavras, keep):

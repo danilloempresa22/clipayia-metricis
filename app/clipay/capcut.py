@@ -29,6 +29,41 @@ def pastas_padrao():
     return [home / "CapCut" / "com.lveditor.draft"]
 
 
+def pastas_de_fonte():
+    """onde o sistema guarda fontes instaladas (a do usuario primeiro)"""
+    home = Path.home()
+    if sys.platform == "win32":
+        return [Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local")) / "Microsoft" / "Windows" / "Fonts",
+                Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"]
+    if sys.platform == "darwin":
+        return [home / "Library" / "Fonts", Path("/Library/Fonts"), Path("/System/Library/Fonts/Supplemental"),
+                Path("/System/Library/Fonts")]
+    return [home / ".local" / "share" / "fonts", home / ".fonts", Path("/usr/share/fonts")]
+
+
+def fonte_instalada(*nomes):
+    """caminho (com /) da primeira fonte instalada NESTE computador com um desses nomes de arquivo; vazio = nenhuma.
+    Nunca devolve caminho de outra maquina: sem a fonte, o projeto fica sem caminho e o CapCut usa a padrao dele."""
+    for d in pastas_de_fonte():
+        for n in nomes:
+            if (d / n).is_file():
+                return str(d / n).replace("\\", "/")
+    return ""
+
+
+def caminhos_de_fora(texto):
+    """caminhos que nao sao deste computador: o usuario dos moldes (USUARIO), outro usuario do Windows/Mac ou a pasta
+    de fontes do Windows escrita a mao. Em qualquer computador (Windows de outro cliente ou Mac) o projeto so pode
+    apontar pro que existe nele."""
+    eu = Path.home().name.lower()
+    ruins = set()
+    for m in re.finditer(r"(?:[A-Za-z]:)?[/\\]+Users[/\\]+([^/\\\"]+)", texto):
+        if m.group(1).lower() != eu: ruins.add(m.group(0))
+    for x in ("USUARIO", "C:/Windows/Fonts", "C:\\\\Windows\\\\Fonts"):
+        if x in texto: ruins.add(x)
+    return sorted(ruins)
+
+
 def acha_raiz(config_raiz=None):
     if config_raiz and Path(config_raiz).exists():
         return Path(config_raiz)

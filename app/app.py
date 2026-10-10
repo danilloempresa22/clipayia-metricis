@@ -22,6 +22,9 @@ def autoteste():
     tenta("tkinter", lambda: __import__("tkinter.filedialog") is not None)
     tenta("moldes_capcut", lambda: all((capcut.MOLDES / m / "draft_content.json").exists() for m in ("vertical", "horizontal")))
     tenta("pasta_dados", lambda: str(transcricao.pasta_dados()))
+    tenta("janela_pywebview", lambda: __import__("webview") and True)
+    if "--gera" in sys.argv:                        # build: gera projetos de verdade numa pasta do CapCut VAZIA
+        tenta("projetos", lambda: gera_teste(sys.argv[sys.argv.index("--gera") + 1]))
     saida = json.dumps(r, ensure_ascii=False, indent=1)
     i = sys.argv.index("--autoteste")
     if len(sys.argv) > i + 1:                       # .exe sem console: a saida vai pra um arquivo
@@ -29,6 +32,49 @@ def autoteste():
     else:
         print(saida)
     sys.exit(0 if all(not str(v).startswith("FALHOU") for v in r.values()) else 1)
+
+
+def _ouve_soltar(w, servidor):
+    """arrastar e soltar: a janela entrega o caminho de verdade do arquivo (pywebviewFullPath), sem copiar o video"""
+    try:
+        from webview.dom import DOMEventHandler
+
+        def soltou(e):
+            fs = ((e or {}).get("dataTransfer") or {}).get("files") or []
+            servidor.soltou([f.get("pywebviewFullPath") for f in fs if f.get("pywebviewFullPath")])
+        w.dom.document.events.drop += DOMEventHandler(soltou, prevent_default=False, stop_propagation=False)
+    except Exception:                             # sem isso, a tela procura o arquivo pelo nome (como no navegador)
+        pass
+
+
+def gera_teste(pasta):
+    """como um cliente novo: pasta do CapCut vazia (sem nenhum projeto), videos sinteticos, o motor de transcricao
+    baixado na hora (a mesma tela "Preparando" usa isso). Gera React e Cortes + Headline e confere que o projeto
+    nao aponta pra nada de outro computador."""
+    import subprocess
+    from pathlib import Path
+    from clipay import audio, capcut, processa, react, transcricao
+    p = Path(pasta); raiz = p / "CapCut Usuário" / "com.lveditor.draft"; raiz.mkdir(parents=True, exist_ok=True)
+    def video(nome, w, h, d):
+        f = p / nome
+        tom = f"aevalsrc='sin(2*PI*150*t)*0.5*(lt(t,3)+between(t,4.5,7.5)+gt(t,9))':s=16000:d={d}"
+        subprocess.run([audio.ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c=gray:s={w}x{h}:r=30:d={d}",
+                        "-f", "lavfi", "-i", tom, "-pix_fmt", "yuv420p", "-c:v", "mpeg4", "-q:v", "5", "-c:a", "aac",
+                        "-shortest", str(f)], check=True, capture_output=True, **audio._sem_janela())
+        return f
+    cima, rv = video("vídeo de cima.mp4", 540, 960, 10), video("react.mp4", 1920, 1080, 30)
+    out = {}
+    r = react.gera(raiz, [{"video": cima}], rv)
+    if r[0].get("erro"): raise RuntimeError("React: " + r[0]["erro"])
+    out["react"] = r[0]["projeto"]
+    transcricao.prepara("preciso")
+    an = processa.analisa_video(raiz, cima)
+    out["cortes_headline"] = processa.monta_video(raiz, an)["nome"]
+    for nome in out.values():
+        for f in ("draft_content.json", "draft_meta_info.json"):
+            ruins = capcut.caminhos_de_fora((raiz / nome / f).read_text(encoding="utf-8"))
+            if ruins: raise RuntimeError(f"{nome}/{f} aponta pra outro computador: {ruins[:3]}")
+    return out
 
 
 def main():
@@ -42,7 +88,9 @@ def main():
         try:
             import webview                        # janela nativa: fechar a janela fecha o app
             threading.Thread(target=servidor.inicia, kwargs={"abrir": False, "porta": porta}, daemon=True).start()
-            webview.create_window("Clipay.ia", url, width=1280, height=840, min_size=(900, 600))
+            w = webview.create_window("Clipay.ia", url, width=1280, height=840, min_size=(900, 600))
+            servidor.JANELA = w                   # janelas "Escolher arquivo" nativas (Windows e Mac)
+            w.events.loaded += lambda: _ouve_soltar(w, servidor)
             webview.start()
             return
         except Exception:

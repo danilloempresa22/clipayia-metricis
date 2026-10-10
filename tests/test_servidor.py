@@ -424,3 +424,82 @@ def test_react_previa_da_headline_so_se_existir(monkeypatch, tmp_path):
     assert [h["previa"] for h in fluxo_react.headlines()] == [None, None]          # sem imagem: a tela usa a simples
     (tmp_path / "headline-citacao.webp").write_bytes(b"x")
     assert [h["previa"] for h in fluxo_react.headlines()] == [None, "/assets/previews/headline/headline-citacao.webp"]
+
+
+# ---- janela do app (Windows e Mac): arquivo arrastado vem com o caminho de verdade, nada e' copiado ----
+def test_soltou_na_janela_entrega_o_caminho(monkeypatch, tmp_path):
+    v = tmp_path / "Vídeo com acento.mp4"; v.write_bytes(b"x" * 1234)
+    monkeypatch.setattr(servidor, "JANELA", object())
+    monkeypatch.setattr(servidor, "SOLTOS", [])
+    servidor.soltou([str(v), str(tmp_path / "sumiu.mp4")])
+    assert servidor.localiza(v.name, 1234) == str(v)                        # o original, sem procurar nem copiar
+    assert servidor._do_solto(v.name, 999, espera=0) is None                 # outro tamanho: nao e' o mesmo arquivo
+
+
+def test_janela_de_arquivo_nativa_quando_tem_janela(monkeypatch):
+    pedidos = []
+
+    class Janela:
+        def create_file_dialog(self, tipo, **k):
+            pedidos.append((tipo, k)); return ("C:/a.mp4", "C:/b.mp4") if k.get("allow_multiple") else ("C:/a.mp4",)
+    monkeypatch.setattr(servidor, "JANELA", Janela())
+    assert servidor.escolhe_arquivo("video") == "C:/a.mp4"
+    assert servidor.escolhe_arquivo("videos") == ["C:/a.mp4", "C:/b.mp4"]
+    assert all("Vídeos (*.mp4" in k["file_types"][0] for _, k in pedidos)
+
+
+# ---- primeira abertura: o motor de transcricao baixa com barra de verdade e retoma se a internet cair ----
+def test_preparar_baixa_retoma_e_avisa_sem_internet(monkeypatch, tmp_path):
+    import io, urllib.error
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
+    monkeypatch.setattr(transcricao, "motor_rapido_disponivel", lambda: True)
+    conteudo = {a: (a * 50000).encode()[:300000] for a in transcricao.CT2_ARQS}
+    pedidos, cai = [], {"vez": 1}
+
+    class Resp(io.BytesIO):
+        def __init__(self, dados, status=200, tam=0): super().__init__(dados); self.status = status; self.headers = {"Content-Length": str(tam)}
+        def __enter__(self): return self
+        def __exit__(self, *a): self.close()
+
+    def abre(req, timeout=None):
+        url = req if isinstance(req, str) else req.full_url
+        arq = url.rsplit("/", 1)[1]; dados = conteudo[arq]
+        if not isinstance(req, str) and req.get_method() == "HEAD": return Resp(b"", 200, len(dados))
+        rng = (req.headers.get("Range") if not isinstance(req, str) else None) or ""
+        pedidos.append((arq, rng))
+        ini = int(rng[6:-1]) if rng else 0
+        if arq == "model.bin" and cai["vez"]:                   # a internet cai no meio do arquivo grande
+            cai["vez"] = 0
+            class Meia(Resp):
+                def read(self, n=-1):
+                    b = super().read(n)
+                    if not b: raise urllib.error.URLError("conexao perdida")
+                    return b
+            return Meia(dados[:len(dados) // 2], 200)
+        return Resp(dados[ini:], 206 if ini else 200)
+    monkeypatch.setattr(transcricao.urllib.request, "urlopen", abre)
+    with pytest.raises(OSError):
+        transcricao.prepara("preciso")
+    d = transcricao.pasta_ct2("preciso")
+    assert (d / "model.bin.part").stat().st_size == 150000 and not (d / "model.bin").exists()   # pela metade: nunca com o nome final
+    vistos = []
+    transcricao.prepara("preciso", lambda f, t: vistos.append((f, t)))
+    assert ("model.bin", "bytes=150000-") in pedidos                       # continuou de onde parou
+    assert all((d / a).read_bytes() == conteudo[a] for a in transcricao.CT2_ARQS) and transcricao.ct2_pronto()
+    assert vistos[-1][0] == vistos[-1][1]                                  # a barra chega a 100%
+
+
+def test_preparar_sem_internet_frase_clara(monkeypatch, tmp_path):
+    import urllib.error
+    monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
+    monkeypatch.setattr(transcricao, "motor_rapido_disponivel", lambda: True)
+    monkeypatch.setattr(servidor, "PREP", {"estado": None, "feito": 0, "total": 0, "erro": None})
+    def sem_rede(*a, **k): raise urllib.error.URLError("getaddrinfo failed")
+    monkeypatch.setattr(transcricao.urllib.request, "urlopen", sem_rede)
+    assert servidor.estado_preparar()["estado"] == "falta"
+    servidor.preparar()
+    for _ in range(50):
+        if servidor.PREP["estado"] == "erro": break
+        time.sleep(0.05)
+    e = servidor.estado_preparar()
+    assert e["estado"] == "erro" and "internet" in e["erro"] and "Tentar de novo" in e["erro"]

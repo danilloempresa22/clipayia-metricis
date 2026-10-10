@@ -333,13 +333,9 @@ def _troca(o, f):
 
 
 def fonte_headline():
-    """a fonte da headline (Creato Display Bold) mora no Windows, nao no cache do CapCut. Vazio = nao instalada."""
-    import os
-    for p in (Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "Windows" / "Fonts" / FONTE,
-              Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / FONTE):
-        if p.exists():
-            return str(p).replace("\\", "/")
-    return ""
+    """a fonte da headline (Creato Display Bold) e' uma fonte instalada no sistema (Windows ou Mac), nao do cache do
+    CapCut. Vazio = nao instalada."""
+    return capcut.fonte_instalada(FONTE)
 
 
 def sem_filtro(d):
@@ -385,8 +381,7 @@ def monta(receita, react, enq=None, cta=None, inicio_us=None, congelar=None, cac
     fonte = fonte_headline()
     if not fonte:
         avisos.append("A fonte Creato Display Bold não está instalada neste computador: "
-                      "a headline vai aparecer com a fonte padrão do CapCut.")
-        fonte = "C:/Windows/Fonts/" + FONTE
+                      "a headline vai aparecer com a fonte padrão do CapCut.")      # sem caminho: nada de C:/ no Mac
 
     # --- tempos (us, grade de 30 fps). Com CTA: o de cima congela em P pelo tempo do CTA
     cong = None

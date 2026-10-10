@@ -23,6 +23,28 @@ def _gera_video(destino, largura, altura, com_audio=True):
     return destino
 
 
+def caminhos_de_fora(texto):
+    from clipay import capcut
+    return capcut.caminhos_de_fora(texto)
+
+
+@pytest.fixture(autouse=True)
+def projeto_sem_caminho_de_fora(monkeypatch):
+    """todo projeto gravado em qualquer teste (todos os modelos) e' conferido: nada de caminho de outra maquina"""
+    from clipay import capcut
+    original = capcut.grava_projeto
+
+    def confere(raiz, nome, *a, **k):
+        final = original(raiz, nome, *a, **k)
+        for f in ("draft_content.json", "draft_meta_info.json"):
+            arq = Path(raiz) / final / f
+            if arq.exists():
+                ruins = caminhos_de_fora(arq.read_text(encoding="utf-8"))
+                assert not ruins, f"{final}/{f} tem caminho de outro computador: {ruins[:5]}"
+        return final
+    monkeypatch.setattr(capcut, "grava_projeto", confere)
+
+
 @pytest.fixture(autouse=True)
 def motor_onnx(monkeypatch):
     """os testes simulam o motor ONNX (transcricao.Whisper); o motor rapido e' medido a parte"""

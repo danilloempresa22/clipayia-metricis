@@ -9,7 +9,7 @@ import hashlib, json, os, shutil, subprocess, threading
 from pathlib import Path
 import cv2
 import numpy as np
-from . import audio, cortes, transcricao
+from . import audio, capcut, cortes, transcricao
 
 VERSAO = 1                           # muda quando o desenho do preview mudar (refaz o cache)
 LARG, ALT = 270, 480                 # quadro 9:16 do preview (1/4 do 1080x1920 do projeto)
@@ -78,7 +78,7 @@ def fonte_headline(mod, cache_capcut=None):
     if dest.exists():
         return dest.name
     achada = cortes.composto.caminho_no_cache(mod["headline"]["fonte_id"], Path(cache_capcut) / "effect") if cache_capcut else ""
-    for c in (achada, "C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/arial.ttf"):
+    for c in (achada, capcut.fonte_instalada("arialbd.ttf", "Arial Bold.ttf", "arial.ttf", "Arial.ttf")):
         if c and Path(c).is_file() and Path(c).suffix.lower() in (".ttf", ".otf"):
             shutil.copy(c, dest); return dest.name
     return None

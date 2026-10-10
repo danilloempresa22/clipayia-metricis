@@ -1,5 +1,6 @@
 name: build
-# Gera o Clipay.exe. Para publicar uma versao: git tag v0.1.0 && git push --tags
+# Gera o Clipay.ia para Windows e para Mac (chip da Apple) e publica os dois no Release.
+# Para publicar uma versao: git tag v0.2.0 && git push --tags
 on:
   push:
     tags: ["v*"]
@@ -19,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: dependencias
-        run: pip install -r requirements.txt -r requirements-janela.txt pyinstaller pytest
+        run: pip install -r requirements.txt -r requirements-janela.txt pyinstaller pillow pytest
       - name: ffmpeg (build LGPL)
         shell: pwsh
         run: |
@@ -31,15 +32,66 @@ jobs:
         run: python -m pytest ../tests -q
       - name: empacota
         run: pyinstaller clipay.spec --noconfirm
-      - name: autoteste do .exe (tudo veio dentro do arquivo?)
+      - name: autoteste (como cliente novo, usuario com acento e espaco, CapCut vazio)
         shell: pwsh
         run: |
-          $p = Start-Process dist/Clipay.exe -ArgumentList "--autoteste","$env:RUNNER_TEMP/auto.json" -PassThru -Wait
+          $dados = Join-Path $env:RUNNER_TEMP "Usuário Teste\AppData"
+          New-Item -ItemType Directory -Force "$dados\Roaming","$dados\Local" | Out-Null
+          $env:APPDATA = "$dados\Roaming"; $env:LOCALAPPDATA = "$dados\Local"
+          $gera = Join-Path $env:RUNNER_TEMP "Área de Trabalho\teste"; New-Item -ItemType Directory -Force $gera | Out-Null
+          $p = Start-Process "dist/Clipay.ia/Clipay.ia.exe" -ArgumentList "--autoteste","$env:RUNNER_TEMP/auto.json","--gera","`"$gera`"" -PassThru -Wait
           Get-Content "$env:RUNNER_TEMP/auto.json"
           if ($p.ExitCode -ne 0) { throw "autoteste falhou" }
+      - name: zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/Clipay.ia -DestinationPath Clipay.ia-Windows.zip
+          "Tamanho: {0:N0} MB" -f ((Get-Item Clipay.ia-Windows.zip).Length / 1MB)
       - uses: actions/upload-artifact@v4
-        with: { name: Clipay-windows, path: app/dist/Clipay.exe }
+        with: { name: Clipay.ia-Windows, path: app/Clipay.ia-Windows.zip }
       - name: publica release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
-        with: { files: app/dist/Clipay.exe }
+        with: { files: app/Clipay.ia-Windows.zip }
+
+  mac:
+    runs-on: macos-14                     # chip da Apple (arm64): tudo sai nativo
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: dependencias
+        run: pip install -r requirements.txt -r requirements-janela.txt pyinstaller pillow pytest
+      - name: ffmpeg (estatico, chip da Apple)
+        run: |
+          curl -fsSL "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/release/ffmpeg.zip" -o ff.zip
+          mkdir -p bin && unzip -o ff.zip -d bin && chmod +x bin/ffmpeg
+          lipo -archs bin/ffmpeg && bin/ffmpeg -version | head -1
+      - name: testes
+        run: python -m pytest ../tests -q
+      - name: empacota
+        run: pyinstaller clipay.spec --noconfirm
+      - name: confere (chip da Apple, nome, permissoes em portugues)
+        run: |
+          lipo -archs "dist/Clipay.ia.app/Contents/MacOS/Clipay.ia"
+          lipo -archs "dist/Clipay.ia.app/Contents/Frameworks/bin/ffmpeg" || lipo -archs "dist/Clipay.ia.app/Contents/Resources/bin/ffmpeg"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" -c "Print :CFBundleDisplayName" -c "Print :CFBundleShortVersionString" \
+            -c "Print :NSDownloadsFolderUsageDescription" "dist/Clipay.ia.app/Contents/Info.plist"
+      - name: autoteste (como cliente novo, CapCut vazio)
+        run: |
+          mkdir -p "$RUNNER_TEMP/Área de Trabalho/teste"
+          "dist/Clipay.ia.app/Contents/MacOS/Clipay.ia" --autoteste "$RUNNER_TEMP/auto.json" --gera "$RUNNER_TEMP/Área de Trabalho/teste" || { cat "$RUNNER_TEMP/auto.json"; exit 1; }
+          cat "$RUNNER_TEMP/auto.json"
+      - name: zip
+        run: |
+          ditto -c -k --keepParent "dist/Clipay.ia.app" Clipay.ia-Mac.zip
+          ls -lh Clipay.ia-Mac.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: Clipay.ia-Mac, path: app/Clipay.ia-Mac.zip }
+      - name: publica release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: app/Clipay.ia-Mac.zip }

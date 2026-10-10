@@ -254,26 +254,45 @@ def ct2_pronto(qual="preciso"):
     return all((d / a).exists() for a in CT2_ARQS)
 
 
+ESPERA_REDE = 30                                     # s sem receber nada: a internet caiu (erro claro, nao trava)
+
+
 def baixa_ct2(qual="preciso", progresso=None):
-    """baixa uma vez (~460 MB no 'preciso'); arquivo pela metade nunca fica com o nome final"""
+    """baixa uma vez (~460 MB no 'preciso'); arquivo pela metade nunca fica com o nome final. Se a internet cair,
+    o que ja veio fica em .part e a proxima tentativa continua dali (pedido com Range)."""
     d = pasta_ct2(qual); d.mkdir(parents=True, exist_ok=True)
     tamanhos = {}
     for a in CT2_ARQS:                               # tamanho total pra barra de progresso
         if (d / a).exists(): continue
         req = urllib.request.Request(CT2_URL.format(nome=CT2[qual], arq=a), method="HEAD")
-        with urllib.request.urlopen(req) as r:
+        with urllib.request.urlopen(req, timeout=ESPERA_REDE) as r:
             tamanhos[a] = int(r.headers.get("Content-Length", 0) or r.headers.get("X-Linked-Size", 0) or 0)
-    total = sum(tamanhos.values()) or 1; feito = 0
+    total = sum(tamanhos.values()) or 1
+    feito = sum((d / (a + ".part")).stat().st_size for a in tamanhos if (d / (a + ".part")).exists())
     for a in tamanhos:
         tmp = d / (a + ".part")
-        with urllib.request.urlopen(CT2_URL.format(nome=CT2[qual], arq=a)) as r, open(tmp, "wb") as f:
-            while True:
-                bloco = r.read(1 << 20)
-                if not bloco: break
-                f.write(bloco); feito += len(bloco)
-                if progresso: progresso(min(feito, total), total)
+        ja = tmp.stat().st_size if tmp.exists() else 0
+        if tamanhos[a] and ja >= tamanhos[a]:
+            tmp.replace(d / a); continue
+        req = urllib.request.Request(CT2_URL.format(nome=CT2[qual], arq=a), headers={"Range": f"bytes={ja}-"} if ja else {})
+        with urllib.request.urlopen(req, timeout=ESPERA_REDE) as r:
+            if ja and r.status != 206:               # o servidor ignorou o Range: comeca o arquivo de novo
+                feito -= ja; ja = 0
+            with open(tmp, "ab" if ja else "wb") as f:
+                while True:
+                    bloco = r.read(1 << 20)
+                    if not bloco: break
+                    f.write(bloco); feito += len(bloco)
+                    if progresso: progresso(min(feito, total), total)
         tmp.replace(d / a)
     return d
+
+
+def prepara(qual="preciso", progresso=None):
+    """deixa o motor de transcricao pronto (o que a tela "Preparando o Clipay.ia" mostra na primeira vez)"""
+    if motor_rapido_disponivel():
+        return baixa_ct2(qual, progresso)
+    return baixa_modelo(qual, progresso)
 
 
 class WhisperRapido:

@@ -315,3 +315,32 @@ def test_react_vertical_move_na_vertical(video_vertical, midia, tmp_path):
         assert kc["clip"]["transform"]["x"] == 0.0
         ys.append(k1["clip"]["transform"]["y"])
     assert ys[0] > ys[1] > ys[2]                                  # -100 = pra cima (y do CapCut cresce pra cima)
+
+
+def test_sem_a_fonte_instalada_nenhum_caminho_de_outra_maquina(video_vertical, midia, monkeypatch, tmp_path):
+    """PC ou Mac de cliente sem a Creato Display: aviso claro, fonte sem caminho (o CapCut usa a padrao), e nunca
+    C:/Windows/... nem o usuario dos moldes no projeto"""
+    from clipay import capcut
+    from conftest import caminhos_de_fora
+    monkeypatch.setattr(capcut, "pastas_de_fonte", lambda: [tmp_path / "sem fontes"])
+    assert react.fonte_headline() == ""
+    for hl in ("noticia", "citacao"):
+        r = react.monta(video_vertical, midia["react"], cta=midia["cta"], congelar=5.0, headline_id=hl)
+        assert any("Creato Display" in a for a in r["avisos"])
+        tm = r["draft"]["materials"]["texts"][0]
+        assert tm["font_path"] == "" and caminhos_de_fora(json.dumps(r["draft"])) == []
+        raiz = tmp_path / f"capcut {hl}"; raiz.mkdir()
+        nome = react.grava(raiz, r)                    # o meta ganha a pasta real ao gravar (o verificador confere)
+        for f in ("draft_content.json", "draft_meta_info.json"):
+            assert caminhos_de_fora((raiz / nome / f).read_text(encoding="utf-8")) == []
+
+
+def test_verificador_acusa_caminho_de_outro_computador():
+    from conftest import caminhos_de_fora
+    from pathlib import Path as P
+    eu = P.home().name
+    assert caminhos_de_fora('{"p": "C:/Users/USUARIO/AppData/Local/CapCut/x"}')
+    assert caminhos_de_fora('{"p": "C:/Windows/Fonts/CreatoDisplay-Bold.otf"}')
+    assert caminhos_de_fora('{"p": "/Users/outrapessoa/Movies/CapCut/x"}')
+    assert caminhos_de_fora('{"p": "C:/Users/' + eu + '/AppData/Local/CapCut/x"}') == []
+    assert caminhos_de_fora('{"p": ""}') == []
