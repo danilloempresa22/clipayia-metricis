@@ -270,7 +270,8 @@ def salva_preferencias_react(c):
     return dict(preferencias_react(), **react_salvo())
 
 
-PREP = {"estado": None, "feito": 0, "total": 0, "erro": None}      # primeira abertura: o modelo de transcricao
+PREP = {"estado": None, "feito": 0, "total": 0, "aviso": None}     # primeira abertura ("aviso", nao "erro": a tela le
+                                                                   # "erro" como falha do pedido)
 _TRAVA_PREP = threading.Lock()
 
 
@@ -285,7 +286,7 @@ def preparar():
     with _TRAVA_PREP:
         if PREP["estado"] == "baixando" or transcricao.pronto("preciso"):
             return estado_preparar()
-        PREP.update(estado="baixando", erro=None)
+        PREP.update(estado="baixando", aviso=None)
 
     def roda():
         try:
@@ -294,7 +295,7 @@ def preparar():
         except Exception as e:                          # noqa: BLE001 — vira a frase da tela
             traceback.print_exc()
             rede = isinstance(e, (OSError, TimeoutError)) or "urlopen" in str(e).lower()
-            PREP.update(estado="erro", erro=("A internet caiu ou está muito lenta. Confira a conexão e toque em "
+            PREP.update(estado="erro", aviso=("A internet caiu ou está muito lenta. Confira a conexão e toque em "
                                              "Tentar de novo: o download continua de onde parou." if rede else
                                              "Não consegui preparar o Clipay.ia. Toque em Tentar de novo."))
     threading.Thread(target=roda, daemon=True).start()

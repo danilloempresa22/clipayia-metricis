@@ -493,7 +493,7 @@ def test_preparar_sem_internet_frase_clara(monkeypatch, tmp_path):
     import urllib.error
     monkeypatch.setattr(transcricao, "pasta_dados", lambda: tmp_path)
     monkeypatch.setattr(transcricao, "motor_rapido_disponivel", lambda: True)
-    monkeypatch.setattr(servidor, "PREP", {"estado": None, "feito": 0, "total": 0, "erro": None})
+    monkeypatch.setattr(servidor, "PREP", {"estado": None, "feito": 0, "total": 0, "aviso": None})
     def sem_rede(*a, **k): raise urllib.error.URLError("getaddrinfo failed")
     monkeypatch.setattr(transcricao.urllib.request, "urlopen", sem_rede)
     assert servidor.estado_preparar()["estado"] == "falta"
@@ -502,4 +502,4 @@ def test_preparar_sem_internet_frase_clara(monkeypatch, tmp_path):
         if servidor.PREP["estado"] == "erro": break
         time.sleep(0.05)
     e = servidor.estado_preparar()
-    assert e["estado"] == "erro" and "internet" in e["erro"] and "Tentar de novo" in e["erro"]
+    assert e["estado"] == "erro" and "internet" in e["aviso"] and "Tentar de novo" in e["aviso"] and "erro" not in e

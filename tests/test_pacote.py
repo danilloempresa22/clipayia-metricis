@@ -88,8 +88,12 @@ def test_cancelar_no_meio(takes):
     with pytest.raises(pacote.Cancelado):
         pacote.transcreve_takes(w, [takes["curto"], takes["fim"], takes["longo"]], cancelado=cancelado)
     assert w.chamadas == 0
-    vivos = subprocess.run(["tasklist", "/FI", "IMAGENAME eq ffmpeg.exe"], capture_output=True, text=True).stdout
-    assert "ffmpeg.exe" not in vivos                            # nao sobra processo
+    import sys
+    if sys.platform == "win32":
+        vivos = subprocess.run(["tasklist", "/FI", "IMAGENAME eq ffmpeg.exe"], capture_output=True, text=True).stdout
+        assert "ffmpeg.exe" not in vivos                        # nao sobra processo
+    else:                                                       # Mac: o mesmo, pelo nome do processo
+        assert subprocess.run(["pgrep", "-x", "ffmpeg"], capture_output=True).returncode != 0
 
 
 def test_cancelar_entre_dois_blocos(takes):

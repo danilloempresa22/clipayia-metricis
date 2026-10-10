@@ -98,3 +98,34 @@ def test_falha_no_meio_nao_deixa_pasta_pela_metade(video_vertical, raiz_capcut, 
     with pytest.raises(capcut.ErroProjeto):
         processa.processa_video(raiz_capcut, video_vertical, "reels", {})
     assert set(os.listdir(raiz_capcut)) == antes
+
+
+# ---- CapCut do Mac: o projeto tambem sai como draft_info.json; projetos so com draft_info.json sao lidos ----
+def test_mac_grava_draft_info_e_le_os_dois_nomes(raiz_capcut, monkeypatch):
+    import json
+    from clipay import capcut
+    p = raiz_capcut / "0918 (1)"
+    (p / "draft_content.json").rename(p / "draft_info.json")          # projeto do Mac: so draft_info.json
+    assert [x["nome"] for x in capcut.lista_projetos(raiz_capcut)] == ["0918 (1)"]
+    assert capcut.sonda_capcut(raiz_capcut)["platform"]
+    monkeypatch.setattr(capcut.sys, "platform", "darwin")
+    le = lambda f: json.loads((p / f).read_text(encoding="utf-8").replace("C:/Users/USUARIO", str(Path.home()).replace(chr(92), "/")))   # o exemplo traz o usuario dos moldes
+    d, meta = le("draft_info.json"), le("draft_meta_info.json")
+    nome = capcut.grava_projeto(raiz_capcut, "teste mac", d, meta)
+    a, b = ((raiz_capcut / nome / f).read_text(encoding="utf-8") for f in ("draft_content.json", "draft_info.json"))
+    assert a == b
+    idx = json.loads((raiz_capcut / "root_meta_info.json").read_text(encoding="utf-8"))["all_draft_store"]
+    assert next(x for x in idx if x["draft_name"] == nome)["draft_json_file"].endswith("/draft_info.json")
+
+
+def test_windows_continua_so_com_draft_content(raiz_capcut, monkeypatch):
+    import json
+    from clipay import capcut
+    monkeypatch.setattr(capcut.sys, "platform", "win32")
+    p = raiz_capcut / "0918 (1)"
+    le = lambda f: json.loads((p / f).read_text(encoding="utf-8").replace("C:/Users/USUARIO", str(Path.home()).replace(chr(92), "/")))   # o exemplo traz o usuario dos moldes
+    d, meta = le("draft_content.json"), le("draft_meta_info.json")
+    nome = capcut.grava_projeto(raiz_capcut, "teste win", d, meta)
+    assert (raiz_capcut / nome / "draft_content.json").exists() and not (raiz_capcut / nome / "draft_info.json").exists()
+    idx = json.loads((raiz_capcut / "root_meta_info.json").read_text(encoding="utf-8"))["all_draft_store"]
+    assert next(x for x in idx if x["draft_name"] == nome)["draft_json_file"].endswith("/draft_content.json")

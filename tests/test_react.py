@@ -162,6 +162,8 @@ def _difs(a, b, p="", out=None):
 def test_ouro_patricio():
     """refaz o "Patricio clipay ia" com as mesmas entradas: so os ids, os dados da maquina (zerados) e o texto da
     headline (sai o exemplo) podem mudar"""
+    if not (REF / "draft_content.json").exists():
+        pytest.skip("o projeto de referência do React não está neste computador")
     ref = json.loads((REF / "draft_content.json").read_text(encoding="utf-8"))
     pega = lambda n: next(v["path"] for v in ref["materials"]["videos"] if v["material_name"] == n)
     rec, rct, cta = pega("snaptik_7597584659882724629_v3.mp4"), pega("IMG_7361.MOV"), pega("CTA +100 RECEITAS .mp4")

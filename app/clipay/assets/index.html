@@ -2125,13 +2125,13 @@ function prepPrecisa(){
     const desenha = e => {
       const pc = e.total ? Math.min(100, Math.round(e.feito / e.total * 100)) : 0;
       $("prep-i").style.width = pc + "%"; $("prep-barra").setAttribute("aria-valuenow", pc);
-      $("prep-n").textContent = e.estado === "erro" ? "Parou em " + pc + "%" : e.total ? mb(e.feito) + " de " + mb(e.total) + " MB (" + pc + "%)" : "Começando…";
-      $("prep-erro").classList.toggle("oculto", e.estado !== "erro"); $("prep-erro").textContent = e.erro || "";
+      $("prep-n").textContent = e.estado === "erro" ? (e.total ? "Parou em " + pc + "%" : "O download parou") : e.total ? mb(e.feito) + " de " + mb(e.total) + " MB (" + pc + "%)" : "Começando…";
+      $("prep-erro").classList.toggle("oculto", e.estado !== "erro"); $("prep-erro").textContent = e.aviso || "";
       $("prep-tentar").classList.toggle("oculto", e.estado !== "erro");
     };
     const segue = async () => {
       let e;
-      try{ e = await api("preparar"); }catch(x){ e = {estado: "erro", feito: 0, total: 0, erro: "Não consegui falar com o Clipay.ia. Feche e abra de novo."}; }
+      try{ e = await api("preparar"); }catch(x){ e = {estado: "erro", feito: 0, total: 0, aviso: "Não consegui falar com o Clipay.ia. Feche e abra de novo."}; }
       desenha(e);
       if(e.estado === "pronto"){ $("tela-prep").classList.add("oculto"); return ok(); }
       if(e.estado !== "erro") setTimeout(segue, 700); else $("prep-tentar").focus();

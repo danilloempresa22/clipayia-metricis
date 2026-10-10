@@ -80,6 +80,15 @@ def cache_efeitos(raiz):
 
 
 # ---------------- listar / ler ----------------
+# o arquivo do projeto: draft_content.json (Windows) ou draft_info.json (CapCut do Mac, versoes novas)
+DRAFTS = ("draft_content.json", "draft_info.json")
+
+
+def arquivo_draft(pasta):
+    """o arquivo do projeto nesta pasta (o que existir); None = nao e' projeto"""
+    return next((Path(pasta) / n for n in DRAFTS if (Path(pasta) / n).exists()), None)
+
+
 def lista_projetos(raiz):
     raiz = Path(raiz)
     meta_root = raiz / "root_meta_info.json"
@@ -92,7 +101,7 @@ def lista_projetos(raiz):
                 if not pasta.name:
                     continue
                 pasta = raiz / pasta.name            # caminho gravado pode ser de outra maquina
-                if not (pasta / "draft_content.json").exists():
+                if not arquivo_draft(pasta):
                     continue
                 itens.append({"nome": x.get("draft_name") or pasta.name, "pasta": str(pasta),
                               "modificado": x.get("tm_draft_modified", 0) / 1e6,
@@ -101,9 +110,9 @@ def lista_projetos(raiz):
             itens = []
     if not itens:                                     # sem indice: varre as pastas
         for pasta in raiz.iterdir():
-            if (pasta / "draft_content.json").exists():
-                itens.append({"nome": pasta.name, "pasta": str(pasta),
-                              "modificado": (pasta / "draft_content.json").stat().st_mtime, "duracao": 0})
+            arq = arquivo_draft(pasta) if pasta.is_dir() else None
+            if arq:
+                itens.append({"nome": pasta.name, "pasta": str(pasta), "modificado": arq.stat().st_mtime, "duracao": 0})
     itens.sort(key=lambda x: -x["modificado"])
     return itens
 
@@ -132,7 +141,7 @@ def le_draft(arq):
 
 def carrega(pasta):
     pasta = Path(pasta)
-    draft = le_draft(pasta / "draft_content.json")
+    draft = le_draft(arquivo_draft(pasta) or pasta / "draft_content.json")
     meta_p = pasta / "draft_meta_info.json"
     meta = json.loads(meta_p.read_text(encoding="utf-8")) if meta_p.exists() else {}
     vids = [t for t in draft.get("tracks", []) if t.get("type") == "video"]
@@ -191,7 +200,7 @@ def sonda_capcut(raiz):
     (senao levanta ErroProjeto de criptografia ANTES de mexer em qualquer coisa) e devolve o bloco
     'platform' real da maquina. Pasta sem projetos: nao da pra sondar, devolve None."""
     for p in lista_projetos(raiz)[:5]:
-        d = le_draft(Path(p["pasta"]) / "draft_content.json")
+        d = le_draft(arquivo_draft(p["pasta"]) or Path(p["pasta"]) / "draft_content.json")
         if d.get("platform"):
             return {"platform": d["platform"], "last_modified_platform": d.get("last_modified_platform") or d["platform"],
                     "new_version": d.get("new_version"), "version": d.get("version")}
@@ -324,7 +333,10 @@ def grava_projeto(raiz, nome, novo, meta0, capa=None, extras=None):
         fold = str(pasta).replace("\\", "/")
         rootp = str(raiz).replace("\\", "/")
         novo = copy.deepcopy(novo); novo["id"] = uid()
-        (pasta / "draft_content.json").write_text(json.dumps(novo, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        texto = json.dumps(novo, ensure_ascii=False, separators=(",", ":"))
+        (pasta / "draft_content.json").write_text(texto, encoding="utf-8")
+        if sys.platform == "darwin":                  # o CapCut do Mac (versoes novas) le o projeto deste nome
+            (pasta / "draft_info.json").write_text(texto, encoding="utf-8")
         now = time.time_ns() // 1000
         meta = copy.deepcopy(meta0)
         meta.update({"draft_id": uid(), "draft_name": nome, "draft_fold_path": fold, "draft_root_path": rootp,
@@ -355,8 +367,11 @@ def registra(raiz, meta, fold, tentativas=5):
         if any(x.get("draft_fold_path") == fold for x in st):
             return
         modelo = copy.deepcopy(st[0]) if st else {}
+        # o nome do arquivo que os projetos desta maquina ja usam no indice (sem nenhum: o do sistema)
+        arq = Path(st[0].get("draft_json_file", "")).name if st and st[0].get("draft_json_file") else ""
+        if arq not in DRAFTS: arq = "draft_info.json" if sys.platform == "darwin" else "draft_content.json"
         modelo.update({"draft_id": meta["draft_id"], "draft_name": meta["draft_name"], "draft_fold_path": fold,
-                       "draft_json_file": fold + "/draft_content.json", "draft_cover": fold + "/draft_cover.jpg",
+                       "draft_json_file": fold + "/" + arq, "draft_cover": fold + "/draft_cover.jpg",
                        "draft_root_path": meta["draft_root_path"],
                        "tm_draft_create": meta["tm_draft_create"], "tm_draft_modified": meta["tm_draft_modified"],
                        "tm_duration": meta["tm_duration"]})
