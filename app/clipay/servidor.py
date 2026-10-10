@@ -295,9 +295,9 @@ def preparar():
         except Exception as e:                          # noqa: BLE001 — vira a frase da tela
             traceback.print_exc()
             rede = isinstance(e, (OSError, TimeoutError)) or "urlopen" in str(e).lower()
-            PREP.update(estado="erro", aviso=("A internet caiu ou está muito lenta. Confira a conexão e toque em "
+            PREP.update(estado="erro", aviso=("A internet caiu ou está muito lenta. Confira a conexão e clique em "
                                              "Tentar de novo: o download continua de onde parou." if rede else
-                                             "Não consegui preparar o Clipay.ia. Toque em Tentar de novo."))
+                                             "Não consegui preparar o Clipay.ia. Clique em Tentar de novo."))
     threading.Thread(target=roda, daemon=True).start()
     return estado_preparar()
 

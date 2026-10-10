@@ -33,7 +33,7 @@ if MAC:
                  info_plist={
                      "CFBundleName": NOME, "CFBundleDisplayName": NOME, "CFBundleShortVersionString": VERSAO,
                      "CFBundleVersion": VERSAO, "CFBundleDevelopmentRegion": "pt-BR", "CFBundleLocalizations": ["pt-BR"],
-                     "LSMinimumSystemVersion": "12.0", "NSHighResolutionCapable": True,
+                     "LSMinimumSystemVersion": "14.0", "NSHighResolutionCapable": True,
                      # os pedidos de acesso que o Mac mostra, em portugues
                      "NSDesktopFolderUsageDescription": PEDIDO, "NSDocumentsFolderUsageDescription": PEDIDO,
                      "NSDownloadsFolderUsageDescription": PEDIDO, "NSRemovableVolumesUsageDescription": PEDIDO,
