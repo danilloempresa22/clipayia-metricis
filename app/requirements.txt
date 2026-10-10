@@ -3,3 +3,4 @@ onnxruntime>=1.17
 faster-whisper>=1.2,<2
 opencv-python-headless>=4.8,<5
 sherpa-onnx>=1.13,<2
+certifi                       # conexao segura no Mac (certificados dentro do app)

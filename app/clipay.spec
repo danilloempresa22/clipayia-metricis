@@ -12,14 +12,14 @@ NOME = "Clipay.ia"
 datas = [("clipay/assets", "clipay/assets"), ("clipay/config_publica.json", "clipay")]
 binaries = (collect_dynamic_libs("onnxruntime") + collect_dynamic_libs("ctranslate2") + collect_dynamic_libs("sherpa_onnx")
             + [("bin/ffmpeg.exe" if WIN else "bin/ffmpeg", "bin")])   # sherpa_onnx: impressao de voz (Cortes)
-for pacote in ("webview", "cv2", "faster_whisper"):  # cv2: haarcascade do rosto; faster_whisper: assets (VAD)
+for pacote in ("webview", "cv2", "faster_whisper", "certifi"):  # cv2: rosto; faster_whisper: VAD; certifi: https
     try:
         datas += collect_data_files(pacote)
     except Exception:
         pass
 
 a = Analysis(["app.py"], pathex=["."], binaries=binaries, datas=datas,
-             hiddenimports=["onnxruntime", "webview", "webview.dom", "cv2", "tkinter", "tkinter.filedialog",
+             hiddenimports=["onnxruntime", "webview", "webview.dom", "cv2", "tkinter", "tkinter.filedialog", "certifi",
                             "faster_whisper", "ctranslate2", "tokenizers", "av", "sherpa_onnx"],
              excludes=["matplotlib", "PyQt5", "PySide6", "pytest", "PIL"])   # PIL: so converte o icone no build
 pyz = PYZ(a.pure)

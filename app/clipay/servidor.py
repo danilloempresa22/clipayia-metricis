@@ -294,10 +294,14 @@ def preparar():
             PREP.update(estado="pronto")
         except Exception as e:                          # noqa: BLE001 — vira a frase da tela
             traceback.print_exc()
+            seguro = "CERTIFICATE" in str(e).upper() or "SSL" in type(getattr(e, "reason", e)).__name__.upper()
             rede = isinstance(e, (OSError, TimeoutError)) or "urlopen" in str(e).lower()
-            PREP.update(estado="erro", aviso=("A internet caiu ou está muito lenta. Confira a conexão e clique em "
-                                             "Tentar de novo: o download continua de onde parou." if rede else
-                                             "Não consegui preparar o Clipay.ia. Clique em Tentar de novo."))
+            PREP.update(estado="erro", aviso=(
+                "Não consegui fazer uma conexão segura para baixar o motor. Feche o Clipay.ia e abra de novo; "
+                "se continuar, use Reportar problema." if seguro else
+                "A internet caiu ou está muito lenta. Confira a conexão e clique em "
+                "Tentar de novo: o download continua de onde parou." if rede else
+                "Não consegui preparar o Clipay.ia. Clique em Tentar de novo."))
     threading.Thread(target=roda, daemon=True).start()
     return estado_preparar()
 

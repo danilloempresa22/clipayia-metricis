@@ -1,6 +1,20 @@
 """Ponto de entrada do Clipay.ia (e' este arquivo que vira o .exe / .app).
 Abre numa janela propria (pywebview) quando disponivel; senao, no navegador padrao."""
-import multiprocessing, sys, threading
+import multiprocessing, os, sys, threading
+
+
+def certificados():
+    """conexao segura (https: login, download do motor de transcricao) com os certificados que vem DENTRO do app.
+    No Mac o Python empacotado procura os certificados num caminho da maquina onde o app foi montado, que nao existe
+    no computador do cliente: toda conexao era recusada e parecia "sem internet"."""
+    if os.environ.get("SSL_CERT_FILE"):
+        return os.environ["SSL_CERT_FILE"]
+    try:
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+        return os.environ["SSL_CERT_FILE"]
+    except Exception:                             # sem o pacote: fica o do sistema (Windows usa o dele)
+        return ""
 
 
 def autoteste():
@@ -11,6 +25,15 @@ def autoteste():
         try: r[nome] = fn() or True
         except Exception as e: r[nome] = f"FALHOU: {e}"
     from clipay import audio, conta, rosto, transcricao, capcut
+    def seguro():                                 # os certificados sao os de dentro do app e a conexao segura funciona
+        import ssl, urllib.request
+        c = os.environ.get("SSL_CERT_FILE", "")
+        base = getattr(sys, "_MEIPASS", "")
+        if not (c and os.path.isfile(c) and (not base or os.path.abspath(c).startswith(os.path.abspath(base)))):
+            raise RuntimeError(f"certificados fora do app: {c or ssl.get_default_verify_paths()}")
+        urllib.request.urlopen(urllib.request.Request(transcricao.CT2_URL.format(nome="small", arq="config.json"), method="HEAD"), timeout=30)
+        return c
+    tenta("conexao_segura", seguro)
     tenta("ffmpeg", lambda: audio.ffmpeg_bin())
     tenta("config_supabase", lambda: conta.SUPABASE_URL.startswith("https://") and len(conta.ANON_KEY) > 100)
     tenta("detector_rosto", lambda: rosto._detector(__import__("cv2")) is not None)
@@ -78,6 +101,7 @@ def gera_teste(pasta):
 
 
 def main():
+    certificados()
     if "--autoteste" in sys.argv:
         autoteste()
     from clipay import servidor
